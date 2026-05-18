@@ -1,9 +1,10 @@
 import Tiers from '../components/Tiers'
+import PageShell from './PageShell'
 
 export default function TiersPage() {
     return (
-        <main className="page-section">
+        <PageShell>
             <Tiers />
-        </main>
+        </PageShell>
     )
 }
