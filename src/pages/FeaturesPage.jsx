@@ -1,9 +1,10 @@
 import Features from '../components/Features'
+import PageShell from './PageShell'
 
 export default function FeaturesPage() {
     return (
-        <main className="page-section">
+        <PageShell>
             <Features />
-        </main>
+        </PageShell>
     )
 }
