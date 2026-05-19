@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { Settings2, BarChart3, BellRing, ShieldCheck } from 'lucide-react'
 
 const features = [
@@ -130,10 +131,10 @@ export default function Features() {
               <h3 className="text-2xl md:text-3xl font-extrabold text-slate-900 mb-2">Sẵn sàng bắt đầu?</h3>
               <p className="text-sm md:text-base text-slate-600">Đăng ký tài khoản ngay, trải nghiệm hệ thống không cần thẻ tín dụng và không mất phí khởi tạo.</p>
             </div>
-            <button className="btn-primary flex-shrink-0 self-start md:self-auto">
+            <Link to="/register" className="btn-primary flex-shrink-0 self-start md:self-auto no-underline">
               <span>Đăng ký ngay</span>
               <span aria-hidden="true">→</span>
-            </button>
+            </Link>
           </div>
         </div>
       </div>

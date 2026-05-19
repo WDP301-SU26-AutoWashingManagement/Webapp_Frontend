@@ -1,11 +1,15 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import logo2 from '../assets/logo2.png'
+import { useAuth } from '../hooks/useAuth'
 
 export default function NavBar() {
     const location = useLocation()
+    const { user, isAuthenticated, logout } = useAuth()
     const isHome = location.pathname === '/'
     const [open, setOpen] = useState(false)
+
+    const displayName = user?.full_name || user?.email || 'Tài khoản'
 
     useEffect(() => {
         if (!location.hash) return
@@ -22,6 +26,10 @@ export default function NavBar() {
         return () => window.cancelAnimationFrame(raf)
     }, [location.hash, location.pathname])
 
+    useEffect(() => {
+        setOpen(false)
+    }, [location.pathname])
+
     const handleLogoClick = () => {
         setOpen(false)
 
@@ -30,7 +38,72 @@ export default function NavBar() {
         }
     }
 
+    const handleLogout = () => {
+        setOpen(false)
+        logout()
+    }
+
     const linkClass = `no-underline text-sm font-medium tracking-wide transition-colors nav-link`
+
+    const authActionsDesktop = isAuthenticated ? (
+        <>
+            <span className="hidden max-w-[140px] truncate text-sm font-medium text-slate-700 lg:inline-block" title={displayName}>
+                Xin chào, {displayName}
+            </span>
+            <button
+                type="button"
+                onClick={handleLogout}
+                className="hidden md:inline-block rounded-lg border border-cyan-500/25 bg-white px-5 py-2 font-sans text-sm font-semibold text-slate-700 transition-all hover:border-cyan-500/50 hover:text-[#0ea5b7]"
+            >
+                Đăng xuất
+            </button>
+        </>
+    ) : (
+        <>
+            <Link
+                to="/login"
+                className="hidden md:inline-block rounded-lg border border-cyan-500/25 bg-white px-5 py-2 font-sans text-sm font-semibold text-slate-700 no-underline transition-all hover:border-cyan-500/50 hover:text-[#0ea5b7]"
+            >
+                Đăng nhập
+            </Link>
+            <Link
+                className="hidden md:inline-block bg-[#0ea5b7] text-white px-5 py-2 rounded-lg font-sans text-sm font-semibold cursor-pointer transition-all hover:bg-[#0b8fa0] hover:-translate-y-0.5 no-underline nav-cta"
+                to="/register"
+            >
+                Đăng ký ngay
+            </Link>
+        </>
+    )
+
+    const authActionsMobile = isAuthenticated ? (
+        <>
+            <p className="text-sm font-medium text-slate-700">Xin chào, {displayName}</p>
+            <button
+                type="button"
+                onClick={handleLogout}
+                className="mt-2 inline-block w-full rounded-lg border border-cyan-500/25 bg-white px-4 py-2 text-center font-semibold text-slate-700"
+            >
+                Đăng xuất
+            </button>
+        </>
+    ) : (
+        <>
+            <Link
+                to="/login"
+                onClick={() => setOpen(false)}
+                className="text-slate-700 font-medium no-underline"
+            >
+                Đăng nhập
+            </Link>
+            <Link
+                to="/register"
+                onClick={() => setOpen(false)}
+                className="mt-2 inline-block bg-[#0ea5b7] text-white px-4 py-2 rounded-lg font-semibold text-center no-underline"
+            >
+                Đăng ký ngay
+            </Link>
+        </>
+    )
 
     return (
         <nav className="sticky top-0 z-50 flex items-center justify-between px-6 md:px-12 py-2 md:py-3 text-slate-900 site-nav">
@@ -48,7 +121,7 @@ export default function NavBar() {
                 <Link to="/#how" className={`${linkClass} text-slate-700 hover:text-[#0ea5b7]`}>
                     Cách hoạt động
                 </Link>
-                
+
                 <Link to="/#features" className={`${linkClass} text-slate-700 hover:text-[#0ea5b7]`}>
                     Tính năng
                 </Link>
@@ -58,9 +131,7 @@ export default function NavBar() {
             </div>
 
             <div className="flex items-center gap-4">
-                <Link className="hidden md:inline-block bg-[#0ea5b7] text-white px-5 py-2 rounded-lg font-sans text-sm font-semibold cursor-pointer transition-all hover:bg-[#0b8fa0] hover:-translate-y-0.5 no-underline nav-cta" to="/">
-                    Đăng ký ngay
-                </Link>
+                {authActionsDesktop}
 
                 <button aria-label="Toggle menu" onClick={() => setOpen(v => !v)} className="md:hidden hamburger">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -74,10 +145,16 @@ export default function NavBar() {
             {open && (
                 <div className="fixed left-4 right-4 top-16 rounded-lg p-4 mobile-menu md:hidden">
                     <div className="flex flex-col gap-3">
-                        <Link to="/#how" onClick={() => setOpen(false)} className="text-slate-700 font-medium">Cách hoạt động</Link>
-                        <Link to="/#tiers" onClick={() => setOpen(false)} className="text-slate-700 font-medium">Hạng thành viên</Link>
-                        <Link to="/#features" onClick={() => setOpen(false)} className="text-slate-700 font-medium">Tính năng</Link>
-                        <Link to="/" onClick={() => setOpen(false)} className="mt-2 inline-block bg-[#0ea5b7] text-white px-4 py-2 rounded-lg font-semibold text-center">Đăng ký ngay</Link>
+                        <Link to="/#how" onClick={() => setOpen(false)} className="text-slate-700 font-medium no-underline">
+                            Cách hoạt động
+                        </Link>
+                        <Link to="/#tiers" onClick={() => setOpen(false)} className="text-slate-700 font-medium no-underline">
+                            Hạng thành viên
+                        </Link>
+                        <Link to="/#features" onClick={() => setOpen(false)} className="text-slate-700 font-medium no-underline">
+                            Tính năng
+                        </Link>
+                        {authActionsMobile}
                     </div>
                 </div>
             )}
