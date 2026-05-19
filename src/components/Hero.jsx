@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { ChevronDown, Sparkles } from 'lucide-react'
-
 export default function Hero() {
   const [scrollY, setScrollY] = useState(0)
   const heroRef = useRef(null)
@@ -64,10 +64,10 @@ export default function Hero() {
         </p>
 
         <div className="flex gap-4 mb-16" style={{ animation: 'fadeUp 0.8s 0.4s ease both' }}>
-          <button className="btn-primary">
+          <Link to="/login" className="btn-primary no-underline">
             <span>Đăng ký miễn phí</span>
             <span className="transition-transform group-hover:translate-x-1">→</span>
-          </button>
+          </Link>
           <button className="btn-ghost">Xem demo</button>
         </div>
 
