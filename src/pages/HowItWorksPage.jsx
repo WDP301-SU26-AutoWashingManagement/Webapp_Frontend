@@ -1,9 +1,10 @@
-import HowItWorks from '../components/HowItWorks'
+import HowItWorks from '../components/How'
+import PageShell from './PageShell'
 
 export default function HowItWorksPage() {
     return (
-        <main className="page-section">
+        <PageShell>
             <HowItWorks />
-        </main>
+        </PageShell>
     )
 }

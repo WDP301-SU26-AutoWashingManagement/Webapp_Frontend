@@ -1,76 +1,92 @@
-import { useEffect, useRef, useState } from 'react'
-import { ChevronDown, Sparkles } from 'lucide-react'
-import './Hero.css'
+import { useEffect, useRef } from 'react'
 
 export default function Hero() {
-  const [scrollY, setScrollY] = useState(0)
-  const heroRef = useRef(null)
+  const videoRef = useRef(null)
 
   useEffect(() => {
-    const handleScroll = () => setScrollY(window.scrollY)
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
+    if (videoRef.current) {
+      videoRef.current.play().catch(() => {})
+    }
   }, [])
 
   return (
-    <section className="hero" ref={heroRef}>
-      {/* Animated background grid */}
-      <div className="hero-grid" style={{ transform: `translateY(${scrollY * 0.3}px)` }} />
-      <div className="hero-noise" />
+    <section className="relative h-screen w-full overflow-hidden bg-black text-white">
+        <video
+          ref={videoRef}
+          className="absolute inset-0 z-0 h-full w-full object-cover"
+          autoPlay
+          loop
+          muted
+          playsInline
+          src="https://cdn.pixabay.com/video/2023/10/12/184734-873923034_large.mp4"
+        />
 
-      {/* Floating orbs */}
-      <div className="orb orb-1" />
-      <div className="orb orb-2" />
-      <div className="orb orb-3" />
+        <div className="absolute inset-0 z-[1] bg-black/45" />
+        <div className="absolute inset-0 z-[2] bg-[radial-gradient(circle_at_24%_26%,rgba(255,255,255,0.08),transparent_28%),radial-gradient(circle_at_74%_18%,rgba(255,255,255,0.06),transparent_24%),linear-gradient(to_bottom,rgba(0,0,0,0.12),rgba(0,0,0,0.72))]" />
 
-      {/* Hero content */}
-      <div className="hero-content">
-        <div className="hero-badge">
-          <Sparkles size={12} />
-          <span>Hệ thống rửa xe thông minh · Loyalty rewards</span>
-        </div>
+        <div className="relative z-10 h-full w-full">
+          <h1
+            className="absolute left-[clamp(16px,2.5vw,40px)] top-[18%] text-[clamp(45px,8.7vw,120px)] font-semibold three-d-heading leading-[0.9] tracking-[-0.05em] text-white opacity-0 animate-fadeUp [animation-delay:0.1s]"
+          >
+            RỬA XE
+          </h1>
 
-        <h1 className="hero-title">
-          <span className="line-1">RỬA XE</span>
-          <span className="line-2">TÍCH ĐIỂM</span>
-          <span className="line-3">NHẬN <em className="accent">ƯU ĐÃI</em></span>
-        </h1>
+          <h1
+            className="absolute right-[clamp(16px,2.5vw,40px)] top-[38%] text-right text-[clamp(48px,8.7vw,120px)] font-semibold three-d-heading leading-[0.9] tracking-[-0.05em] text-white opacity-0 animate-fadeUp [animation-delay:0.28s]"
+          >
+            TÍCH ĐIỂM
+          </h1>
 
-        <p className="hero-sub">
-          Đặt lịch, theo dõi điểm thưởng và nhận ưu đãi độc quyền<br />
-          theo hạng thành viên — tất cả trong một ứng dụng.
-        </p>
+          <h1
+            className="absolute left-[clamp(16px,5vw,28%)] top-[58%] text-[clamp(48px,8.7vw,120px)] font-semibold three-d-heading leading-[0.9] tracking-[-0.05em] text-white opacity-0 animate-fadeUp [animation-delay:0.46s]"
+          >
+            NHẬN ƯU ĐÃI
+          </h1>
 
-        <div className="hero-actions">
-          <button className="btn-primary">
-            <span>Đăng ký miễn phí</span>
-            <span className="btn-arrow">→</span>
-          </button>
-          <button className="btn-ghost">Xem demo</button>
-        </div>
+          <p
+            className="absolute left-[clamp(24px,2.5vw,40px)] top-[46%] max-w-[240px] text-[15px] leading-[1.4] text-white/90 opacity-0 animate-fadeUp [animation-delay:0.38s]"
+          >
+            Đặt lịch, theo dõi điểm thưởng và nhận ưu đãi độc quyền theo hạng thành viên trong một ứng dụng duy nhất.
+          </p>
 
-        <div className="hero-stats">
-          <div className="stat">
-            <span className="stat-num">4</span>
-            <span className="stat-label">Hạng thành viên</span>
+          <div
+            className="absolute right-[clamp(24px,6vw,96px)] top-[14%] opacity-0 animate-fadeUp [animation-delay:0.55s]"
+          >
+            <div className="flex items-center justify-end gap-3">
+              <div
+                className="hidden h-px w-24 rotate-[20deg] bg-white/40 md:block"
+              />
+              <span className="text-[clamp(36px,4.5vw,56px)] font-medium tracking-[-0.03em] text-white">+65k</span>
+            </div>
+            <p className="mt-1 text-right text-[clamp(11px,1.1vw,14px)] text-white/70">khách hàng đang sử dụng</p>
           </div>
-          <div className="stat-divider" />
-          <div className="stat">
-            <span className="stat-num">12×</span>
-            <span className="stat-label">Tích điểm mỗi lần rửa</span>
+
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-48 bg-gradient-to-b from-transparent to-black" />
+
+          <div
+            className="absolute left-[clamp(24px,5vw,80px)] bottom-[clamp(80px,6vw,96px)] opacity-0 animate-fadeUp [animation-delay:0.65s]"
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-[clamp(36px,4.5vw,56px)] font-medium tracking-[-0.03em] text-white">+1.5b</span>
+              <div
+                className="hidden h-px w-24 rotate-[-20deg] bg-white/40 md:block"
+              />
+            </div>
+            <p className="mt-1 text-[clamp(11px,1.1vw,14px)] text-white/70">lít nước được tiết kiệm</p>
           </div>
-          <div className="stat-divider" />
-          <div className="stat">
-            <span className="stat-num">14</span>
-            <span className="stat-label">Ngày đặt lịch trước</span>
+
+          <div
+            className="absolute right-[clamp(24px,5vw,80px)] bottom-[clamp(64px,5vw,80px)] opacity-0 animate-fadeUp [animation-delay:0.72s]"
+          >
+            <div className="flex items-center justify-end gap-3">
+              <div
+                className="hidden h-px w-24 rotate-[-20deg] bg-white/40 md:block"
+              />
+              <span className="text-[clamp(36px,4.5vw,56px)] font-medium tracking-[-0.03em] text-white">+300k</span>
+            </div>
+            <p className="mt-1 text-right text-[clamp(11px,1.1vw,14px)] text-white/70">lượt đặt lịch</p>
           </div>
         </div>
-      </div>
-
-      {/* Scroll indicator */}
-      <div className="scroll-hint">
-        <ChevronDown size={20} />
-      </div>
-    </section>
+      </section>
   )
 }
