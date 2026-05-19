@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { AUTH_INPUT_CLASS, PasswordInput } from '../components/auth/authUi'
+import OtpInput from '../components/auth/OtpInput'
 import { useAuth } from '../hooks/useAuth'
 import { showError, showInfo } from '../utils/toast'
 
@@ -18,6 +19,12 @@ export default function ForgotPasswordPage() {
   const [otp, setOtp] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+
+  useEffect(() => {
+    if (step === 'otp') {
+      setOtp('')
+    }
+  }, [step])
 
   const handleSendEmail = async (e) => {
     e.preventDefault()
@@ -127,25 +134,13 @@ export default function ForgotPasswordPage() {
         )}
 
         {step === 'otp' && (
-          <form onSubmit={handleVerifyOtp} className="mt-6 space-y-4">
-            <div>
-              <label htmlFor="forgot-otp" className="mb-1 block text-sm font-medium text-slate-700">
-                Mã OTP (6 số)
-              </label>
-              <input
-                id="forgot-otp"
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]{6}"
-                maxLength={6}
-                required
-                disabled={loading}
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                placeholder="123456"
-                className={AUTH_INPUT_CLASS}
-              />
-            </div>
+          <form onSubmit={handleVerifyOtp} className="mt-6 space-y-6">
+            <OtpInput
+              id="forgot-otp"
+              value={otp}
+              onChange={setOtp}
+              disabled={loading}
+            />
             <button
               type="submit"
               disabled={loading || otp.length !== 6}
