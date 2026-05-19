@@ -1,10 +1,16 @@
-const API_BASE_URL = '/api/v1'
+import { env } from '../config/env.js'
+
+const API_BASE_URL = env.apiBaseUrl
 
 export function parseApiError(payload, fallback = 'Có lỗi xảy ra') {
   if (!payload) return fallback
-  const { message } = payload
+  const { message, errors } = payload
   if (Array.isArray(message)) return message.join(', ')
   if (typeof message === 'string') return message
+  if (errors && typeof errors === 'object') {
+    const details = Object.values(errors).flat().filter(Boolean)
+    if (details.length) return details.join(', ')
+  }
   return fallback
 }
 

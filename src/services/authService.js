@@ -10,63 +10,82 @@ function parseJwtPayload(token) {
   }
 }
 
+function normalizeId(value) {
+  if (value == null) return null
+  if (typeof value === 'string') return value
+  if (typeof value === 'object' && typeof value.toString === 'function') {
+    return value.toString()
+  }
+  return String(value)
+}
+
+function mapUserFromAuthData(user, jwt) {
+  return {
+    user_id: normalizeId(user?._id ?? user?.id) ?? jwt.id ?? null,
+    email: user?.email ?? null,
+    full_name: user?.full_name ?? null,
+    role: jwt.role ?? 'customer',
+    avatar_url: user?.avatar_url ?? null,
+    is_active: user?.is_active ?? true,
+  }
+}
+
 export const authService = {
-  persistSession(authPermission) {
-    const { token, user_id: userId, expiredTime } = authPermission
-    apiClient.setToken(token)
+  persistSessionFromAuthData(data) {
+    const { user, tokens } = data ?? {}
+    const accessToken = tokens?.accessToken
+    if (!accessToken) return null
 
-    const jwt = parseJwtPayload(token)
-    const user = {
-      user_id: userId ?? jwt.id,
-      username: jwt.username ?? null,
-      role: jwt.role ?? null,
-      shop_id: jwt.shop_id ?? null,
-      is_active: jwt.is_active,
-      expiredTime,
+    apiClient.setToken(accessToken)
+
+    if (tokens.refreshToken) {
+      localStorage.setItem('refreshToken', tokens.refreshToken)
     }
 
-    if (expiredTime) {
-      localStorage.setItem('tokenExpiresAt', String(Date.now() + expiredTime * 1000))
-    }
-
-    this.setCurrentUser(user)
-    return user
+    const jwt = parseJwtPayload(accessToken)
+    const mappedUser = mapUserFromAuthData(user, jwt)
+    this.setCurrentUser(mappedUser)
+    return mappedUser
   },
 
-  async login(username, password) {
-    const response = await apiClient.post('/auth/login', { username, password })
+  async login(email, password) {
+    const response = await apiClient.post('/auth/login', {
+      email,
+      password,
+      type: 'customer',
+    })
 
-    if (response.data?.token) {
-      this.persistSession(response.data)
+    if (response.data?.tokens) {
+      this.persistSessionFromAuthData(response.data)
     }
 
     return response
   },
 
-  async register({ email, username, password }) {
-    return apiClient.post('/auth/register', { email, username, password })
-  },
-
-  async registerAndLogin({ email, username, password }) {
-    const registerRes = await this.register({ email, username, password })
-    await this.login(username, password)
-    return registerRes
+  async register({ email, full_name, password, phone }) {
+    return apiClient.post('/auth/register', {
+      email,
+      password,
+      full_name,
+      ...(phone ? { phone } : {}),
+    })
   },
 
   async forgotPassword(email) {
     return apiClient.post('/auth/forgot-password', { email })
   },
 
-  async verifyOtp(otp) {
-    return apiClient.post('/auth/verify-otp', { otp })
+  async verifyOtp(email, otp) {
+    return apiClient.post('/auth/verify-otp', { email, otp })
   },
 
-  async resetPassword(token, newPassword) {
-    return apiClient.post('/auth/reset-password', { token, newPassword })
+  async resetPassword({ email, otp, new_password }) {
+    return apiClient.post('/auth/reset-password', { email, otp, new_password })
   },
 
   logout() {
     apiClient.setToken(null)
+    localStorage.removeItem('refreshToken')
     localStorage.removeItem('tokenExpiresAt')
     localStorage.removeItem('user')
   },

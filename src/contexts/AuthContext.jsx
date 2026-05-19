@@ -7,92 +7,64 @@ export const AuthContext = createContext()
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
 
   useEffect(() => {
+    const token = apiClient.getToken()
     const storedUser = authService.getCurrentUser()
-    if (storedUser && apiClient.getToken()) {
+
+    if (token && storedUser) {
       setUser(storedUser)
+    } else if (token) {
+      authService.logout()
     }
+
     setLoading(false)
   }, [])
 
   const register = useCallback(async (data) => {
-    try {
-      setError(null)
-      const response = await authService.registerAndLogin({
-        email: data.email,
-        username: data.username,
-        password: data.password,
-      })
-      const currentUser = authService.getCurrentUser()
-      if (currentUser) setUser(currentUser)
-      return response
-    } catch (err) {
-      setError(err.message)
-      throw err
-    }
+    return authService.register({
+      email: data.email,
+      full_name: data.username,
+      password: data.password,
+    })
   }, [])
 
-  const login = useCallback(async (username, password) => {
-    try {
-      setError(null)
-      await authService.login(username, password)
-      const currentUser = authService.getCurrentUser()
-      if (currentUser) setUser(currentUser)
-    } catch (err) {
-      setError(err.message)
-      throw err
+  const login = useCallback(async (email, password) => {
+    await authService.login(email, password)
+    const currentUser = authService.getCurrentUser()
+    if (!currentUser) {
+      throw new Error('Đăng nhập thất bại. Không nhận được thông tin phiên.')
     }
+    setUser(currentUser)
   }, [])
 
   const forgotPassword = useCallback(async (email) => {
-    try {
-      setError(null)
-      return await authService.forgotPassword(email)
-    } catch (err) {
-      setError(err.message)
-      throw err
-    }
+    return authService.forgotPassword(email)
   }, [])
 
-  const verifyOtp = useCallback(async (otp) => {
-    try {
-      setError(null)
-      return await authService.verifyOtp(otp)
-    } catch (err) {
-      setError(err.message)
-      throw err
-    }
+  const verifyOtp = useCallback(async (email, otp) => {
+    return authService.verifyOtp(email, otp)
   }, [])
 
-  const resetPassword = useCallback(async (token, newPassword) => {
-    try {
-      setError(null)
-      return await authService.resetPassword(token, newPassword)
-    } catch (err) {
-      setError(err.message)
-      throw err
-    }
+  const resetPassword = useCallback(async ({ email, otp, new_password }) => {
+    return authService.resetPassword({ email, otp, new_password })
   }, [])
 
   const logout = useCallback(() => {
     authService.logout()
     setUser(null)
-    setError(null)
   }, [])
 
   const value = {
     user,
     loading,
-    error,
     login,
     register,
     forgotPassword,
     verifyOtp,
     resetPassword,
     logout,
-    isAuthenticated: !!user && authService.isAuthenticated(),
+    isAuthenticated: authService.isAuthenticated(),
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

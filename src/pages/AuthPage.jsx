@@ -3,17 +3,13 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Check, Gift } from 'lucide-react'
 import BrandLogo from '../components/BrandLogo'
 import PromoOfferCard from '../components/auth/PromoOfferCard'
-import {
-  AUTH_INPUT_CLASS,
-  AUTH_INPUT_COMPACT,
-  AuthError,
-  PasswordInput,
-} from '../components/auth/authUi'
+import { AUTH_INPUT_CLASS, AUTH_INPUT_COMPACT, PasswordInput } from '../components/auth/authUi'
 import { AUTH_OFFERS, AUTH_PROMO_COPY } from '../constants/authPromo'
 import { useAuth } from '../hooks/useAuth'
+import { showError, showSuccess } from '../utils/toast'
 
 const FORM_SIDE =
-  'absolute top-0 z-10 flex h-full w-1/2 flex-col overflow-y-auto bg-white px-7 py-6'
+  'absolute top-0 z-10 flex h-full w-1/2 flex-col overflow-y-auto bg-white px-7 py-6 font-sans'
 
 export default function AuthPage() {
   const { pathname, state: locationState } = useLocation()
@@ -24,7 +20,6 @@ export default function AuthPage() {
   const isLogin = mode === 'login'
 
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
 
   const [loginForm, setLoginForm] = useState({ email: '', password: '', remember: false })
   const [registerForm, setRegisterForm] = useState({
@@ -33,7 +28,6 @@ export default function AuthPage() {
     password: '',
     confirmPassword: '',
   })
-  const [loginSuccess, setLoginSuccess] = useState('')
 
   const passwordsMatch =
     registerForm.confirmPassword.length > 0 &&
@@ -42,15 +36,14 @@ export default function AuthPage() {
   const activeOffer = AUTH_OFFERS[isLogin ? 0 : 1]
 
   useEffect(() => {
-    setError('')
-  }, [mode])
+    if (!locationState?.message) return
 
-  useEffect(() => {
-    if (locationState?.message) {
-      setLoginSuccess(locationState.message)
-      navigate(pathname, { replace: true, state: {} })
+    showSuccess(locationState.message)
+    if (locationState.email) {
+      setLoginForm((prev) => ({ ...prev, email: locationState.email }))
     }
-  }, [locationState, navigate, pathname])
+    navigate('/login', { replace: true, state: {} })
+  }, [locationState, navigate])
 
   const setMode = (next) => {
     navigate(next === 'register' ? '/register' : '/login')
@@ -58,13 +51,13 @@ export default function AuthPage() {
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault()
-    setError('')
     setLoading(true)
     try {
       await login(loginForm.email, loginForm.password)
+      showSuccess('Đăng nhập thành công!')
       navigate('/')
     } catch (err) {
-      setError(err.message || 'Đăng nhập thất bại. Vui lòng kiểm tra thông tin.')
+      showError(err.message || 'Đăng nhập thất bại. Vui lòng kiểm tra thông tin.')
     } finally {
       setLoading(false)
     }
@@ -72,23 +65,22 @@ export default function AuthPage() {
 
   const handleRegisterSubmit = async (e) => {
     e.preventDefault()
-    setError('')
     setLoading(true)
 
     if (registerForm.password.length < 6) {
-      setError('Mật khẩu phải có ít nhất 6 ký tự')
+      showError('Mật khẩu phải có ít nhất 6 ký tự')
       setLoading(false)
       return
     }
 
     if (registerForm.password !== registerForm.confirmPassword) {
-      setError('Mật khẩu nhập lại không khớp')
+      showError('Mật khẩu nhập lại không khớp')
       setLoading(false)
       return
     }
 
     if (registerForm.username.trim().length < 3) {
-      setError('Tên đăng nhập phải có ít nhất 3 ký tự')
+      showError('Họ và tên phải có ít nhất 3 ký tự')
       setLoading(false)
       return
     }
@@ -99,16 +91,21 @@ export default function AuthPage() {
         username: registerForm.username.trim(),
         password: registerForm.password,
       })
-      navigate('/')
+      navigate('/login', {
+        state: {
+          message: 'Đăng ký thành công. Vui lòng đăng nhập để tiếp tục.',
+          email: registerForm.email,
+        },
+      })
     } catch (err) {
-      setError(err.message || 'Đăng ký thất bại. Vui lòng thử lại.')
+      showError(err.message || 'Đăng ký thất bại. Vui lòng thử lại.')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-[#0d2818] p-4">
+    <div className="relative flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-cyan-950 p-4">
       <Link
         to="/"
         className="absolute left-4 top-4 z-30 flex items-center gap-2 rounded-lg border border-white/20 bg-white/10 px-3.5 py-2 text-sm font-medium text-white no-underline backdrop-blur-sm transition hover:border-white/40 hover:bg-white/20 sm:left-6 sm:top-6"
@@ -121,27 +118,19 @@ export default function AuthPage() {
         {/* Login — cố định bên trái */}
         <div className={`${FORM_SIDE} left-0 justify-center ${isLogin ? '' : 'pointer-events-none'}`}>
           <div className="mx-auto my-auto w-full max-w-[360px]">
-            <h1 className="font-display text-2xl text-slate-900">Đăng nhập</h1>
-            <p className="mt-1 text-sm text-slate-500">Nhập thông tin để tiếp tục</p>
-
-            <div className="mt-4">
-              {loginSuccess && isLogin && (
-                <p className="mb-3 rounded-lg border border-green-200 bg-green-50 p-2.5 text-xs text-green-800">
-                  {loginSuccess}
-                </p>
-              )}
-              <AuthError message={isLogin ? error : ''} compact />
-            </div>
+            <p className="section-label mb-1">Tài khoản</p>
+            <h1 className="auth-page-title">Đăng nhập</h1>
+            <p className="auth-page-sub mt-1">Nhập thông tin để tiếp tục</p>
 
             <form onSubmit={handleLoginSubmit} className="mt-4 space-y-4">
               <div>
                 <label htmlFor="auth-login-email" className="mb-1 block text-sm font-medium text-slate-700">
-                  Email hoặc tên đăng nhập
+                  Email
                 </label>
                 <input
                   id="auth-login-email"
-                  type="text"
-                  autoComplete="username"
+                  type="email"
+                  autoComplete="email"
                   required
                   disabled={loading}
                   value={loginForm.email}
@@ -173,13 +162,13 @@ export default function AuthPage() {
                     disabled={loading}
                     checked={loginForm.remember}
                     onChange={(e) => setLoginForm({ ...loginForm, remember: e.target.checked })}
-                    className="h-4 w-4 rounded border-slate-300 text-green-600 focus:ring-green-500/30"
+                    className="h-4 w-4 rounded border-slate-300 text-[#0ea5b7] focus:ring-cyan-500/30"
                   />
                   <span className="text-xs text-slate-600">Ghi nhớ đăng nhập</span>
                 </label>
                 <Link
                   to="/forgot-password"
-                  className="text-xs font-medium text-green-600 no-underline hover:text-green-700"
+                  className="text-xs font-medium text-[#0ea5b7] no-underline hover:text-[#0b8fa0]"
                 >
                   Quên mật khẩu?
                 </Link>
@@ -200,17 +189,14 @@ export default function AuthPage() {
         {/* Register — cố định bên phải */}
         <div className={`${FORM_SIDE} right-0 ${isLogin ? 'pointer-events-none' : ''}`}>
           <div className="mx-auto w-full max-w-[360px]">
-            <h1 className="font-display text-2xl text-slate-900">Đăng ký</h1>
-            <p className="mt-1 text-sm text-slate-500">Tạo tài khoản mới</p>
-
-            <div className="mt-3">
-              <AuthError message={!isLogin ? error : ''} compact />
-            </div>
+            <p className="section-label mb-1">Tài khoản</p>
+            <h1 className="auth-page-title">Đăng ký</h1>
+            <p className="auth-page-sub mt-1">Tạo tài khoản mới</p>
 
             <form onSubmit={handleRegisterSubmit} className="mt-3 space-y-3">
               <div>
                 <label htmlFor="auth-register-username" className="mb-1 block text-sm font-medium text-slate-700">
-                  Tên đăng nhập
+                  Họ và tên
                 </label>
                 <input
                   id="auth-register-username"
@@ -282,13 +268,13 @@ export default function AuthPage() {
                   className={
                     registerForm.confirmPassword.length > 0
                       ? passwordsMatch
-                        ? 'border-green-500'
+                        ? 'border-[#0ea5b7]'
                         : 'border-red-400'
                       : ''
                   }
                   trailing={
                     passwordsMatch ? (
-                      <Check size={16} strokeWidth={2.5} className="text-green-600" aria-hidden="true" />
+                      <Check size={16} strokeWidth={2.5} className="text-[#0ea5b7]" aria-hidden="true" />
                     ) : null
                   }
                 />
@@ -311,35 +297,35 @@ export default function AuthPage() {
 
         {/* Panel promo — chỉ panel trượt */}
         <div
-          className={`absolute top-0 z-20 flex h-full w-1/2 flex-col overflow-hidden bg-[#0d2818] px-7 py-6 transition-[left] duration-500 ease-in-out ${
+          className={`absolute top-0 z-20 flex h-full w-1/2 flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-slate-900 to-cyan-950 px-7 py-6 transition-[left] duration-500 ease-in-out ${
             isLogin ? 'left-1/2' : 'left-0'
           }`}
         >
           <div
-            className="pointer-events-none absolute -right-16 -top-16 h-52 w-52 rounded-full bg-green-600/25 blur-3xl"
+            className="pointer-events-none absolute -right-16 -top-16 h-52 w-52 rounded-full bg-cyan-500/25 blur-3xl"
             aria-hidden="true"
           />
           <div
-            className="pointer-events-none absolute -bottom-12 -left-12 h-44 w-44 rounded-full bg-green-500/15 blur-3xl"
+            className="pointer-events-none absolute -bottom-12 -left-12 h-44 w-44 rounded-full bg-teal-500/15 blur-3xl"
             aria-hidden="true"
           />
 
-          <div className="relative z-10 flex h-full flex-col">
-            <BrandLogo className="text-white [&_span]:text-white" />
+          <div className="relative z-10 flex h-full flex-col font-sans">
+            <BrandLogo variant="dark" />
 
-            <div className="mt-4 inline-flex w-fit items-center gap-2 rounded-full border border-green-400/25 bg-green-500/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-green-200">
-              <Gift size={11} className="text-green-300" aria-hidden="true" />
+            <div className="section-label mt-4 !mb-0 flex w-fit items-center gap-2 text-cyan-300">
+              <Gift size={11} className="text-cyan-300" aria-hidden="true" />
               {AUTH_PROMO_COPY.badge}
             </div>
 
-            <h2 className="mt-3 font-display text-[1.65rem] leading-tight text-white">
+            <h2 className="auth-promo-title mt-3 text-white">
               {AUTH_PROMO_COPY.titleLine1}
               <br />
               {AUTH_PROMO_COPY.titleLine2}{' '}
-              <span className="text-lime-400">{AUTH_PROMO_COPY.titleHighlight}</span>
+              <span className="text-cyan-400">{AUTH_PROMO_COPY.titleHighlight}</span>
             </h2>
 
-            <p className="mt-2 text-xs leading-relaxed text-green-100/75">{AUTH_PROMO_COPY.description}</p>
+            <p className="auth-page-sub mt-2 !text-cyan-100/75">{AUTH_PROMO_COPY.description}</p>
 
             <div className="mt-4">
               <PromoOfferCard {...activeOffer} />
@@ -348,7 +334,7 @@ export default function AuthPage() {
             <button
               type="button"
               onClick={() => setMode(isLogin ? 'register' : 'login')}
-              className="mt-auto w-fit rounded-lg border-2 border-white px-7 py-2.5 text-sm font-semibold text-white transition hover:bg-white hover:text-[#0d2818]"
+              className="mt-auto w-fit rounded-lg border-2 border-white px-7 py-2.5 text-sm font-semibold text-white transition hover:bg-white hover:text-slate-900"
             >
               {isLogin ? 'Đăng ký ngay' : 'Đăng nhập'}
             </button>

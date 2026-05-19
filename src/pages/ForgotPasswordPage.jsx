@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
-import { AUTH_INPUT_CLASS, AuthError, PasswordInput } from '../components/auth/authUi'
+import { AUTH_INPUT_CLASS, PasswordInput } from '../components/auth/authUi'
 import { useAuth } from '../hooks/useAuth'
+import { showError, showInfo } from '../utils/toast'
 
 const STEPS = ['email', 'otp', 'reset']
 
@@ -12,26 +13,21 @@ export default function ForgotPasswordPage() {
 
   const [step, setStep] = useState('email')
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [info, setInfo] = useState('')
 
   const [email, setEmail] = useState('')
   const [otp, setOtp] = useState('')
-  const [resetToken, setResetToken] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
 
   const handleSendEmail = async (e) => {
     e.preventDefault()
-    setError('')
-    setInfo('')
     setLoading(true)
     try {
       const res = await forgotPassword(email)
-      setInfo(res.data?.message || 'Mã xác nhận đã được gửi tới email của bạn.')
+      showInfo(res.message || 'Nếu email tồn tại, mã OTP đã được gửi.')
       setStep('otp')
     } catch (err) {
-      setError(err.message || 'Không thể gửi mã xác nhận.')
+      showError(err.message || 'Không thể gửi mã xác nhận.')
     } finally {
       setLoading(false)
     }
@@ -39,20 +35,13 @@ export default function ForgotPasswordPage() {
 
   const handleVerifyOtp = async (e) => {
     e.preventDefault()
-    setError('')
-    setInfo('')
     setLoading(true)
     try {
-      const res = await verifyOtp(otp)
-      if (!res.data?.token) {
-        setError('Không nhận được token đặt lại mật khẩu.')
-        return
-      }
-      setResetToken(res.data.token)
-      setInfo(res.data.message || 'Xác thực thành công. Nhập mật khẩu mới.')
+      const res = await verifyOtp(email, otp)
+      showInfo(res.message || 'OTP hợp lệ. Nhập mật khẩu mới.')
       setStep('reset')
     } catch (err) {
-      setError(err.message || 'Mã OTP không hợp lệ.')
+      showError(err.message || 'Mã OTP không hợp lệ.')
     } finally {
       setLoading(false)
     }
@@ -60,31 +49,29 @@ export default function ForgotPasswordPage() {
 
   const handleResetPassword = async (e) => {
     e.preventDefault()
-    setError('')
-    setInfo('')
 
     if (password.length < 6) {
-      setError('Mật khẩu phải có ít nhất 6 ký tự')
+      showError('Mật khẩu phải có ít nhất 6 ký tự')
       return
     }
     if (password !== confirmPassword) {
-      setError('Mật khẩu nhập lại không khớp')
+      showError('Mật khẩu nhập lại không khớp')
       return
     }
 
     setLoading(true)
     try {
-      await resetPassword(resetToken, password)
+      await resetPassword({ email, otp, new_password: password })
       navigate('/login', { state: { message: 'Đặt lại mật khẩu thành công. Vui lòng đăng nhập.' } })
     } catch (err) {
-      setError(err.message || 'Không thể đặt lại mật khẩu.')
+      showError(err.message || 'Không thể đặt lại mật khẩu.')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-[#0d2818] p-4">
+    <div className="relative flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-cyan-950 p-4">
       <Link
         to="/login"
         className="absolute left-4 top-4 z-30 flex items-center gap-2 rounded-lg border border-white/20 bg-white/10 px-3.5 py-2 text-sm font-medium text-white no-underline backdrop-blur-sm transition hover:border-white/40 hover:bg-white/20 sm:left-6 sm:top-6"
@@ -106,23 +93,14 @@ export default function ForgotPasswordPage() {
             <div
               key={s}
               className={`h-1 flex-1 rounded-full ${
-                STEPS.indexOf(step) >= i ? 'bg-green-500' : 'bg-slate-200'
+                STEPS.indexOf(step) >= i ? 'bg-[#0ea5b7]' : 'bg-slate-200'
               }`}
             />
           ))}
         </div>
 
-        <div className="mt-4">
-          <AuthError message={error} compact />
-          {info && !error && (
-            <p className="mb-3 rounded-lg border border-green-200 bg-green-50 p-2.5 text-xs text-green-800">
-              {info}
-            </p>
-          )}
-        </div>
-
         {step === 'email' && (
-          <form onSubmit={handleSendEmail} className="mt-2 space-y-4">
+          <form onSubmit={handleSendEmail} className="mt-6 space-y-4">
             <div>
               <label htmlFor="forgot-email" className="mb-1 block text-sm font-medium text-slate-700">
                 Email
@@ -149,7 +127,7 @@ export default function ForgotPasswordPage() {
         )}
 
         {step === 'otp' && (
-          <form onSubmit={handleVerifyOtp} className="mt-2 space-y-4">
+          <form onSubmit={handleVerifyOtp} className="mt-6 space-y-4">
             <div>
               <label htmlFor="forgot-otp" className="mb-1 block text-sm font-medium text-slate-700">
                 Mã OTP (6 số)
@@ -179,7 +157,7 @@ export default function ForgotPasswordPage() {
         )}
 
         {step === 'reset' && (
-          <form onSubmit={handleResetPassword} className="mt-2 space-y-4">
+          <form onSubmit={handleResetPassword} className="mt-6 space-y-4">
             <div>
               <label htmlFor="forgot-new-password" className="mb-1 block text-sm font-medium text-slate-700">
                 Mật khẩu mới
