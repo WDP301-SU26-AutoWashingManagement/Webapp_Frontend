@@ -14,7 +14,7 @@ export default function FloatingPromoOffers() {
         <PromoOfferCard
           key={offer.title}
           {...offer}
-          className={`pointer-events-none absolute opacity-[0.88] ${offer.position}`}
+          className={`pointer-events-none absolute opacity-[0.88] ${offer.position ?? ''}`}
         />
       ))}
     </div>

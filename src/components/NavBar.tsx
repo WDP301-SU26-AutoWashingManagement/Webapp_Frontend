@@ -47,9 +47,13 @@ export default function NavBar() {
 
     const authActionsDesktop = isAuthenticated ? (
         <>
-            <span className="hidden max-w-[140px] truncate text-sm font-medium text-slate-700 lg:inline-block" title={displayName}>
+            <Link
+                to="/account"
+                className="hidden max-w-[140px] truncate text-sm font-medium text-slate-700 no-underline transition-colors hover:text-[#0ea5b7] lg:inline-block"
+                title={displayName}
+            >
                 Xin chào, {displayName}
-            </span>
+            </Link>
             <button
                 type="button"
                 onClick={handleLogout}
@@ -77,7 +81,13 @@ export default function NavBar() {
 
     const authActionsMobile = isAuthenticated ? (
         <>
-            <p className="text-sm font-medium text-slate-700">Xin chào, {displayName}</p>
+            <Link
+                to="/account"
+                onClick={() => setOpen(false)}
+                className="text-sm font-medium text-slate-700 no-underline"
+            >
+                Xin chào, {displayName}
+            </Link>
             <button
                 type="button"
                 onClick={handleLogout}

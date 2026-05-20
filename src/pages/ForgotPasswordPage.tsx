@@ -1,18 +1,40 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { AUTH_INPUT_CLASS, PasswordInput } from '../components/auth/authUi'
 import OtpInput from '../components/auth/OtpInput'
 import { useAuth } from '../hooks/useAuth'
+import { getErrorMessage, getResponseMessage } from '../utils/errors'
 import { showError, showInfo } from '../utils/toast'
 
-const STEPS = ['email', 'otp', 'reset']
+const STEPS = ['email', 'otp', 'reset'] as const
+type ForgotStep = (typeof STEPS)[number]
+
+interface StepContent {
+  title: string
+  description: string
+}
+
+const STEP_CONTENT: Record<ForgotStep, StepContent> = {
+  email: {
+    title: 'Xác Thực Email',
+    description: 'Nhập email để nhận mã xác nhận',
+  },
+  otp: {
+    title: 'Nhập Mã OTP',
+    description: 'Nhập mã 6 số đã gửi qua email',
+  },
+  reset: {
+    title: 'Đặt Lại Mật Khẩu',
+    description: 'Tạo mật khẩu mới cho tài khoản',
+  },
+}
 
 export default function ForgotPasswordPage() {
   const navigate = useNavigate()
   const { forgotPassword, verifyOtp, resetPassword } = useAuth()
 
-  const [step, setStep] = useState('email')
+  const [step, setStep] = useState<ForgotStep>('email')
   const [loading, setLoading] = useState(false)
 
   const [email, setEmail] = useState('')
@@ -26,35 +48,35 @@ export default function ForgotPasswordPage() {
     }
   }, [step])
 
-  const handleSendEmail = async (e) => {
+  const handleSendEmail = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setLoading(true)
     try {
       const res = await forgotPassword(email)
-      showInfo(res.message || 'Nếu email tồn tại, mã OTP đã được gửi.')
+      showInfo(getResponseMessage(res, 'Nếu email tồn tại, mã OTP đã được gửi.'))
       setStep('otp')
     } catch (err) {
-      showError(err.message || 'Không thể gửi mã xác nhận.')
+      showError(getErrorMessage(err, 'Không thể gửi mã xác nhận.'))
     } finally {
       setLoading(false)
     }
   }
 
-  const handleVerifyOtp = async (e) => {
+  const handleVerifyOtp = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setLoading(true)
     try {
       const res = await verifyOtp(email, otp)
-      showInfo(res.message || 'OTP hợp lệ. Nhập mật khẩu mới.')
+      showInfo(getResponseMessage(res, 'OTP hợp lệ. Nhập mật khẩu mới.'))
       setStep('reset')
     } catch (err) {
-      showError(err.message || 'Mã OTP không hợp lệ.')
+      showError(getErrorMessage(err, 'Mã OTP không hợp lệ.'))
     } finally {
       setLoading(false)
     }
   }
 
-  const handleResetPassword = async (e) => {
+  const handleResetPassword = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
     if (password.length < 6) {
@@ -71,11 +93,13 @@ export default function ForgotPasswordPage() {
       await resetPassword({ email, otp, new_password: password })
       navigate('/login', { state: { message: 'Đặt lại mật khẩu thành công. Vui lòng đăng nhập.' } })
     } catch (err) {
-      showError(err.message || 'Không thể đặt lại mật khẩu.')
+      showError(getErrorMessage(err, 'Không thể đặt lại mật khẩu.'))
     } finally {
       setLoading(false)
     }
   }
+
+  const content = STEP_CONTENT[step]
 
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-cyan-950 p-4">
@@ -88,20 +112,15 @@ export default function ForgotPasswordPage() {
       </Link>
 
       <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
-        <h1 className="font-display text-2xl text-slate-900">Quên mật khẩu</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          {step === 'email' && 'Nhập email để nhận mã xác nhận'}
-          {step === 'otp' && 'Nhập mã 6 số đã gửi qua email'}
-          {step === 'reset' && 'Tạo mật khẩu mới cho tài khoản'}
-        </p>
+        <h1 className="font-sans text-2xl font-bold text-slate-900">{content.title}</h1>
+        <p className="mt-1 text-sm text-slate-500">{content.description}</p>
 
         <div className="mt-2 flex gap-2">
           {STEPS.map((s, i) => (
             <div
               key={s}
-              className={`h-1 flex-1 rounded-full ${
-                STEPS.indexOf(step) >= i ? 'bg-[#0ea5b7]' : 'bg-slate-200'
-              }`}
+              className={`h-1 flex-1 rounded-full ${STEPS.indexOf(step) >= i ? 'bg-[#0ea5b7]' : 'bg-slate-200'
+                }`}
             />
           ))}
         </div>

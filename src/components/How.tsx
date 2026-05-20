@@ -30,7 +30,7 @@ const steps = [
 export default function HowItWorks() {
   return (
     <section
-      className="page-section px-6 md:px-16 bg-white/35 backdrop-blur-md border-t border-b border-cyan-500/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)]"
+      className="marketing-section page-section px-6 md:px-16 bg-white/35 backdrop-blur-md border-t border-b border-cyan-500/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)]"
       id="how"
     >
       <div className="max-w-5xl mx-auto">
@@ -47,7 +47,7 @@ export default function HowItWorks() {
                 <Sparkles size={20} strokeWidth={1.7} />
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-700">4 bước</p>
+                <p className="marketing-eyebrow text-cyan-700">4 bước</p>
                 <p className="text-sm text-slate-500">Luồng thao tác nhanh, rõ và tự động</p>
               </div>
             </div>
@@ -68,7 +68,7 @@ export default function HowItWorks() {
                   <div className="mb-3 inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold tracking-[0.18em] text-slate-700">
                     Bước {s.num}
                   </div>
-                  <h3 className="text-lg font-semibold leading-tight text-slate-900">{s.title}</h3>
+                  <h3 className="marketing-card-heading text-lg text-slate-900">{s.title}</h3>
                 </div>
 
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-cyan-500/15 bg-cyan-500/10 text-cyan-600 transition-transform duration-200 group-hover:scale-105">

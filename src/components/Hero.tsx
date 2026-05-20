@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 
 export default function Hero() {
-  const videoRef = useRef(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
 
   useEffect(() => {
     if (videoRef.current) {
@@ -26,25 +26,25 @@ export default function Hero() {
 
         <div className="relative z-10 h-full w-full">
           <h1
-            className="absolute left-[clamp(16px,2.5vw,40px)] top-[18%] text-[clamp(45px,8.7vw,120px)] font-semibold three-d-heading leading-[0.9] tracking-[-0.05em] text-white opacity-0 animate-fadeUp [animation-delay:0.1s]"
+            className="absolute left-[clamp(16px,2.5vw,40px)] top-[18%] text-[clamp(45px,8.7vw,120px)] font-sans font-extrabold three-d-heading leading-[0.9] tracking-[-0.05em] text-white opacity-0 animate-fadeUp [animation-delay:0.1s]"
           >
             RỬA XE
           </h1>
 
           <h1
-            className="absolute right-[clamp(16px,2.5vw,40px)] top-[38%] text-right text-[clamp(48px,8.7vw,120px)] font-semibold three-d-heading leading-[0.9] tracking-[-0.05em] text-white opacity-0 animate-fadeUp [animation-delay:0.28s]"
+            className="absolute right-[clamp(16px,2.5vw,40px)] top-[38%] text-right text-[clamp(48px,8.7vw,120px)] font-sans font-extrabold three-d-heading leading-[0.9] tracking-[-0.05em] text-white opacity-0 animate-fadeUp [animation-delay:0.28s]"
           >
             TÍCH ĐIỂM
           </h1>
 
           <h1
-            className="absolute left-[clamp(16px,5vw,28%)] top-[58%] text-[clamp(48px,8.7vw,120px)] font-semibold three-d-heading leading-[0.9] tracking-[-0.05em] text-white opacity-0 animate-fadeUp [animation-delay:0.46s]"
+            className="absolute left-[clamp(16px,5vw,28%)] top-[58%] text-[clamp(48px,8.7vw,120px)] font-sans font-extrabold three-d-heading leading-[0.9] tracking-[-0.05em] text-white opacity-0 animate-fadeUp [animation-delay:0.46s]"
           >
             NHẬN ƯU ĐÃI
           </h1>
 
           <p
-            className="absolute left-[clamp(24px,2.5vw,40px)] top-[46%] max-w-[240px] text-[15px] leading-[1.4] text-white/90 opacity-0 animate-fadeUp [animation-delay:0.38s]"
+            className="absolute left-[clamp(24px,2.5vw,40px)] top-[46%] max-w-[240px] font-sans text-[15px] leading-[1.4] text-white/90 opacity-0 animate-fadeUp [animation-delay:0.38s]"
           >
             Đặt lịch, theo dõi điểm thưởng và nhận ưu đãi độc quyền theo hạng thành viên trong một ứng dụng duy nhất.
           </p>
@@ -56,7 +56,7 @@ export default function Hero() {
               <div
                 className="hidden h-px w-24 rotate-[20deg] bg-white/40 md:block"
               />
-              <span className="text-[clamp(36px,4.5vw,56px)] font-medium tracking-[-0.03em] text-white">+65k</span>
+              <span className="text-[clamp(36px,4.5vw,56px)] font-sans font-semibold tracking-[-0.03em] text-white">+65k</span>
             </div>
             <p className="mt-1 text-right text-[clamp(11px,1.1vw,14px)] text-white/70">khách hàng đang sử dụng</p>
           </div>
@@ -67,7 +67,7 @@ export default function Hero() {
             className="absolute left-[clamp(24px,5vw,80px)] bottom-[clamp(80px,6vw,96px)] opacity-0 animate-fadeUp [animation-delay:0.65s]"
           >
             <div className="flex items-center gap-3">
-              <span className="text-[clamp(36px,4.5vw,56px)] font-medium tracking-[-0.03em] text-white">+1.5b</span>
+              <span className="text-[clamp(36px,4.5vw,56px)] font-sans font-semibold tracking-[-0.03em] text-white">+1.5b</span>
               <div
                 className="hidden h-px w-24 rotate-[-20deg] bg-white/40 md:block"
               />
@@ -82,7 +82,7 @@ export default function Hero() {
               <div
                 className="hidden h-px w-24 rotate-[-20deg] bg-white/40 md:block"
               />
-              <span className="text-[clamp(36px,4.5vw,56px)] font-medium tracking-[-0.03em] text-white">+300k</span>
+              <span className="text-[clamp(36px,4.5vw,56px)] font-sans font-semibold tracking-[-0.03em] text-white">+300k</span>
             </div>
             <p className="mt-1 text-right text-[clamp(11px,1.1vw,14px)] text-white/70">lượt đặt lịch</p>
           </div>

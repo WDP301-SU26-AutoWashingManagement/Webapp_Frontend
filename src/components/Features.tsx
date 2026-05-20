@@ -47,14 +47,17 @@ const features = [
 export default function Features() {
   return (
     <section
-      className="page-section px-6 md:px-16 bg-white/35 backdrop-blur-md border-t border-b border-cyan-500/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)]"
+      className="marketing-section page-section px-6 md:px-16 bg-white/35 backdrop-blur-md border-t border-b border-cyan-500/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)]"
       id="features"
     >
       <div className="max-w-5xl mx-auto">
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)] items-end mb-10">
           <div>
             <div className="section-label">Tính năng</div>
-            <h2 className="section-title mb-4">Đầy đủ cho cả<br />khách hàng & vận hành</h2>
+            <h2 className="section-title mb-4">
+              <span className="block">Đầy đủ cho cả</span>
+              <span className="mt-2 block sm:mt-3">khách hàng & vận hành</span>
+            </h2>
             <p className="section-sub mb-0 max-w-2xl">Bộ tính năng được trình bày gọn, sáng và đồng bộ với homepage, tập trung vào giá trị thực thay vì nhồi thông tin.</p>
           </div>
 
@@ -64,7 +67,7 @@ export default function Features() {
                 <Settings2 size={20} strokeWidth={1.7} />
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-700">Linh hoạt</p>
+                <p className="marketing-eyebrow text-cyan-700">Linh hoạt</p>
                 <p className="text-sm text-slate-500">Tối ưu cho cả frontend lẫn vận hành</p>
               </div>
             </div>
@@ -107,7 +110,7 @@ export default function Features() {
                 </div>
               </div>
 
-              <h3 className="text-lg font-semibold text-slate-900 mb-2.5 leading-tight">{f.title}</h3>
+              <h3 className="marketing-card-heading text-lg text-slate-900 mb-2.5">{f.title}</h3>
               <p className="text-sm text-slate-600 leading-relaxed mb-5">{f.desc}</p>
 
               <div className="flex flex-wrap gap-2">
@@ -128,7 +131,7 @@ export default function Features() {
         <div className="rounded-3xl border border-cyan-500/15 bg-gradient-to-r from-cyan-600/10 via-white/85 to-blue-500/10 p-6 md:p-8 shadow-sm backdrop-blur-sm">
           <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
             <div>
-              <h3 className="text-2xl md:text-3xl font-extrabold text-slate-900 mb-2">Sẵn sàng bắt đầu?</h3>
+              <h3 className="marketing-panel-heading text-2xl md:text-3xl text-slate-900 mb-2">Sẵn sàng bắt đầu?</h3>
               <p className="text-sm md:text-base text-slate-600">Đăng ký tài khoản ngay, trải nghiệm hệ thống không cần thẻ tín dụng và không mất phí khởi tạo.</p>
             </div>
             <Link to="/register" className="btn-primary flex-shrink-0 self-start md:self-auto no-underline">
