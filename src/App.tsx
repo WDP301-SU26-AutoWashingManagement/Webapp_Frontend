@@ -8,7 +8,9 @@ import TiersPage from './pages/TiersPage'
 import FeaturesPage from './pages/FeaturesPage'
 import AuthPage from './pages/AuthPage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
+import AccountPage from './pages/AccountPage'
 import GuestRoute from './components/auth/GuestRoute'
+import ProtectedRoute from './components/auth/ProtectedRoute'
 import Footer from './components/Footer'
 import Toaster from './components/Toaster'
 import './App.css'
@@ -29,6 +31,14 @@ function AppContent() {
         <Route path="/how" element={<HowItWorksPage />} />
         <Route path="/tiers" element={<TiersPage />} />
         <Route path="/features" element={<FeaturesPage />} />
+        <Route
+          path="/account"
+          element={
+            <ProtectedRoute roles={['customer']}>
+              <AccountPage />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/login"
           element={

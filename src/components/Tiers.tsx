@@ -69,10 +69,13 @@ const tiers = [
 
 export default function Tiers() {
   return (
-    <section className="page-section px-6 md:px-16 bg-white/35 backdrop-blur-md" id="tiers">
+    <section className="marketing-section page-section px-6 md:px-16 bg-white/35 backdrop-blur-md" id="tiers">
       <div className="max-w-5xl mx-auto">
         <div className="section-label">Hạng thành viên</div>
-        <h2 className="section-title">Càng rửa nhiều<br />Ưu đãi càng lớn</h2>
+        <h2 className="section-title">
+          <span className="block">Càng rửa nhiều</span>
+          <span className="mt-2 block sm:mt-3">Ưu đãi càng lớn</span>
+        </h2>
         <p className="section-sub">Hệ thống tự động nâng/hạ hạng hàng tháng dựa trên lịch sử của bạn</p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
@@ -99,7 +102,7 @@ export default function Tiers() {
                 >
                   {t.icon}
                 </div>
-                <h3 className="text-xl font-bold leading-tight" style={{ color: t.colorDark }}>
+                <h3 className="marketing-card-heading text-xl font-bold" style={{ color: t.colorDark }}>
                   {t.name}
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">{t.subtitle}</p>

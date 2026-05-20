@@ -1,20 +1,40 @@
-import { useEffect, useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useEffect, useState, type FormEvent } from 'react'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, Check, Gift } from 'lucide-react'
 import BrandLogo from '../components/BrandLogo'
 import PromoOfferCard from '../components/auth/PromoOfferCard'
-import { AUTH_INPUT_CLASS, AUTH_INPUT_COMPACT, PasswordInput } from '../components/auth/authUi'
+import GoogleSignInButton from '../components/auth/GoogleSignInButton'
+import { AUTH_INPUT_CLASS, AUTH_INPUT_COMPACT, AuthDivider, PasswordInput } from '../components/auth/authUi'
 import { AUTH_OFFERS, AUTH_PROMO_COPY } from '../constants/authPromo'
 import { useAuth } from '../hooks/useAuth'
+import type { LoginLocationState } from '../types/auth'
+import { getErrorMessage } from '../utils/errors'
 import { showError, showSuccess } from '../utils/toast'
 
 const FORM_SIDE =
   'absolute top-0 z-10 flex h-full w-1/2 flex-col overflow-y-auto bg-white px-7 py-6 font-sans'
 
+const AUTH_GUEST_PATHS = ['/login', '/register', '/forgot-password']
+
 export default function AuthPage() {
-  const { pathname, state: locationState } = useLocation()
+  const { pathname, state: locationState } = useLocation() as {
+    pathname: string
+    state: LoginLocationState | null
+  }
   const navigate = useNavigate()
-  const { login, register } = useAuth()
+  const [searchParams] = useSearchParams()
+  const { login, loginWithGoogle, register } = useAuth()
+
+  const redirectAfterAuth = () => {
+    const fromState = locationState?.from
+    const fromQuery = searchParams.get('from')
+    const target = fromState ?? fromQuery
+    if (target && target.startsWith('/') && !AUTH_GUEST_PATHS.includes(target)) {
+      navigate(target, { replace: true })
+      return
+    }
+    navigate('/', { replace: true })
+  }
 
   const mode = pathname === '/register' ? 'register' : 'login'
   const isLogin = mode === 'login'
@@ -40,30 +60,40 @@ export default function AuthPage() {
 
     showSuccess(locationState.message)
     if (locationState.email) {
-      setLoginForm((prev) => ({ ...prev, email: locationState.email }))
+      setLoginForm((prev) => ({ ...prev, email: locationState.email ?? '' }))
     }
     navigate('/login', { replace: true, state: {} })
   }, [locationState, navigate])
 
-  const setMode = (next) => {
+  const setMode = (next: 'login' | 'register') => {
     navigate(next === 'register' ? '/register' : '/login')
   }
 
-  const handleLoginSubmit = async (e) => {
+  const handleLoginSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setLoading(true)
     try {
       await login(loginForm.email, loginForm.password)
       showSuccess('Đăng nhập thành công!')
-      navigate('/')
+      redirectAfterAuth()
     } catch (err) {
-      showError(err.message || 'Đăng nhập thất bại. Vui lòng kiểm tra thông tin.')
+      showError(getErrorMessage(err, 'Đăng nhập thất bại. Vui lòng kiểm tra thông tin.'))
     } finally {
       setLoading(false)
     }
   }
 
-  const handleRegisterSubmit = async (e) => {
+  const handleGoogleLogin = async () => {
+    try {
+      await loginWithGoogle()
+      showSuccess('Đăng nhập thành công!')
+      redirectAfterAuth()
+    } catch (err) {
+      showError(getErrorMessage(err, 'Đăng nhập Google thất bại.'))
+    }
+  }
+
+  const handleRegisterSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setLoading(true)
 
@@ -98,7 +128,7 @@ export default function AuthPage() {
         },
       })
     } catch (err) {
-      showError(err.message || 'Đăng ký thất bại. Vui lòng thử lại.')
+      showError(getErrorMessage(err, 'Đăng ký thất bại. Vui lòng thử lại.'))
     } finally {
       setLoading(false)
     }
@@ -181,6 +211,9 @@ export default function AuthPage() {
               >
                 {loading && isLogin ? 'Đang xử lý...' : 'Đăng nhập'}
               </button>
+
+              <AuthDivider compact />
+              <GoogleSignInButton disabled={loading} onClick={handleGoogleLogin} />
             </form>
 
           </div>

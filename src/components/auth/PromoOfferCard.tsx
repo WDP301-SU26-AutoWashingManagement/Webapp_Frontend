@@ -1,3 +1,16 @@
+import type { LucideIcon } from 'lucide-react'
+import type { AuthOfferAccent } from '../../constants/authPromo'
+
+interface PromoOfferCardProps {
+  icon: LucideIcon
+  title: string
+  description: string
+  tag: string
+  tagClass: string
+  accent: AuthOfferAccent
+  className?: string
+}
+
 export default function PromoOfferCard({
   icon: Icon,
   title,
@@ -6,7 +19,7 @@ export default function PromoOfferCard({
   tagClass,
   accent,
   className = '',
-}) {
+}: PromoOfferCardProps) {
   return (
     <div
       className={`flex gap-4 rounded-xl border p-4 backdrop-blur-md ${accent.card} ${className}`}

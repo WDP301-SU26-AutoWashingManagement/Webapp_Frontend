@@ -1,13 +1,20 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, type ClipboardEvent, type KeyboardEvent } from 'react'
 
 const OTP_LENGTH = 6
 
-export default function OtpInput({ value, onChange, disabled = false, id = 'otp-input' }) {
-  const inputsRef = useRef([])
+interface OtpInputProps {
+  value: string
+  onChange: (value: string) => void
+  disabled?: boolean
+  id?: string
+}
+
+export default function OtpInput({ value, onChange, disabled = false, id = 'otp-input' }: OtpInputProps) {
+  const inputsRef = useRef<(HTMLInputElement | null)[]>([])
 
   const digits = Array.from({ length: OTP_LENGTH }, (_, i) => value[i] ?? '')
 
-  const focusIndex = (index) => {
+  const focusIndex = (index: number) => {
     const el = inputsRef.current[index]
     if (el) {
       el.focus()
@@ -16,13 +23,13 @@ export default function OtpInput({ value, onChange, disabled = false, id = 'otp-
   }
 
   const updateValue = useCallback(
-    (nextDigits) => {
+    (nextDigits: string[]) => {
       onChange(nextDigits.join('').slice(0, OTP_LENGTH))
     },
     [onChange],
   )
 
-  const handleChange = (index, raw) => {
+  const handleChange = (index: number, raw: string) => {
     const digit = raw.replace(/\D/g, '').slice(-1)
     const next = [...digits]
     next[index] = digit
@@ -32,7 +39,7 @@ export default function OtpInput({ value, onChange, disabled = false, id = 'otp-
     }
   }
 
-  const handleKeyDown = (index, e) => {
+  const handleKeyDown = (index: number, e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Backspace') {
       e.preventDefault()
       const next = [...digits]
@@ -59,7 +66,7 @@ export default function OtpInput({ value, onChange, disabled = false, id = 'otp-
     }
   }
 
-  const handlePaste = (e) => {
+  const handlePaste = (e: ClipboardEvent<HTMLDivElement | HTMLInputElement>) => {
     e.preventDefault()
     const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, OTP_LENGTH)
     if (!pasted) return

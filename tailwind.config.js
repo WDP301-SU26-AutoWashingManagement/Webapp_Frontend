@@ -2,14 +2,14 @@
 export default {
     content: [
         "./index.html",
-        "./src/**/*.{js,jsx}",
+        "./src/**/*.{ts,tsx}",
     ],
     theme: {
         extend: {
             fontFamily: {
-                display: ['Bebas Neue', 'sans-serif'],
+                display: ['Plus Jakarta Sans', 'sans-serif'],
+                sans: ['Plus Jakarta Sans', 'sans-serif'],
                 mono: ['Space Mono', 'monospace'],
-                sans: ['DM Sans', 'sans-serif'],
             },
             keyframes: {
                 float1: {
