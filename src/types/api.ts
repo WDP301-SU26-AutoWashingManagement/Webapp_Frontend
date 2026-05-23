@@ -4,6 +4,7 @@ export interface ApiErrorPayload {
 }
 
 export interface ApiResponse<T = unknown> {
+  success?: boolean
   data?: T
   message?: string
 }

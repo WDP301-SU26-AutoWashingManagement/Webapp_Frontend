@@ -32,6 +32,9 @@ export interface AuthContextValue {
   verifyOtp: (email: string, otp: string) => Promise<unknown>
   resetPassword: (data: ResetPasswordInput) => Promise<unknown>
   logout: () => void
+  /** Sync session user from GET /users/profile */
+  refreshUserFromProfile: () => Promise<AuthUser | null>
+  setUser: (user: AuthUser | null) => void
   isAuthenticated: boolean
 }
 

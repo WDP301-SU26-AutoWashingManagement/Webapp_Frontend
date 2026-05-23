@@ -10,7 +10,6 @@ function requireEnv(name: keyof ImportMetaEnv): string {
 
 export const env = {
   apiBaseUrl: requireEnv('VITE_API_BASE_URL'),
-  devServerPort: Number(import.meta.env.VITE_DEV_SERVER_PORT) || 5173,
   /** Google OAuth Web client ID — cùng GOOGLE_CLIENT_ID trên backend */
   googleClientId: import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '',
 }

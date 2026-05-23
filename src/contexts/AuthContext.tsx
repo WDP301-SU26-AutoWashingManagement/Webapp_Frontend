@@ -3,6 +3,7 @@ import { env } from '../config/env'
 import { getAccessToken, onUnauthorized } from '../lib/authSession'
 import { requestGoogleAuthCode } from '../lib/googleAuth'
 import { authService } from '../services/authService'
+import { customerService, mapProfileToAuthUser } from '../services/customerService'
 import type { AuthContextValue, AuthUser, RegisterInput, ResetPasswordInput } from '../types/auth'
 
 export const AuthContext = createContext<AuthContextValue | null>(null)
@@ -16,17 +17,46 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const token = getAccessToken()
-    const storedUser = authService.getCurrentUser()
+    let cancelled = false
 
-    if (token && storedUser) {
-      setUser(storedUser)
-    } else if (token) {
-      authService.logout()
-      setUser(null)
+    const bootstrap = async () => {
+      const token = getAccessToken()
+      const storedUser = authService.getCurrentUser()
+
+      if (!token) {
+        if (!cancelled) setLoading(false)
+        return
+      }
+
+      if (!storedUser) {
+        authService.logout()
+        if (!cancelled) {
+          setUser(null)
+          setLoading(false)
+        }
+        return
+      }
+
+      if (!cancelled) setUser(storedUser)
+
+      try {
+        const profile = await customerService.getProfile()
+        const role = storedUser.role ?? 'customer'
+        const mapped = mapProfileToAuthUser(profile, role)
+        authService.setCurrentUser(mapped)
+        if (!cancelled) setUser(mapped)
+      } catch {
+        // keep storedUser from login response
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
     }
 
-    setLoading(false)
+    void bootstrap()
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   useEffect(() => {
@@ -41,6 +71,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
     })
   }, [])
 
+  const refreshUserFromProfile = useCallback(async (): Promise<AuthUser | null> => {
+    const token = getAccessToken()
+    if (!token) return null
+
+    try {
+      const profile = await customerService.getProfile()
+      const role = authService.getCurrentUser()?.role ?? 'customer'
+      const mapped = mapProfileToAuthUser(profile, role)
+      authService.setCurrentUser(mapped)
+      setUser(mapped)
+      return mapped
+    } catch {
+      return authService.getCurrentUser()
+    }
+  }, [])
+
   const login = useCallback(async (email: string, password: string) => {
     await authService.login(email, password)
     const currentUser = authService.getCurrentUser()
@@ -48,7 +94,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       throw new Error('Đăng nhập thất bại. Không nhận được thông tin phiên.')
     }
     setUser(currentUser)
-  }, [])
+    await refreshUserFromProfile()
+  }, [refreshUserFromProfile])
 
   const loginWithGoogle = useCallback(async () => {
     if (!env.googleClientId) {
@@ -63,7 +110,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       throw new Error('Đăng nhập Google thất bại. Không nhận được thông tin phiên.')
     }
     setUser(currentUser)
-  }, [])
+    await refreshUserFromProfile()
+  }, [refreshUserFromProfile])
 
   const forgotPassword = useCallback(async (email: string) => {
     return authService.forgotPassword(email)
@@ -92,6 +140,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     verifyOtp,
     resetPassword,
     logout,
+    refreshUserFromProfile,
+    setUser,
     isAuthenticated: !!user && !!getAccessToken(),
   }
 

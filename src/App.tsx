@@ -1,4 +1,4 @@
-import { Routes, Route, useLocation } from 'react-router-dom'
+import { Navigate, Routes, Route, useLocation } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import NavBar from './components/NavBar'
 import ScrollToTop from './components/ScrollToTop'
@@ -9,6 +9,8 @@ import FeaturesPage from './pages/FeaturesPage'
 import AuthPage from './pages/AuthPage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import AccountPage from './pages/AccountPage'
+import VehiclesPage from './pages/VehiclesPage'
+import BookingsPage from './pages/BookingsPage'
 import GuestRoute from './components/auth/GuestRoute'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 import Footer from './components/Footer'
@@ -32,13 +34,30 @@ function AppContent() {
         <Route path="/tiers" element={<TiersPage />} />
         <Route path="/features" element={<FeaturesPage />} />
         <Route
-          path="/account"
+          path="/profile"
           element={
             <ProtectedRoute roles={['customer']}>
               <AccountPage />
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/vehicles"
+          element={
+            <ProtectedRoute roles={['customer']}>
+              <VehiclesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/bookings"
+          element={
+            <ProtectedRoute roles={['customer']}>
+              <BookingsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/account" element={<Navigate to="/profile" replace />} />
         <Route
           path="/login"
           element={
