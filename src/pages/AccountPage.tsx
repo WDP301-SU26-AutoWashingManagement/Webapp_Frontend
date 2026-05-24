@@ -149,7 +149,7 @@ export default function AccountPage() {
               {loadErrorStatus === 429 ? 'Quá nhiều yêu cầu' : 'Không tải được hồ sơ'}
             </p>
             <p className="mt-2 leading-relaxed">{loadError}</p>
-           
+
           </div>
         ) : (
           <p className="mt-2 text-slate-600">Không có dữ liệu hồ sơ.</p>
@@ -212,7 +212,7 @@ export default function AccountPage() {
         className="mt-6 rounded-xl border border-cyan-500/15 bg-white p-6 shadow-sm"
       >
         <h2 className="text-lg font-semibold text-slate-900">Cập nhật hồ sơ</h2>
-        
+
 
         <div className="mt-4 space-y-4">
           <label className="block text-sm">
@@ -268,69 +268,68 @@ export default function AccountPage() {
       <section className="mt-6 rounded-xl border border-cyan-500/15 bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold text-slate-900">Đổi mật khẩu</h2>
 
-        {isGoogleAccount ? (
-          <p className="mt-4 text-sm leading-relaxed text-slate-600">
-            Bạn đăng nhập bằng Google. Mật khẩu được quản lý bởi tài khoản Google — không thể
-            đổi mật khẩu tại đây.
+        {isGoogleAccount && (
+          <p className="mt-4 text-sm leading-relaxed text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
+            💡 Tài khoản Google của bạn đã được cấp mật khẩu tạm qua email.
           </p>
-        ) : (
-          <form onSubmit={handlePasswordSubmit}>
-            <div className="mt-4 space-y-4">
-              <label className="block text-sm">
-                <span className="font-medium text-slate-700">Mật khẩu hiện tại *</span>
-                <PasswordInput
-                  id="old_password"
-                  value={passwordForm.old_password}
-                  onChange={(e) =>
-                    setPasswordForm((prev) => ({ ...prev, old_password: e.target.value }))
-                  }
-                  autoComplete="current-password"
-                  required
-                  className="mt-1"
-                  disabled={savingPassword}
-                />
-              </label>
-
-              <label className="block text-sm">
-                <span className="font-medium text-slate-700">Mật khẩu mới *</span>
-                <PasswordInput
-                  id="new_password"
-                  value={passwordForm.new_password}
-                  onChange={(e) =>
-                    setPasswordForm((prev) => ({ ...prev, new_password: e.target.value }))
-                  }
-                  autoComplete="new-password"
-                  required
-                  className="mt-1"
-                  disabled={savingPassword}
-                />
-              </label>
-
-              <label className="block text-sm">
-                <span className="font-medium text-slate-700">Nhập lại mật khẩu mới *</span>
-                <PasswordInput
-                  id="confirm_password"
-                  value={passwordForm.confirm_password}
-                  onChange={(e) =>
-                    setPasswordForm((prev) => ({ ...prev, confirm_password: e.target.value }))
-                  }
-                  autoComplete="new-password"
-                  required
-                  className="mt-1"
-                  disabled={savingPassword}
-                />
-              </label>
-            </div>
-
-            <button
-              type="submit"
-              disabled={savingPassword}
-              className="mt-6 rounded-lg border border-cyan-500/30 bg-white px-5 py-2.5 text-sm font-semibold text-[#0ea5b7] transition hover:bg-cyan-50 disabled:opacity-50"
-            >
-              {savingPassword ? 'Đang đổi...' : 'Đổi mật khẩu'}
-            </button>
-          </form>
         )}
+
+        <form onSubmit={handlePasswordSubmit}>
+          <div className="mt-4 space-y-4">
+            <label className="block text-sm">
+              <span className="font-medium text-slate-700">Mật khẩu hiện tại * </span>
+              <PasswordInput
+                id="old_password"
+                value={passwordForm.old_password}
+                onChange={(e) =>
+                  setPasswordForm((prev) => ({ ...prev, old_password: e.target.value }))
+                }
+                autoComplete="current-password"
+                required
+                className="mt-1"
+                disabled={savingPassword}
+              />
+            </label>
+
+            <label className="block text-sm">
+              <span className="font-medium text-slate-700">Mật khẩu mới *</span>
+              <PasswordInput
+                id="new_password"
+                value={passwordForm.new_password}
+                onChange={(e) =>
+                  setPasswordForm((prev) => ({ ...prev, new_password: e.target.value }))
+                }
+                autoComplete="new-password"
+                required
+                className="mt-1"
+                disabled={savingPassword}
+              />
+            </label>
+
+            <label className="block text-sm">
+              <span className="font-medium text-slate-700">Nhập lại mật khẩu mới *</span>
+              <PasswordInput
+                id="confirm_password"
+                value={passwordForm.confirm_password}
+                onChange={(e) =>
+                  setPasswordForm((prev) => ({ ...prev, confirm_password: e.target.value }))
+                }
+                autoComplete="new-password"
+                required
+                className="mt-1"
+                disabled={savingPassword}
+              />
+            </label>
+          </div>
+
+          <button
+            type="submit"
+            disabled={savingPassword}
+            className="mt-6 rounded-lg border border-cyan-500/30 bg-white px-5 py-2.5 text-sm font-semibold text-[#0ea5b7] transition hover:bg-cyan-50 disabled:opacity-50"
+          >
+            {savingPassword ? 'Đang đổi...' : 'Đổi mật khẩu'}
+          </button>
+        </form>
       </section>
 
       <Link

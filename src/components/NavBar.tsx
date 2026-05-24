@@ -98,7 +98,7 @@ export default function NavBar() {
                 onClick={() => setOpen(false)}
                 className="text-slate-700 font-medium no-underline"
             >
-                Lịch hẹn
+                Lịch sử đặt lịch
             </Link>
             <button
                 type="button"

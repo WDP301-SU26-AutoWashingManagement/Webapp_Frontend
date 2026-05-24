@@ -5,7 +5,7 @@ import type { AuthUser } from '../types/auth'
 const MENU_ITEMS = [
     { to: '/profile', label: 'Thông tin cá nhân' },
     { to: '/vehicles', label: 'Phương tiện' },
-    { to: '/bookings', label: 'Lịch hẹn' },
+    { to: '/bookings', label: 'Lịch sử đặt lịch' },
 ] as const
 
 function getInitials(name: string): string {
@@ -116,11 +116,10 @@ export default function ProfileMenu({ user, onNavigate }: ProfileMenuProps) {
                                     to={item.to}
                                     role="menuitem"
                                     onClick={close}
-                                    className={`block px-4 py-2.5 text-sm font-medium no-underline transition-colors ${
-                                        isActive
+                                    className={`block px-4 py-2.5 text-sm font-medium no-underline transition-colors ${isActive
                                             ? 'bg-cyan-50 text-[#0ea5b7]'
                                             : 'text-slate-700 hover:bg-slate-50 hover:text-[#0ea5b7]'
-                                    }`}
+                                        }`}
                                 >
                                     {item.label}
                                 </Link>

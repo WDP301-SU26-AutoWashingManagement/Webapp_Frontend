@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { CalendarPlus, CalendarDays, Car } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import AccountPageShell from '../components/account/AccountPageShell'
 import { AUTH_INPUT_CLASS } from '../components/auth/authUi'
 import { bookingService } from '../services/bookingService'
@@ -61,10 +61,19 @@ function matchesTab(booking: WashBooking, tab: BookingTab): boolean {
 }
 
 export default function BookingsPage() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [bookings, setBookings] = useState<WashBooking[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<BookingTab>('upcoming')
   const [showForm, setShowForm] = useState(false)
+
+  // Auto-open form when navigated with ?action=new
+  useEffect(() => {
+    if (searchParams.get('action') === 'new') {
+      setShowForm(true)
+      setSearchParams({}, { replace: true })
+    }
+  }, [searchParams, setSearchParams])
   const [saving, setSaving] = useState(false)
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [servicePackages, setServicePackages] = useState<ServicePackage[]>([])
