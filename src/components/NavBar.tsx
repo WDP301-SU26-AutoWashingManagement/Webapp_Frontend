@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import logo2 from '../assets/logo2.png'
+import ProfileMenu from './ProfileMenu'
 import { useAuth } from '../hooks/useAuth'
 
 export default function NavBar() {
@@ -8,8 +9,6 @@ export default function NavBar() {
     const { user, isAuthenticated, logout } = useAuth()
     const isHome = location.pathname === '/'
     const [open, setOpen] = useState(false)
-
-    const displayName = user?.full_name || user?.email || 'Tài khoản'
 
     useEffect(() => {
         if (!location.hash) return
@@ -45,15 +44,11 @@ export default function NavBar() {
 
     const linkClass = `no-underline text-sm font-medium tracking-wide transition-colors nav-link`
 
-    const authActionsDesktop = isAuthenticated ? (
+    const authActionsDesktop = isAuthenticated && user ? (
         <>
-            <Link
-                to="/account"
-                className="hidden max-w-[140px] truncate text-sm font-medium text-slate-700 no-underline transition-colors hover:text-[#0ea5b7] lg:inline-block"
-                title={displayName}
-            >
-                Xin chào, {displayName}
-            </Link>
+            <div className="hidden md:block">
+                <ProfileMenu user={user} />
+            </div>
             <button
                 type="button"
                 onClick={handleLogout}
@@ -79,14 +74,31 @@ export default function NavBar() {
         </>
     )
 
-    const authActionsMobile = isAuthenticated ? (
+    const authActionsMobile = isAuthenticated && user ? (
         <>
+            <p className="border-b border-slate-100 pb-3 text-sm font-semibold text-slate-900">
+                {user.full_name || user.email}
+            </p>
             <Link
-                to="/account"
+                to="/profile"
                 onClick={() => setOpen(false)}
-                className="text-sm font-medium text-slate-700 no-underline"
+                className="text-slate-700 font-medium no-underline"
             >
-                Xin chào, {displayName}
+                Thông tin cá nhân
+            </Link>
+            <Link
+                to="/vehicles"
+                onClick={() => setOpen(false)}
+                className="text-slate-700 font-medium no-underline"
+            >
+                Phương tiện
+            </Link>
+            <Link
+                to="/bookings"
+                onClick={() => setOpen(false)}
+                className="text-slate-700 font-medium no-underline"
+            >
+                Lịch sử đặt lịch
             </Link>
             <button
                 type="button"
@@ -140,7 +152,12 @@ export default function NavBar() {
                 </Link>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 md:gap-4">
+                {isAuthenticated && user && (
+                    <div className="md:hidden">
+                        <ProfileMenu user={user} />
+                    </div>
+                )}
                 {authActionsDesktop}
 
                 <button aria-label="Toggle menu" onClick={() => setOpen(v => !v)} className="md:hidden hamburger">

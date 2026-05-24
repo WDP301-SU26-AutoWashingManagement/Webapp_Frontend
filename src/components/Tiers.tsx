@@ -82,11 +82,10 @@ export default function Tiers() {
           {tiers.map((t) => (
             <div
               key={t.name}
-              className={`relative flex flex-col rounded-2xl bg-white p-5 transition-all duration-200 hover:-translate-y-1 ${
-                t.featured
-                  ? 'ring-2 ring-amber-400 shadow-lg shadow-amber-100'
-                  : 'border border-gray-200/80 hover:border-gray-300'
-              }`}
+              className={`relative flex flex-col rounded-2xl bg-white p-5 transition-all duration-200 hover:-translate-y-1 ${t.featured
+                ? 'ring-2 ring-amber-400 shadow-lg shadow-amber-100'
+                : 'border border-gray-200/80 hover:border-gray-300'
+                }`}
             >
               {t.featured && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-3 py-1 text-[11px] font-bold tracking-wide text-amber-800 bg-amber-100 border border-amber-300">
@@ -154,8 +153,8 @@ export default function Tiers() {
         <div className="flex items-center gap-3 text-sm text-slate-600 bg-white/70 backdrop-blur-sm border border-slate-200 rounded-xl px-4 py-3.5">
           <span className="text-base flex-shrink-0">⚠️</span>
           <span>
-            Điểm tích lũy hết hạn sau <strong className="text-slate-800">12 tháng</strong>.
-            Hệ thống review nâng/hạ hạng tự động mỗi tháng.
+            Điểm thưởng tích lũy hết hạn sau <strong className="text-slate-800">12 tháng</strong>.
+            Hệ thống review nâng/hạ hạng tự động mỗi tháng dựa trên điểm thành viên.
           </span>
         </div>
       </div>

@@ -1,10 +1,12 @@
 import axios from 'axios'
 import { env } from '../config/env'
 import type { AuthUser } from '../types/auth'
+import type { CustomerProfile } from '../types/customer'
 
 const ACCESS_TOKEN_KEY = 'accessToken'
 const REFRESH_TOKEN_KEY = 'refreshToken'
 const USER_KEY = 'user'
+const CUSTOMER_PROFILE_KEY = 'customerProfile'
 
 /** Axios instance without auth interceptors — avoids refresh loops. */
 const bareApi = axios.create({
@@ -68,16 +70,57 @@ export function setTokens(accessToken: string, refreshToken?: string): void {
   }
 }
 
+export function getStoredCustomerProfile(): CustomerProfile | null {
+  const raw = localStorage.getItem(CUSTOMER_PROFILE_KEY)
+  if (!raw) return null
+  try {
+    return JSON.parse(raw) as CustomerProfile
+  } catch {
+    return null
+  }
+}
+
+export function setStoredCustomerProfile(profile: CustomerProfile | null): void {
+  if (profile) {
+    localStorage.setItem(CUSTOMER_PROFILE_KEY, JSON.stringify(profile))
+  } else {
+    localStorage.removeItem(CUSTOMER_PROFILE_KEY)
+  }
+}
+
+/** JWT `id` is the User document id — not the Customer role id. */
+export function getUserIdFromToken(token?: string | null): string | null {
+  const accessToken = token ?? getAccessToken()
+  if (!accessToken) return null
+
+  try {
+    const base64 = accessToken.split('.')[1]
+    if (!base64) return null
+    const json = atob(base64.replace(/-/g, '+').replace(/_/g, '/'))
+    const payload = JSON.parse(json) as { id?: string; sub?: string }
+    const id = payload.id ?? payload.sub
+    return id != null ? String(id) : null
+  } catch {
+    return null
+  }
+}
+
+/** @deprecated Use getUserIdFromToken — name was misleading. */
+export const getCustomerIdFromToken = getUserIdFromToken
+
+/** Customer role document id from cached profile (for /vehicles, /bookings). */
+export function getCustomerRoleId(): string | null {
+  const profile = getStoredCustomerProfile()
+  const id = profile?.customer_id
+  return id != null && id !== '' ? String(id) : null
+}
+
 export function clearSession(): void {
   localStorage.removeItem(ACCESS_TOKEN_KEY)
   localStorage.removeItem(REFRESH_TOKEN_KEY)
-  localStorage.removeItem('tokenExpiresAt')
   localStorage.removeItem(USER_KEY)
+  localStorage.removeItem(CUSTOMER_PROFILE_KEY)
   notifyUnauthorized()
-}
-
-export function isAuthenticated(): boolean {
-  return !!getAccessToken()
 }
 
 const AUTH_PUBLIC_PATHS = [

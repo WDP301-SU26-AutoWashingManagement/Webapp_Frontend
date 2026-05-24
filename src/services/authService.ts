@@ -2,10 +2,11 @@ import apiClient from './apiClient'
 import {
   clearSession,
   getStoredUser,
-  isAuthenticated as hasSession,
+  setStoredCustomerProfile,
   setStoredUser,
   setTokens,
 } from '../lib/authSession'
+import { mapAuthUserToCustomerProfile } from './customerService'
 import type { ApiResponse } from '../types/api'
 import type { AuthUser } from '../types/auth'
 
@@ -74,19 +75,14 @@ export const authService = {
     const jwt = parseJwtPayload(accessToken)
     const mappedUser = mapUserFromAuthData(user, jwt)
     setStoredUser(mappedUser)
-    return mappedUser
-  },
 
-  async googleLogin(idToken: string): Promise<ApiResponse<LoginResponseData>> {
-    const response = await apiClient.post<ApiResponse<LoginResponseData>>('/auth/google', {
-      idToken,
-    })
-
-    if (response.data?.tokens) {
-      this.persistSessionFromAuthData(response.data)
+    if (user && typeof user === 'object') {
+      setStoredCustomerProfile(
+        mapAuthUserToCustomerProfile(user as Record<string, unknown>),
+      )
     }
 
-    return response
+    return mappedUser
   },
 
   async googleLoginByCode(code: string, redirectUri = 'postmessage'): Promise<ApiResponse<LoginResponseData>> {
@@ -165,9 +161,5 @@ export const authService = {
 
   setCurrentUser(user: AuthUser | null): void {
     setStoredUser(user)
-  },
-
-  isAuthenticated(): boolean {
-    return hasSession()
   },
 }
