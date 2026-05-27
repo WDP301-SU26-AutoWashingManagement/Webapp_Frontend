@@ -63,7 +63,7 @@ const onboardingSteps = [
     accentSoft: '#EAF2FF',
     title: 'Đặt lịch rửa xe',
     desc: 'Chọn phương tiện, gói dịch vụ, chi nhánh và khung giờ phù hợp để đặt booking.',
-    link: '/bookings?action=new',
+    link: '/bookings/new',
     linkText: 'Đặt booking ngay',
   },
   {

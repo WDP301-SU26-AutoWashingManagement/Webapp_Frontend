@@ -102,7 +102,6 @@ export const authService = {
     const response = await apiClient.post<ApiResponse<LoginResponseData>>('/auth/login', {
       email,
       password,
-      type: 'customer',
     })
 
     if (response.data?.tokens) {

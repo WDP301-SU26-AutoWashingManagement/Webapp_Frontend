@@ -25,7 +25,13 @@ export default function AuthPage() {
   const [searchParams] = useSearchParams()
   const { login, loginWithGoogle, register } = useAuth()
 
-  const redirectAfterAuth = () => {
+  const redirectAfterAuth = (role?: string) => {
+    // Admin → go to admin dashboard
+    if (role === 'admin') {
+      navigate('/admin/dashboard', { replace: true })
+      return
+    }
+    // Customer → honour the ?from= / state.from, else home
     const fromState = locationState?.from
     const fromQuery = searchParams.get('from')
     const target = fromState ?? fromQuery
@@ -75,7 +81,9 @@ export default function AuthPage() {
     try {
       await login(loginForm.email, loginForm.password)
       showSuccess('Đăng nhập thành công!')
-      redirectAfterAuth()
+      // user state is updated by AuthContext after login, read role from it
+      const role = (await import('../services/authService')).authService.getCurrentUser()?.role
+      redirectAfterAuth(role)
     } catch (err) {
       showError(getErrorMessage(err, 'Đăng nhập thất bại. Vui lòng kiểm tra thông tin.'))
     } finally {
@@ -87,7 +95,8 @@ export default function AuthPage() {
     try {
       await loginWithGoogle()
       showSuccess('Đăng nhập thành công!')
-      redirectAfterAuth()
+      const role = (await import('../services/authService')).authService.getCurrentUser()?.role
+      redirectAfterAuth(role)
     } catch (err) {
       showError(getErrorMessage(err, 'Đăng nhập Google thất bại.'))
     }

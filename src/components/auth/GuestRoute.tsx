@@ -8,7 +8,7 @@ interface GuestRouteProps {
 }
 
 export default function GuestRoute({ children }: GuestRouteProps) {
-  const { isAuthenticated, loading } = useAuth()
+  const { isAuthenticated, loading, user } = useAuth()
   const location = useLocation()
 
   if (loading) {
@@ -17,7 +17,8 @@ export default function GuestRoute({ children }: GuestRouteProps) {
 
   if (isAuthenticated) {
     const from = (location.state as { from?: string } | null)?.from
-    return <Navigate to={from ?? '/'} replace />
+    const target = from ?? (user?.role === 'admin' ? '/admin/dashboard' : '/')
+    return <Navigate to={target} replace />
   }
 
   return children

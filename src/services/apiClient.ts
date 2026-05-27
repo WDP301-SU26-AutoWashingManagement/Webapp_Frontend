@@ -28,7 +28,11 @@ class ApiClient {
 
   async put<T = unknown>(endpoint: string, data?: unknown): Promise<T> {
     try {
-      const response = await axiosInstance.put<T>(endpoint, data)
+      const config =
+        data instanceof FormData
+          ? { headers: { 'Content-Type': false as unknown as string } }
+          : undefined
+      const response = await axiosInstance.put<T>(endpoint, data, config)
       return response.data
     } catch (error) {
       this.handleError(error)

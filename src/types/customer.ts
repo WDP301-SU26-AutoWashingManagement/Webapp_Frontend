@@ -24,11 +24,12 @@ export interface CustomerProfile {
   updated_at?: string
 }
 
-/** Body for PUT /users/profile — mirrors backend updateProfileCustomerSchema. */
+/** Body for PUT /users/profile — JSON or multipart (field `avatar` for file upload). */
 export interface UpdateProfileInput {
   full_name?: string
   phone?: string
-  avatar_url?: string | null
+  /** Image file — BE field name `avatar`, max 5MB, png/jpeg/webp */
+  avatar?: File
   has_online_access?: boolean
 }
 
