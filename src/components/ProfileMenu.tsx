@@ -5,6 +5,7 @@ import type { AuthUser } from '../types/auth'
 const MENU_ITEMS = [
     { to: '/profile', label: 'Thông tin cá nhân' },
     { to: '/vehicles', label: 'Phương tiện' },
+    { to: '/bookings/new', label: 'Đặt lịch' },
     { to: '/bookings', label: 'Lịch sử đặt lịch' },
 ] as const
 

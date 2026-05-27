@@ -171,7 +171,26 @@ export const customerService = {
     payload: UpdateProfileInput,
     role = 'customer',
   ): Promise<{ profile: CustomerProfile; user: AuthUser }> {
-    const body = await apiClient.put<ApiResponse<Record<string, unknown>>>('/users/profile', payload)
+    const { avatar, ...fields } = payload
+    let requestBody: FormData | Record<string, unknown>
+
+    if (avatar) {
+      const form = new FormData()
+      if (fields.full_name !== undefined) form.append('full_name', fields.full_name)
+      if (fields.phone !== undefined) form.append('phone', fields.phone)
+      if (fields.has_online_access !== undefined) {
+        form.append('has_online_access', String(fields.has_online_access))
+      }
+      form.append('avatar', avatar)
+      requestBody = form
+    } else {
+      requestBody = { ...fields }
+    }
+
+    const body = await apiClient.put<ApiResponse<Record<string, unknown>>>(
+      '/users/profile',
+      requestBody,
+    )
     const raw = unwrapApiData<Record<string, unknown>>(body)
     const profile = mapUserProfileToCustomerProfile(raw)
     if (!profile.email) {

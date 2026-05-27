@@ -16,6 +16,8 @@ function normalizePromotion(raw: Record<string, unknown>): Promotion {
       raw.bonus_reward_point != null ? Number(raw.bonus_reward_point) : undefined,
     start_at: raw.start_at != null ? String(raw.start_at) : undefined,
     end_at: raw.end_at != null ? String(raw.end_at) : undefined,
+    auto_notification:
+      raw.auto_notification === true || raw.auto_post === true,
     is_active: raw.is_active !== false,
   }
 }

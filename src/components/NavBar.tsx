@@ -94,6 +94,13 @@ export default function NavBar() {
                 Phương tiện
             </Link>
             <Link
+                to="/bookings/new"
+                onClick={() => setOpen(false)}
+                className="text-slate-700 font-medium no-underline"
+            >
+                Đặt lịch
+            </Link>
+            <Link
                 to="/bookings"
                 onClick={() => setOpen(false)}
                 className="text-slate-700 font-medium no-underline"
