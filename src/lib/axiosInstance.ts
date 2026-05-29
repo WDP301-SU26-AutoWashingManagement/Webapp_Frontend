@@ -36,9 +36,53 @@ function processRefreshQueue(error: unknown, token: string | null = null): void 
   refreshQueue = []
 }
 
+function isTokenExpired(token: string): boolean {
+  try {
+    const base64 = token.split('.')[1]
+    if (!base64) return false
+    const json = atob(base64.replace(/-/g, '+').replace(/_/g, '/'))
+    const payload = JSON.parse(json)
+    if (!payload.exp) return false
+    return payload.exp * 1000 < Date.now() + 10000
+  } catch {
+    return false
+  }
+}
+
+// Request interceptor
 axiosInstance.interceptors.request.use(
-  (config) => {
-    const token = getAccessToken()
+  async (config) => {
+    let token = getAccessToken()
+    const requestUrl = config.url ?? ''
+
+    if (!isAuthPublicRequest(requestUrl) && token && isTokenExpired(token)) {
+      if (!isRefreshing) {
+        isRefreshing = true
+        try {
+          const newToken = await refreshAccessToken()
+          if (!newToken) throw new Error('Không thể làm mới phiên đăng nhập')
+          processRefreshQueue(null, newToken)
+          token = newToken
+        } catch (error) {
+          processRefreshQueue(error, null)
+          clearSession()
+          redirectToLogin(window.location.pathname)
+          return Promise.reject(error)
+        } finally {
+          isRefreshing = false
+          refreshQueue = []
+        }
+      } else {
+        try {
+          token = await new Promise<string>((resolve, reject) => {
+            refreshQueue.push({ resolve, reject })
+          })
+        } catch (error) {
+          return Promise.reject(error)
+        }
+      }
+    }
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -47,6 +91,7 @@ axiosInstance.interceptors.request.use(
   (error) => Promise.reject(error),
 )
 
+// Response interceptor
 axiosInstance.interceptors.response.use(
   (response) => response,
   async (error: AxiosError<ApiErrorPayload>) => {
@@ -94,6 +139,7 @@ axiosInstance.interceptors.response.use(
       return Promise.reject(refreshError)
     } finally {
       isRefreshing = false
+      refreshQueue = []
     }
   },
 )
