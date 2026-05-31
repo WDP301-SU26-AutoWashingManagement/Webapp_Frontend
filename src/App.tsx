@@ -22,6 +22,7 @@ import AdminLayout from './pages/admin/AdminLayout'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminServicesPage from './pages/admin/AdminServicesPage'
 import AdminPromotionsPage from './pages/admin/AdminPromotionsPage'
+import AdminTiersPage from './pages/admin/AdminTiersPage'
 import AdminPlaceholderPage from './pages/admin/AdminPlaceholderPage'
 
 import { useAuth } from './hooks/useAuth'
@@ -110,6 +111,7 @@ function AppContent() {
           />
           <Route path="services" element={<AdminServicesPage />} />
           <Route path="promotions" element={<AdminPromotionsPage />} />
+          <Route path="tiers" element={<AdminTiersPage />} />
           <Route
             path="reports"
             element={<AdminPlaceholderPage title="Báo cáo" description="Báo cáo doanh thu và thống kê" />}

@@ -12,6 +12,7 @@ import {
   Wrench,
   Tag,
   BarChart3,
+  Award,
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import logo2 from '../../assets/logo2.png'
@@ -41,6 +42,11 @@ const NAV_ITEMS = [
     label: 'Khuyến mãi',
     icon: Tag,
     to: '/admin/promotions',
+  },
+  {
+    label: 'Cấp bậc',
+    icon: Award,
+    to: '/admin/tiers',
   },
   {
     label: 'Báo cáo',
