@@ -43,7 +43,7 @@ function TierModal({ initial, onClose, onSaved }: TierModalProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (form.min_membership_points < 0) {
       showError('Điểm tích luỹ tối thiểu không được âm')
       return
