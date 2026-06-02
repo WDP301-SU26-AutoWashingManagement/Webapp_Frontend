@@ -8,7 +8,7 @@ import TiersPage from './pages/TiersPage'
 import FeaturesPage from './pages/FeaturesPage'
 import AuthPage from './pages/AuthPage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
-import AccountPage from './pages/AccountPage'
+
 import VehiclesPage from './pages/VehiclesPage'
 import BookingsPage from './pages/BookingsPage'
 import NewBookingPage from './pages/NewBookingPage'
@@ -22,31 +22,47 @@ import AdminLayout from './pages/admin/AdminLayout'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminServicesPage from './pages/admin/AdminServicesPage'
 import AdminPromotionsPage from './pages/admin/AdminPromotionsPage'
+import AdminTiersPage from './pages/admin/AdminTiersPage'
+import InternalProfilePage from './pages/shared/InternalProfilePage'
 import AdminPlaceholderPage from './pages/admin/AdminPlaceholderPage'
+
+// Boss
+import BossLayout from './pages/boss/BossLayout'
+import BossDashboard from './pages/boss/BossDashboard'
+import BossAccountsPage from './pages/boss/BossAccountsPage'
+import BossBranchesPage from './pages/boss/BossBranchesPage'
 
 import { useAuth } from './hooks/useAuth'
 import './App.css'
 
 const AUTH_PATHS = ['/login', '/register', '/forgot-password']
 const ADMIN_PATHS_PREFIX = '/admin'
+const BOSS_PATHS_PREFIX = '/boss'
 
 function AppContent() {
   const { pathname } = useLocation()
   const { isAuthenticated, user, loading } = useAuth()
-  
+
   const isAuthPage = AUTH_PATHS.includes(pathname)
   const isAdminPage = pathname.startsWith(ADMIN_PATHS_PREFIX)
+  const isBossPage = pathname.startsWith(BOSS_PATHS_PREFIX)
+  const isDashboardPage = isAdminPage || isBossPage
 
   // Nếu là Admin nhưng đang ở trang ngoài (trang chủ, features, ...) -> đá về dashboard
   if (!loading && isAuthenticated && user?.role === 'admin' && !isAdminPage) {
     return <Navigate to="/admin/dashboard" replace />
   }
 
+  // Nếu là Boss nhưng đang ở trang ngoài -> đá về dashboard
+  if (!loading && isAuthenticated && user?.role === 'boss' && !isBossPage) {
+    return <Navigate to="/boss/dashboard" replace />
+  }
+
   return (
     <div className="app">
       <Toaster />
       <ScrollToTop />
-      {!isAuthPage && !isAdminPage && <NavBar />}
+      {!isAuthPage && !isDashboardPage && <NavBar />}
       <Routes>
         {/* ── Public ── */}
         <Route path="/" element={<HomePage />} />
@@ -59,7 +75,7 @@ function AppContent() {
           path="/profile"
           element={
             <ProtectedRoute roles={['customer']}>
-              <AccountPage />
+              <InternalProfilePage />
             </ProtectedRoute>
           }
         />
@@ -110,13 +126,39 @@ function AppContent() {
           />
           <Route path="services" element={<AdminServicesPage />} />
           <Route path="promotions" element={<AdminPromotionsPage />} />
+          <Route path="tiers" element={<AdminTiersPage />} />
           <Route
             path="reports"
             element={<AdminPlaceholderPage title="Báo cáo" description="Báo cáo doanh thu và thống kê" />}
           />
           <Route
             path="settings"
-            element={<AdminPlaceholderPage title="Cài đặt" description="Cấu hình hệ thống" />}
+            element={<InternalProfilePage />}
+          />
+        </Route>
+
+        {/* ── Boss protected ── */}
+        <Route
+          path="/boss"
+          element={
+            <ProtectedRoute roles={['boss']}>
+              <BossLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Navigate to="/boss/dashboard" replace />} />
+          <Route path="dashboard" element={<BossDashboard />} />
+          <Route
+            path="accounts"
+            element={<BossAccountsPage />}
+          />
+          <Route
+            path="branches"
+            element={<BossBranchesPage />}
+          />
+          <Route
+            path="settings"
+            element={<InternalProfilePage />}
           />
         </Route>
 
@@ -147,7 +189,7 @@ function AppContent() {
         />
         <Route path="*" element={<HomePage />} />
       </Routes>
-      {!isAuthPage && !isAdminPage && <Footer />}
+      {!isAuthPage && !isDashboardPage && <Footer />}
     </div>
   )
 }

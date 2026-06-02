@@ -26,6 +26,11 @@ export default function AuthPage() {
   const { login, loginWithGoogle, register } = useAuth()
 
   const redirectAfterAuth = (role?: string) => {
+    // Boss → go to boss dashboard
+    if (role === 'boss') {
+      navigate('/boss/dashboard', { replace: true })
+      return
+    }
     // Admin → go to admin dashboard
     if (role === 'admin') {
       navigate('/admin/dashboard', { replace: true })
@@ -339,9 +344,8 @@ export default function AuthPage() {
 
         {/* Panel promo — chỉ panel trượt */}
         <div
-          className={`absolute top-0 z-20 flex h-full w-1/2 flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-slate-900 to-cyan-950 px-7 py-6 transition-[left] duration-500 ease-in-out ${
-            isLogin ? 'left-1/2' : 'left-0'
-          }`}
+          className={`absolute top-0 z-20 flex h-full w-1/2 flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-slate-900 to-cyan-950 px-7 py-6 transition-[left] duration-500 ease-in-out ${isLogin ? 'left-1/2' : 'left-0'
+            }`}
         >
           <div
             className="pointer-events-none absolute -right-16 -top-16 h-52 w-52 rounded-full bg-cyan-500/25 blur-3xl"

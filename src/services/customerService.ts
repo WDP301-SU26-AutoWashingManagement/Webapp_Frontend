@@ -145,7 +145,7 @@ export const customerService = {
 
     profileRequest = (async () => {
       try {
-        const body = await apiClient.get<ApiResponse<Record<string, unknown>>>('/users/profile')
+        const body = await apiClient.get<ApiResponse<Record<string, unknown>>>('/profile')
         const raw = unwrapApiData<Record<string, unknown>>(body)
         const profile = mapUserProfileToCustomerProfile(raw)
         if (!profile.email) {
@@ -188,7 +188,7 @@ export const customerService = {
     }
 
     const body = await apiClient.put<ApiResponse<Record<string, unknown>>>(
-      '/users/profile',
+      '/profile',
       requestBody,
     )
     const raw = unwrapApiData<Record<string, unknown>>(body)
@@ -202,7 +202,7 @@ export const customerService = {
 
   async changePassword(input: ChangeProfilePasswordInput): Promise<string> {
     const body = await apiClient.patch<ApiResponse<{ message?: string }>>(
-      '/users/profile/password',
+      '/profile/password',
       input,
     )
     const envelope = body as ApiResponse<{ message?: string }>

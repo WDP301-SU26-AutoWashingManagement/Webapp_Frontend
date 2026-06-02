@@ -3,16 +3,12 @@ import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard,
   Users,
-  CalendarCheck,
   Settings,
   LogOut,
   Menu,
   X,
   ChevronRight,
-  Wrench,
-  Tag,
-  BarChart3,
-  Award,
+  Building
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import logo2 from '../../assets/logo2.png'
@@ -21,46 +17,26 @@ const NAV_ITEMS = [
   {
     label: 'Tổng quan',
     icon: LayoutDashboard,
-    to: '/admin/dashboard',
+    to: '/boss/dashboard',
   },
   {
-    label: 'Khách hàng',
+    label: 'Tài khoản nội bộ',
     icon: Users,
-    to: '/admin/customers',
+    to: '/boss/accounts',
   },
   {
-    label: 'Đặt lịch',
-    icon: CalendarCheck,
-    to: '/admin/bookings',
-  },
-  {
-    label: 'Dịch vụ',
-    icon: Wrench,
-    to: '/admin/services',
-  },
-  {
-    label: 'Khuyến mãi',
-    icon: Tag,
-    to: '/admin/promotions',
-  },
-  {
-    label: 'Cấp bậc',
-    icon: Award,
-    to: '/admin/tiers',
-  },
-  {
-    label: 'Báo cáo',
-    icon: BarChart3,
-    to: '/admin/reports',
+    label: 'Quản lý Chi nhánh',
+    icon: Building,
+    to: '/boss/branches',
   },
   {
     label: 'Cài đặt',
     icon: Settings,
-    to: '/admin/settings',
+    to: '/boss/settings',
   },
 ]
 
-export default function AdminLayout() {
+export default function BossLayout() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen] = useState(true)
@@ -70,7 +46,7 @@ export default function AdminLayout() {
     navigate('/', { replace: true })
   }
 
-  const displayName = user?.full_name || user?.email || 'Admin'
+  const displayName = user?.full_name || user?.email || 'Boss'
   const initials = displayName
     .trim()
     .split(/\s+/)
@@ -85,7 +61,7 @@ export default function AdminLayout() {
       <aside className={`admin-sidebar ${sidebarOpen ? 'admin-sidebar--open' : 'admin-sidebar--collapsed'}`}>
         {/* Brand */}
         <div className="admin-sidebar__brand">
-          <Link to="/admin/dashboard" className="admin-sidebar__logo-link">
+          <Link to="/boss/dashboard" className="admin-sidebar__logo-link">
             <img src={logo2} alt="AutoWash" className="admin-sidebar__logo-img" />
             {sidebarOpen && (
               <span className="admin-sidebar__logo-text">
@@ -103,11 +79,11 @@ export default function AdminLayout() {
           </button>
         </div>
 
-        {/* Admin Badge */}
+        {/* Boss Badge */}
         {sidebarOpen && (
-          <div className="admin-sidebar__badge">
-            <span className="admin-sidebar__badge-dot" />
-            Quản trị viên
+          <div className="admin-sidebar__badge" style={{ background: '#5d3fd3' }}>
+            <span className="admin-sidebar__badge-dot" style={{ background: '#fff' }} />
+            Super Boss
           </div>
         )}
 
@@ -136,7 +112,7 @@ export default function AdminLayout() {
             {sidebarOpen && (
               <div className="admin-sidebar__user-info">
                 <p className="admin-sidebar__user-name">{displayName}</p>
-                <p className="admin-sidebar__user-role">Administrator</p>
+                <p className="admin-sidebar__user-role">Boss</p>
               </div>
             )}
           </div>

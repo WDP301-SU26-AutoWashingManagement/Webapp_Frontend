@@ -1,5 +1,5 @@
 /** Mirrors backend `UserRole` in common/types */
-export type UserRole = 'customer' | 'admin'
+export type UserRole = 'customer' | 'admin' | 'boss' | 'staff'
 
 export interface AuthUser {
   user_id: string | null
