@@ -1,0 +1,114 @@
+import { useState, useEffect } from 'react'
+import { MapPin, Phone, Clock, Car } from 'lucide-react'
+import { branchService } from '../services/branchService'
+import type { Branch } from '../services/branchService'
+
+export default function Branches() {
+  const [branches, setBranches] = useState<Branch[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function loadBranches() {
+      try {
+        const data = await branchService.list()
+        // Chỉ lấy các chi nhánh đang hoạt động
+        setBranches(data.filter(b => b.is_active !== false))
+      } catch (error) {
+        console.error('Lỗi khi tải danh sách chi nhánh', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    void loadBranches()
+  }, [])
+
+  if (loading || branches.length === 0) return null
+
+  return (
+    <section className="marketing-section page-section px-6 md:px-16" id="locations">
+      <div className="max-w-6xl mx-auto">
+        <div className="text-center mb-12">
+          <div className="section-label">Hệ thống</div>
+          <h2 className="section-title">Hệ thống chi nhánh AutoWash</h2>
+          <p className="section-sub mx-auto max-w-2xl mt-4">
+            Với mạng lưới chi nhánh rộng khắp, AutoWash luôn sẵn sàng phục vụ và chăm sóc xế yêu của bạn một cách nhanh chóng và chuyên nghiệp nhất.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {branches.map(branch => {
+            const id = branch._id || branch.id
+            const address = branch.branch_address
+            const hasGeo = branch.geo?.latitude && branch.geo?.longitude
+            const mapSrc = hasGeo
+              ? `https://maps.google.com/maps?q=${branch.geo?.latitude},${branch.geo?.longitude}&hl=vi&z=15&output=embed`
+              : ''
+
+            return (
+              <div key={id} className="rounded-3xl border border-cyan-500/15 bg-white shadow-sm overflow-hidden flex flex-col transition-transform hover:-translate-y-1 hover:shadow-md">
+                {/* Map embed */}
+                <div className="h-48 w-full bg-slate-100 relative">
+                  {hasGeo ? (
+                    <iframe
+                      src={mapSrc}
+                      width="100%"
+                      height="100%"
+                      style={{ border: 0 }}
+                      allowFullScreen
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                      title={`Bản đồ chi nhánh ${address?.street}`}
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center text-slate-400">
+                      Chưa cập nhật bản đồ
+                    </div>
+                  )}
+                </div>
+
+                {/* Info */}
+                <div className="p-6 flex-1 flex flex-col">
+                  <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-start gap-2">
+                    <MapPin className="text-[#0ea5b7] shrink-0 mt-1" size={18} />
+                    <span>{address?.street}, {address?.ward}, {address?.district}, {address?.city}</span>
+                  </h3>
+
+                  <div className="space-y-3 mb-6 flex-1">
+                    {branch.branch_phone && (
+                      <div className="flex items-center gap-3 text-sm text-slate-600">
+                        <Phone size={16} className="text-slate-400 shrink-0" />
+                        <span>{branch.branch_phone}</span>
+                      </div>
+                    )}
+                    <div className="flex items-start gap-3 text-sm text-slate-600">
+                      <Clock size={16} className="text-slate-400 shrink-0 mt-0.5" />
+                      <div>
+                        <div>T2 - T6: {branch.operating_time?.default_open} - {branch.operating_time?.default_close}</div>
+                        <div className="text-slate-500 mt-1">T7 - CN: {branch.operating_time?.weekend_open} - {branch.operating_time?.weekend_close}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm text-slate-600">
+                      <Car size={16} className="text-slate-400 shrink-0" />
+                      <span>{branch.bay_counts} làn phục vụ cùng lúc</span>
+                    </div>
+                  </div>
+
+                  {hasGeo && (
+                    <a
+                      href={`https://www.google.com/maps/dir/?api=1&destination=${branch.geo?.latitude},${branch.geo?.longitude}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-auto block text-center rounded-xl bg-cyan-50 py-2.5 text-sm font-semibold text-[#0ea5b7] hover:bg-cyan-100 transition-colors"
+                    >
+                      Chỉ đường tới đây
+                    </a>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </section>
+  )
+}

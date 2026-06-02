@@ -6,6 +6,8 @@ import { showError, showSuccess } from '../../utils/toast'
 import { getErrorMessage } from '../../utils/errors'
 import { bossAccountService } from '../../services/bossAccountService'
 import type { CreateInternalAccountPayload } from '../../services/bossAccountService'
+import { branchService } from '../../services/branchService'
+import type { Branch } from '../../services/branchService'
 
 interface AccountModalProps {
   onClose: () => void
@@ -23,8 +25,25 @@ function AccountModal({ onClose, onSaved }: AccountModalProps) {
   })
   const [saving, setSaving] = useState(false)
   const nameRef = useRef<HTMLInputElement>(null)
+  
+  const [branches, setBranches] = useState<Branch[]>([])
+  const [loadingBranches, setLoadingBranches] = useState(true)
 
-  useEffect(() => { nameRef.current?.focus() }, [])
+  useEffect(() => { 
+    nameRef.current?.focus() 
+    
+    async function fetchBranches() {
+      try {
+        const data = await branchService.list()
+        setBranches(data)
+      } catch (err) {
+        showError('Không tải được danh sách chi nhánh')
+      } finally {
+        setLoadingBranches(false)
+      }
+    }
+    void fetchBranches()
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -36,8 +55,8 @@ function AccountModal({ onClose, onSaved }: AccountModalProps) {
       showError('Mật khẩu phải có ít nhất 6 ký tự')
       return
     }
-    if (!form.branch_id || form.branch_id.length !== 24) {
-      showError('Mã chi nhánh (branch_id) không hợp lệ, phải là 24 ký tự ObjectId của MongoDB')
+    if (!form.branch_id) {
+      showError('Vui lòng chọn chi nhánh')
       return
     }
 
@@ -151,23 +170,30 @@ function AccountModal({ onClose, onSaved }: AccountModalProps) {
           </div>
 
           <div className="admin-form-group">
-            <label className="admin-form-label">Mã chi nhánh (branch_id) <span className="text-red-500">*</span></label>
+            <label className="admin-form-label">Chi nhánh <span className="text-red-500">*</span></label>
             <div className="relative">
               <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
                 <Building size={15} />
               </span>
-              <input
-                type="text"
+              <select
                 className="admin-form-input pl-9"
                 value={form.branch_id}
                 onChange={e => setForm(f => ({ ...f, branch_id: e.target.value }))}
-                placeholder="ID chi nhánh (MongoDB ObjectId)"
                 required
-              />
+                disabled={loadingBranches}
+              >
+                <option value="">{loadingBranches ? 'Đang tải danh sách...' : '-- Chọn chi nhánh --'}</option>
+                {branches.map(b => {
+                  const id = b._id ?? b.id ?? ''
+                  const address = b.branch_address ? `${b.branch_address.street}, ${b.branch_address.district}` : 'Không có địa chỉ'
+                  return (
+                    <option key={id} value={id}>
+                      {address}
+                    </option>
+                  )
+                })}
+              </select>
             </div>
-            <p className="mt-1 flex items-center gap-1 text-xs text-amber-600 font-medium">
-              * Lưu ý: Hiện tại cần copy đúng ID chi nhánh từ DB vì chưa có API danh sách.
-            </p>
           </div>
 
           <div className="admin-modal__footer mt-6">

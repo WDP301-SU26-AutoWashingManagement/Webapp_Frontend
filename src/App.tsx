@@ -30,6 +30,7 @@ import AdminPlaceholderPage from './pages/admin/AdminPlaceholderPage'
 import BossLayout from './pages/boss/BossLayout'
 import BossDashboard from './pages/boss/BossDashboard'
 import BossAccountsPage from './pages/boss/BossAccountsPage'
+import BossBranchesPage from './pages/boss/BossBranchesPage'
 
 import { useAuth } from './hooks/useAuth'
 import './App.css'
@@ -41,7 +42,7 @@ const BOSS_PATHS_PREFIX = '/boss'
 function AppContent() {
   const { pathname } = useLocation()
   const { isAuthenticated, user, loading } = useAuth()
-  
+
   const isAuthPage = AUTH_PATHS.includes(pathname)
   const isAdminPage = pathname.startsWith(ADMIN_PATHS_PREFIX)
   const isBossPage = pathname.startsWith(BOSS_PATHS_PREFIX)
@@ -150,6 +151,10 @@ function AppContent() {
           <Route
             path="accounts"
             element={<BossAccountsPage />}
+          />
+          <Route
+            path="branches"
+            element={<BossBranchesPage />}
           />
           <Route
             path="settings"

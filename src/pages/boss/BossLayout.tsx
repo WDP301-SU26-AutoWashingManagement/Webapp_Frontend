@@ -8,6 +8,7 @@ import {
   Menu,
   X,
   ChevronRight,
+  Building
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import logo2 from '../../assets/logo2.png'
@@ -22,6 +23,11 @@ const NAV_ITEMS = [
     label: 'Tài khoản nội bộ',
     icon: Users,
     to: '/boss/accounts',
+  },
+  {
+    label: 'Quản lý Chi nhánh',
+    icon: Building,
+    to: '/boss/branches',
   },
   {
     label: 'Cài đặt',
