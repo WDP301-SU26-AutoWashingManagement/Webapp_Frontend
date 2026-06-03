@@ -1,29 +1,25 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, Check, Gift } from 'lucide-react'
+import { ArrowLeft, Gift } from 'lucide-react'
 import BrandLogo from '../components/BrandLogo'
 import PromoOfferCard from '../components/auth/PromoOfferCard'
 import GoogleSignInButton from '../components/auth/GoogleSignInButton'
-import { AUTH_INPUT_CLASS, AUTH_INPUT_COMPACT, AuthDivider, PasswordInput } from '../components/auth/authUi'
+import { AUTH_INPUT_CLASS, AuthDivider, PasswordInput } from '../components/auth/authUi'
 import { AUTH_OFFERS, AUTH_PROMO_COPY } from '../constants/authPromo'
 import { useAuth } from '../hooks/useAuth'
 import type { LoginLocationState } from '../types/auth'
 import { getErrorMessage } from '../utils/errors'
 import { showError, showSuccess } from '../utils/toast'
 
-const FORM_SIDE =
-  'absolute top-0 z-10 flex h-full w-1/2 flex-col overflow-y-auto bg-white px-7 py-6 font-sans'
-
 const AUTH_GUEST_PATHS = ['/login', '/register', '/forgot-password']
 
 export default function AuthPage() {
-  const { pathname, state: locationState } = useLocation() as {
-    pathname: string
+  const { state: locationState } = useLocation() as {
     state: LoginLocationState | null
   }
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { login, loginWithGoogle, register } = useAuth()
+  const { login, loginWithGoogle } = useAuth()
 
   const redirectAfterAuth = (role?: string) => {
     // Boss → go to boss dashboard
@@ -47,24 +43,11 @@ export default function AuthPage() {
     navigate('/', { replace: true })
   }
 
-  const mode = pathname === '/register' ? 'register' : 'login'
-  const isLogin = mode === 'login'
-
   const [loading, setLoading] = useState(false)
 
   const [loginForm, setLoginForm] = useState({ email: '', password: '', remember: false })
-  const [registerForm, setRegisterForm] = useState({
-    username: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-  })
 
-  const passwordsMatch =
-    registerForm.confirmPassword.length > 0 &&
-    registerForm.password === registerForm.confirmPassword
-
-  const activeOffer = AUTH_OFFERS[isLogin ? 0 : 1]
+  const activeOffer = AUTH_OFFERS[0] // Only login offer now
 
   useEffect(() => {
     if (!locationState?.message) return
@@ -75,10 +58,6 @@ export default function AuthPage() {
     }
     navigate('/login', { replace: true, state: {} })
   }, [locationState, navigate])
-
-  const setMode = (next: 'login' | 'register') => {
-    navigate(next === 'register' ? '/register' : '/login')
-  }
 
   const handleLoginSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -107,47 +86,6 @@ export default function AuthPage() {
     }
   }
 
-  const handleRegisterSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setLoading(true)
-
-    if (registerForm.password.length < 6) {
-      showError('Mật khẩu phải có ít nhất 6 ký tự')
-      setLoading(false)
-      return
-    }
-
-    if (registerForm.password !== registerForm.confirmPassword) {
-      showError('Mật khẩu nhập lại không khớp')
-      setLoading(false)
-      return
-    }
-
-    if (registerForm.username.trim().length < 3) {
-      showError('Họ và tên phải có ít nhất 3 ký tự')
-      setLoading(false)
-      return
-    }
-
-    try {
-      await register({
-        email: registerForm.email,
-        username: registerForm.username.trim(),
-        password: registerForm.password,
-      })
-      navigate('/login', {
-        state: {
-          message: 'Đăng ký thành công. Vui lòng đăng nhập để tiếp tục.',
-          email: registerForm.email,
-        },
-      })
-    } catch (err) {
-      showError(getErrorMessage(err, 'Đăng ký thất bại. Vui lòng thử lại.'))
-    } finally {
-      setLoading(false)
-    }
-  }
-
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-cyan-950 p-4">
       <Link
@@ -158,9 +96,9 @@ export default function AuthPage() {
         Trang chủ
       </Link>
 
-      <div className="relative h-[600px] w-full max-w-[860px] overflow-hidden rounded-2xl bg-white shadow-2xl">
+      <div className="flex h-[600px] w-full max-w-[860px] overflow-hidden rounded-2xl bg-white shadow-2xl">
         {/* Login — cố định bên trái */}
-        <div className={`${FORM_SIDE} left-0 justify-center ${isLogin ? '' : 'pointer-events-none'}`}>
+        <div className="flex h-full w-1/2 flex-col overflow-y-auto bg-white px-7 py-6 font-sans">
           <div className="mx-auto my-auto w-full max-w-[360px]">
             <p className="section-label mb-1">Tài khoản</p>
             <h1 className="auth-page-title">Đăng nhập</h1>
@@ -223,7 +161,7 @@ export default function AuthPage() {
                 disabled={loading}
                 className="btn-primary w-full justify-center py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {loading && isLogin ? 'Đang xử lý...' : 'Đăng nhập'}
+                {loading ? 'Đang xử lý...' : 'Đăng nhập'}
               </button>
 
               <AuthDivider compact />
@@ -233,120 +171,8 @@ export default function AuthPage() {
           </div>
         </div>
 
-        {/* Register — cố định bên phải */}
-        <div className={`${FORM_SIDE} right-0 ${isLogin ? 'pointer-events-none' : ''}`}>
-          <div className="mx-auto w-full max-w-[360px]">
-            <p className="section-label mb-1">Tài khoản</p>
-            <h1 className="auth-page-title">Đăng ký</h1>
-            <p className="auth-page-sub mt-1">Tạo tài khoản mới</p>
-
-            <form onSubmit={handleRegisterSubmit} className="mt-3 space-y-3">
-              <div>
-                <label htmlFor="auth-register-username" className="mb-1 block text-sm font-medium text-slate-700">
-                  Họ và tên
-                </label>
-                <input
-                  id="auth-register-username"
-                  type="text"
-                  autoComplete="username"
-                  required
-                  minLength={3}
-                  disabled={loading}
-                  value={registerForm.username}
-                  onChange={(e) => setRegisterForm({ ...registerForm, username: e.target.value })}
-                  placeholder="nguyenvana"
-                  className={AUTH_INPUT_COMPACT}
-                />
-                <p className="mt-1 text-[11px] text-slate-400">Tối thiểu 3 ký tự</p>
-              </div>
-
-              <div>
-                <label htmlFor="auth-register-email" className="mb-1 block text-sm font-medium text-slate-700">
-                  Email
-                </label>
-                <input
-                  id="auth-register-email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  disabled={loading}
-                  value={registerForm.email}
-                  onChange={(e) => setRegisterForm({ ...registerForm, email: e.target.value })}
-                  placeholder="ban@email.com"
-                  className={AUTH_INPUT_COMPACT}
-                />
-              </div>
-
-              <div>
-                <label htmlFor="auth-register-password" className="mb-1 block text-sm font-medium text-slate-700">
-                  Mật khẩu
-                </label>
-                <PasswordInput
-                  id="auth-register-password"
-                  autoComplete="new-password"
-                  required
-                  disabled={loading}
-                  compact
-                  value={registerForm.password}
-                  onChange={(e) => setRegisterForm({ ...registerForm, password: e.target.value })}
-                  placeholder="••••••••"
-                />
-                <p className="mt-1 text-[11px] text-slate-400">Tối thiểu 6 ký tự</p>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="auth-register-confirm-password"
-                  className="mb-1 block text-sm font-medium text-slate-700"
-                >
-                  Nhập lại mật khẩu
-                </label>
-                <PasswordInput
-                  id="auth-register-confirm-password"
-                  autoComplete="new-password"
-                  required
-                  disabled={loading}
-                  compact
-                  value={registerForm.confirmPassword}
-                  onChange={(e) =>
-                    setRegisterForm({ ...registerForm, confirmPassword: e.target.value })
-                  }
-                  placeholder="••••••••"
-                  className={
-                    registerForm.confirmPassword.length > 0
-                      ? passwordsMatch
-                        ? 'border-[#0ea5b7]'
-                        : 'border-red-400'
-                      : ''
-                  }
-                  trailing={
-                    passwordsMatch ? (
-                      <Check size={16} strokeWidth={2.5} className="text-[#0ea5b7]" aria-hidden="true" />
-                    ) : null
-                  }
-                />
-                {registerForm.confirmPassword.length > 0 && !passwordsMatch && (
-                  <p className="mt-1 text-[11px] text-red-500">Không khớp</p>
-                )}
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="btn-primary w-full justify-center py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {loading && !isLogin ? 'Đang xử lý...' : 'Đăng ký'}
-              </button>
-            </form>
-
-          </div>
-        </div>
-
-        {/* Panel promo — chỉ panel trượt */}
-        <div
-          className={`absolute top-0 z-20 flex h-full w-1/2 flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-slate-900 to-cyan-950 px-7 py-6 transition-[left] duration-500 ease-in-out ${isLogin ? 'left-1/2' : 'left-0'
-            }`}
-        >
+        {/* Panel promo — cố định bên phải */}
+        <div className="relative flex h-full w-1/2 flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-slate-900 to-cyan-950 px-7 py-6">
           <div
             className="pointer-events-none absolute -right-16 -top-16 h-52 w-52 rounded-full bg-cyan-500/25 blur-3xl"
             aria-hidden="true"
@@ -377,13 +203,6 @@ export default function AuthPage() {
               <PromoOfferCard {...activeOffer} />
             </div>
 
-            <button
-              type="button"
-              onClick={() => setMode(isLogin ? 'register' : 'login')}
-              className="mt-auto w-fit rounded-lg border-2 border-white px-7 py-2.5 text-sm font-semibold text-white transition hover:bg-white hover:text-slate-900"
-            >
-              {isLogin ? 'Đăng ký ngay' : 'Đăng nhập'}
-            </button>
           </div>
         </div>
       </div>

@@ -16,29 +16,53 @@ export function normalizeVehicleType(type: string): VehicleType {
   return type === VehicleType.MOTORBIKE ? VehicleType.MOTORBIKE : VehicleType.CAR
 }
 
+export interface VehicleClass {
+  _id?: string
+  id?: string
+  class_code: string
+  class_name: string
+}
+
+export interface VehicleMake {
+  _id?: string
+  id?: string
+  make_name: string
+}
+
+export interface VehicleModelData {
+  _id?: string
+  id?: string
+  make_id: string
+  model_name: string
+}
+
 export interface Vehicle {
   _id?: string
   id?: string
   customer_id?: string
-  plate_number: string
-  vehicle_type: VehicleType
-  brand: string
-  vehicle_model: string
+  vehicle_class_id: string
+  model_id: string
+  license_plate: string
+  fuel_type: string
+  color: string
   created_at?: string
   updated_at?: string
 }
 
 export interface CreateVehicleInput {
   customer_id: string
-  plate_number: string
-  vehicle_type: VehicleType
-  brand: string
-  vehicle_model: string
+  vehicle_class_id: string
+  model_id: string
+  license_plate: string
+  fuel_type: string
+  color: string
 }
 
 export interface UpdateVehicleInput {
-  plate_number?: string
-  vehicle_type?: VehicleType
-  brand?: string
-  vehicle_model?: string
+  vehicle_class_id?: string
+  model_id?: string
+  license_plate?: string
+  fuel_type?: string
+  color?: string
 }
+

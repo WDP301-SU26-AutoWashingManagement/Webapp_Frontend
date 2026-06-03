@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Search, RefreshCw, X, Check, Building, Phone, Clock, Power, Trash2, Edit } from 'lucide-react'
+import { Plus, Search, RefreshCw, X, Check, Building, Phone, Clock, Power, Edit } from 'lucide-react'
 import { showError, showSuccess } from '../../utils/toast'
 import { getErrorMessage } from '../../utils/errors'
 import { branchService } from '../../services/branchService'

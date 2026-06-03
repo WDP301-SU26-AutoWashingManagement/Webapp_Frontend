@@ -84,7 +84,7 @@ export function AuthDivider({ compact = false }: { compact?: boolean }) {
         <div className="w-full border-t border-cyan-500/15" />
       </div>
       <div className="relative flex justify-center text-xs uppercase tracking-wider">
-        <span className="bg-white px-3 text-slate-400">Hoặc tiếp tục bằng</span>
+        <span className="bg-white px-3 text-slate-400">Hoặc đăng ký tài khoản</span>
       </div>
     </div>
   )

@@ -1,23 +1,20 @@
-import type { VehicleType } from './vehicle'
-
 export interface ServicePackage {
   _id?: string
   id?: string
-  service_name: string
-  description?: string
-  vehicle_type: VehicleType
-  service_price: number
-  duration_minutes: number
-  is_active?: boolean
+  service_group_id: string
+  package_name: string
+  package_code?: string
+  description: string
+  package_discount_percentage: number
+  is_active: boolean
 }
 
 export interface CreateServicePackageInput {
-  service_name: string
-  description?: string
-  vehicle_type: VehicleType
-  service_price: number
-  duration_minutes: number
-  is_active?: boolean
+  service_group_id: string
+  package_name: string
+  description: string
+  package_discount_percentage: number
+  service_ids: string[]
 }
 
-export type UpdateServicePackageInput = Partial<CreateServicePackageInput>
+export type UpdateServicePackageInput = Partial<CreateServicePackageInput> & { is_active?: boolean }

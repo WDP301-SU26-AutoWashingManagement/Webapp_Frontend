@@ -3,28 +3,26 @@ import { Car, Pencil, Plus, Trash2 } from 'lucide-react'
 import AccountPageShell from '../components/account/AccountPageShell'
 import { AUTH_INPUT_CLASS } from '../components/auth/authUi'
 import { vehicleService } from '../services/vehicleService'
-import type { Vehicle } from '../types/vehicle'
-import {
-  getVehicleTypeLabel,
-  normalizeVehicleType,
-  VEHICLE_TYPE_OPTIONS,
-  VehicleType,
-} from '../types/vehicle'
-
-type VehicleFormState = {
-  plate_number: string
-  vehicle_type: VehicleType
-  brand: string
-  vehicle_model: string
-}
+import type { Vehicle, VehicleClass, VehicleMake, VehicleModelData } from '../types/vehicle'
 import { getApiErrorMessage } from '../utils/errors'
 import { showError, showSuccess } from '../utils/toast'
 
+type VehicleFormState = {
+  license_plate: string
+  vehicle_class_id: string
+  make_id: string
+  model_id: string
+  fuel_type: string
+  color: string
+}
+
 const EMPTY_FORM: VehicleFormState = {
-  plate_number: '',
-  vehicle_type: VehicleType.MOTORBIKE,
-  brand: '',
-  vehicle_model: '',
+  license_plate: '',
+  vehicle_class_id: '',
+  make_id: '',
+  model_id: '',
+  fuel_type: 'Xăng',
+  color: '',
 }
 
 function vehicleId(v: Vehicle): string {
@@ -33,28 +31,39 @@ function vehicleId(v: Vehicle): string {
 
 export default function VehiclesPage() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
+  const [classes, setClasses] = useState<VehicleClass[]>([])
+  const [makes, setMakes] = useState<VehicleMake[]>([])
+  const [models, setModels] = useState<VehicleModelData[]>([])
+  
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState<VehicleFormState>(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
 
-  const loadVehicles = useCallback(async () => {
+  const loadData = useCallback(async () => {
     setLoading(true)
     try {
-      const list = await vehicleService.list()
-      setVehicles(list)
+      const [vList, cList, mList, mdList] = await Promise.all([
+        vehicleService.list(),
+        vehicleService.listClasses(),
+        vehicleService.listMakes(),
+        vehicleService.listModels()
+      ])
+      setVehicles(vList)
+      setClasses(cList)
+      setMakes(mList)
+      setModels(mdList)
     } catch (err) {
-      setVehicles([])
-      showError(getApiErrorMessage(err, 'Không tải được danh sách phương tiện'))
+      showError(getApiErrorMessage(err, 'Không tải được dữ liệu'))
     } finally {
       setLoading(false)
     }
   }, [])
 
   useEffect(() => {
-    void loadVehicles()
-  }, [loadVehicles])
+    void loadData()
+  }, [loadData])
 
   const resetForm = () => {
     setForm(EMPTY_FORM)
@@ -63,50 +72,58 @@ export default function VehiclesPage() {
   }
 
   const openCreate = () => {
-    setForm(EMPTY_FORM)
+    setForm({
+      ...EMPTY_FORM,
+      vehicle_class_id: classes[0]?._id ?? '',
+      make_id: makes[0]?._id ?? '',
+      model_id: '', // Will be selected based on make
+    })
     setEditingId(null)
     setShowForm(true)
   }
 
   const openEdit = (vehicle: Vehicle) => {
+    const model = models.find(m => m._id === vehicle.model_id)
     setForm({
-      plate_number: vehicle.plate_number,
-      vehicle_type: normalizeVehicleType(vehicle.vehicle_type),
-      brand: vehicle.brand,
-      vehicle_model: vehicle.vehicle_model,
+      license_plate: vehicle.license_plate,
+      vehicle_class_id: vehicle.vehicle_class_id,
+      make_id: model?.make_id ?? '',
+      model_id: vehicle.model_id,
+      fuel_type: vehicle.fuel_type,
+      color: vehicle.color,
     })
     setEditingId(vehicleId(vehicle))
     setShowForm(true)
   }
 
+  const filteredModels = models.filter(m => m.make_id === form.make_id)
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (!form.plate_number.trim() || !form.brand.trim() || !form.vehicle_model.trim()) {
+    if (!form.license_plate.trim() || !form.vehicle_class_id || !form.model_id) {
       showError('Vui lòng điền đầy đủ thông tin phương tiện')
       return
     }
 
     setSaving(true)
     try {
+      const payload = {
+        license_plate: form.license_plate.trim().toUpperCase(),
+        vehicle_class_id: form.vehicle_class_id,
+        model_id: form.model_id,
+        fuel_type: form.fuel_type,
+        color: form.color,
+      }
+      
       if (editingId) {
-        await vehicleService.update(editingId, {
-          plate_number: form.plate_number.trim().toUpperCase(),
-          vehicle_type: form.vehicle_type,
-          brand: form.brand.trim(),
-          vehicle_model: form.vehicle_model.trim(),
-        })
+        await vehicleService.update(editingId, payload)
         showSuccess('Cập nhật phương tiện thành công')
       } else {
-        await vehicleService.create({
-          plate_number: form.plate_number.trim().toUpperCase(),
-          vehicle_type: form.vehicle_type,
-          brand: form.brand.trim(),
-          vehicle_model: form.vehicle_model.trim(),
-        })
+        await vehicleService.create(payload)
         showSuccess('Thêm phương tiện thành công')
       }
       resetForm()
-      await loadVehicles()
+      await loadData()
     } catch (err) {
       showError(getApiErrorMessage(err, 'Lưu phương tiện thất bại'))
     } finally {
@@ -117,12 +134,12 @@ export default function VehiclesPage() {
   const handleDelete = async (vehicle: Vehicle) => {
     const id = vehicleId(vehicle)
     if (!id) return
-    if (!window.confirm(`Xóa phương tiện ${vehicle.plate_number}?`)) return
+    if (!window.confirm(`Xóa phương tiện ${vehicle.license_plate}?`)) return
 
     try {
       await vehicleService.remove(id)
       showSuccess('Đã xóa phương tiện')
-      await loadVehicles()
+      await loadData()
     } catch (err) {
       showError(getApiErrorMessage(err, 'Xóa phương tiện thất bại'))
     }
@@ -155,53 +172,100 @@ export default function VehiclesPage() {
                 type="text"
                 required
                 placeholder="VD: 59A1-12345"
-                value={form.plate_number}
-                onChange={(e) => setForm((p) => ({ ...p, plate_number: e.target.value }))}
+                value={form.license_plate}
+                onChange={(e) => setForm((p) => ({ ...p, license_plate: e.target.value }))}
                 className={`${AUTH_INPUT_CLASS} mt-1 uppercase`}
                 disabled={saving}
               />
             </label>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <label className="block text-sm">
+                <span className="font-medium text-slate-700">Hãng xe *</span>
+                <select
+                  required
+                  value={form.make_id}
+                  onChange={(e) => {
+                    const make_id = e.target.value;
+                    const defaultModel = models.find(m => m.make_id === make_id)?._id ?? '';
+                    setForm((p) => ({ ...p, make_id, model_id: defaultModel }))
+                  }}
+                  className={`${AUTH_INPUT_CLASS} mt-1`}
+                  disabled={saving}
+                >
+                  <option value="">Chọn hãng xe</option>
+                  {makes.map((opt) => (
+                    <option key={opt._id} value={opt._id}>{opt.make_name}</option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="block text-sm">
+                <span className="font-medium text-slate-700">Dòng xe (Model) *</span>
+                <select
+                  required
+                  value={form.model_id}
+                  onChange={(e) => setForm((p) => ({ ...p, model_id: e.target.value }))}
+                  className={`${AUTH_INPUT_CLASS} mt-1`}
+                  disabled={saving || !form.make_id}
+                >
+                  <option value="">Chọn dòng xe</option>
+                  {filteredModels.map((opt) => (
+                    <option key={opt._id} value={opt._id}>{opt.model_name}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
             <label className="block text-sm">
-              <span className="font-medium text-slate-700">Loại xe *</span>
+              <span className="font-medium text-slate-700">Loại xe (Kiểu dáng) *</span>
               <select
                 required
-                value={form.vehicle_type}
-                onChange={(e) => setForm((p) => ({ ...p, vehicle_type: e.target.value as VehicleType }))}
+                value={form.vehicle_class_id}
+                onChange={(e) => setForm((p) => ({ ...p, vehicle_class_id: e.target.value }))}
                 className={`${AUTH_INPUT_CLASS} mt-1`}
                 disabled={saving}
               >
-                {VEHICLE_TYPE_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
+                <option value="">Chọn loại xe</option>
+                {classes.map((opt) => (
+                  <option key={opt._id} value={opt._id}>
+                    {opt.class_name}
                   </option>
                 ))}
               </select>
             </label>
-            <label className="block text-sm">
-              <span className="font-medium text-slate-700">Hãng xe *</span>
-              <input
-                type="text"
-                required
-                placeholder="VD: Honda, Yamaha..."
-                value={form.brand}
-                onChange={(e) => setForm((p) => ({ ...p, brand: e.target.value }))}
-                className={`${AUTH_INPUT_CLASS} mt-1`}
-                disabled={saving}
-              />
-            </label>
-            <label className="block text-sm">
-              <span className="font-medium text-slate-700">Dòng xe / Model *</span>
-              <input
-                type="text"
-                required
-                placeholder="VD: Wave Alpha, Exciter..."
-                value={form.vehicle_model}
-                onChange={(e) => setForm((p) => ({ ...p, vehicle_model: e.target.value }))}
-                className={`${AUTH_INPUT_CLASS} mt-1`}
-                disabled={saving}
-              />
-            </label>
-            <div className="flex flex-wrap gap-3">
+
+            <div className="grid grid-cols-2 gap-4">
+              <label className="block text-sm">
+                <span className="font-medium text-slate-700">Loại nhiên liệu *</span>
+                <select
+                  required
+                  value={form.fuel_type}
+                  onChange={(e) => setForm((p) => ({ ...p, fuel_type: e.target.value }))}
+                  className={`${AUTH_INPUT_CLASS} mt-1`}
+                  disabled={saving}
+                >
+                  <option value="Xăng">Xăng</option>
+                  <option value="Dầu">Dầu (Diesel)</option>
+                  <option value="Điện">Điện</option>
+                </select>
+              </label>
+
+              <label className="block text-sm">
+                <span className="font-medium text-slate-700">Màu xe *</span>
+                <input
+                  type="text"
+                  required
+                  placeholder="VD: Trắng, Đen..."
+                  value={form.color}
+                  onChange={(e) => setForm((p) => ({ ...p, color: e.target.value }))}
+                  className={`${AUTH_INPUT_CLASS} mt-1`}
+                  disabled={saving}
+                />
+              </label>
+            </div>
+
+            <div className="flex flex-wrap gap-3 pt-2">
               <button
                 type="submit"
                 disabled={saving}
@@ -222,7 +286,7 @@ export default function VehiclesPage() {
         </section>
       )}
 
-      <section className="rounded-xl border border-cyan-500/15 bg-white p-6 shadow-sm">
+      <section className="rounded-xl border border-cyan-500/15 bg-white p-6 shadow-sm mt-6">
         <h2 className="text-lg font-semibold text-slate-900">Danh sách phương tiện</h2>
 
         {loading ? (
@@ -247,9 +311,13 @@ export default function VehiclesPage() {
           <ul className="mt-4 divide-y divide-slate-100">
             {vehicles.map((vehicle) => {
               const id = vehicleId(vehicle)
+              const model = models.find(m => m._id === vehicle.model_id)
+              const make = makes.find(m => m._id === model?.make_id)
+              const vClass = classes.find(c => c._id === vehicle.vehicle_class_id)
+              
               return (
                 <li
-                  key={id || vehicle.plate_number}
+                  key={id || vehicle.license_plate}
                   className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="flex items-start gap-3">
@@ -258,13 +326,13 @@ export default function VehiclesPage() {
                     </span>
                     <div>
                       <p className="font-mono text-base font-bold tracking-wide text-slate-900">
-                        {vehicle.plate_number}
+                        {vehicle.license_plate}
                       </p>
                       <p className="text-sm text-slate-600">
-                        {vehicle.brand} · {vehicle.vehicle_model}
+                        {make?.make_name || 'Hãng xe'} {model?.model_name || 'Dòng xe'}
                       </p>
                       <p className="text-xs text-slate-500 mt-1">
-                        {getVehicleTypeLabel(vehicle.vehicle_type)}
+                        {vClass?.class_name || 'Loại xe'} · {vehicle.color} · {vehicle.fuel_type}
                       </p>
                     </div>
                   </div>

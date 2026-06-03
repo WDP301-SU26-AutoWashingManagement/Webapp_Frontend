@@ -1,7 +1,7 @@
 import apiClient from './apiClient'
 import { resolveCustomerRoleId } from './customerService'
 import type { ApiResponse } from '../types/api'
-import type { CreateVehicleInput, UpdateVehicleInput, Vehicle, VehicleType } from '../types/vehicle'
+import type { CreateVehicleInput, UpdateVehicleInput, Vehicle, VehicleClass, VehicleMake, VehicleModelData } from '../types/vehicle'
 import { normalizeMongoId } from '../utils/mongoId'
 import { dedupeRequest } from '../utils/dedupeRequest'
 import { unwrapApiData } from '../utils/apiResponse'
@@ -12,10 +12,11 @@ function normalizeVehicle(raw: Record<string, unknown>): Vehicle {
     _id: id || undefined,
     id: id || undefined,
     customer_id: normalizeMongoId(raw.customer_id) || undefined,
-    plate_number: String(raw.plate_number ?? ''),
-    vehicle_type: (raw.vehicle_type as VehicleType) ?? 'car',
-    brand: String(raw.brand ?? ''),
-    vehicle_model: String(raw.vehicle_model ?? ''),
+    vehicle_class_id: normalizeMongoId(raw.vehicle_class_id) || '',
+    model_id: normalizeMongoId(raw.model_id) || '',
+    license_plate: String(raw.license_plate ?? ''),
+    fuel_type: String(raw.fuel_type ?? ''),
+    color: String(raw.color ?? ''),
     created_at: raw.created_at != null ? String(raw.created_at) : undefined,
     updated_at: raw.updated_at != null ? String(raw.updated_at) : undefined,
   }
@@ -27,7 +28,35 @@ function normalizeVehicleList(items: unknown[]): Vehicle[] {
     .map(normalizeVehicle)
 }
 
-/** Customer vehicles — GET/POST/PUT/DELETE /vehicles */
+function normalizeClass(raw: Record<string, unknown>): VehicleClass {
+  const id = normalizeMongoId(raw._id ?? raw.id)
+  return {
+    _id: id,
+    id: id,
+    class_code: String(raw.class_code ?? ''),
+    class_name: String(raw.class_name ?? ''),
+  }
+}
+
+function normalizeMake(raw: Record<string, unknown>): VehicleMake {
+  const id = normalizeMongoId(raw._id ?? raw.id)
+  return {
+    _id: id,
+    id: id,
+    make_name: String(raw.make_name ?? ''),
+  }
+}
+
+function normalizeModel(raw: Record<string, unknown>): VehicleModelData {
+  const id = normalizeMongoId(raw._id ?? raw.id)
+  return {
+    _id: id,
+    id: id,
+    make_id: normalizeMongoId(raw.make_id) || '',
+    model_name: String(raw.model_name ?? ''),
+  }
+}
+
 export const vehicleService = {
   async list(): Promise<Vehicle[]> {
     const customer_id = await resolveCustomerRoleId()
@@ -45,10 +74,12 @@ export const vehicleService = {
   ): Promise<Vehicle> {
     const body = await apiClient.post<ApiResponse<Record<string, unknown>>>('/vehicles', {
       customer_id: payload.customer_id ?? (await resolveCustomerRoleId()),
-      plate_number: payload.plate_number,
-      vehicle_type: payload.vehicle_type,
-      brand: payload.brand,
-      vehicle_model: payload.vehicle_model,
+      vehicle_class_id: payload.vehicle_class_id,
+      model_id: payload.model_id,
+      license_plate: payload.license_plate,
+      fuel_type: payload.fuel_type,
+      color: payload.color,
+      vehicle_model: "unknown", // Required by Backend
     })
     return normalizeVehicle(unwrapApiData<Record<string, unknown>>(body))
   },
@@ -64,4 +95,28 @@ export const vehicleService = {
   async remove(id: string): Promise<void> {
     await apiClient.delete(`/vehicles/${id}`)
   },
+
+  async listClasses(): Promise<VehicleClass[]> {
+    return dedupeRequest('vehicles:classes', async () => {
+      const body = await apiClient.get<ApiResponse<unknown[]>>('/vehicle-classes')
+      const data = unwrapApiData<unknown[]>(body)
+      return Array.isArray(data) ? data.map(item => normalizeClass(item as Record<string, unknown>)) : []
+    })
+  },
+
+  async listMakes(): Promise<VehicleMake[]> {
+    return dedupeRequest('vehicles:makes', async () => {
+      const body = await apiClient.get<ApiResponse<unknown[]>>('/makes')
+      const data = unwrapApiData<unknown[]>(body)
+      return Array.isArray(data) ? data.map(item => normalizeMake(item as Record<string, unknown>)) : []
+    })
+  },
+
+  async listModels(): Promise<VehicleModelData[]> {
+    return dedupeRequest('vehicles:models', async () => {
+      const body = await apiClient.get<ApiResponse<unknown[]>>('/vehicle-models')
+      const data = unwrapApiData<unknown[]>(body)
+      return Array.isArray(data) ? data.map(item => normalizeModel(item as Record<string, unknown>)) : []
+    })
+  }
 }
