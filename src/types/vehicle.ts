@@ -45,6 +45,7 @@ export interface Vehicle {
   license_plate: string
   fuel_type: string
   color: string
+  vehicle_model?: string
   created_at?: string
   updated_at?: string
 }
@@ -53,16 +54,22 @@ export interface CreateVehicleInput {
   customer_id: string
   vehicle_class_id: string
   model_id: string
+  make_name?: string
+  model_name?: string
   license_plate: string
   fuel_type: string
   color: string
+  vehicle_model: string
 }
 
 export interface UpdateVehicleInput {
   vehicle_class_id?: string
   model_id?: string
+  make_name?: string
+  model_name?: string
   license_plate?: string
   fuel_type?: string
   color?: string
+  vehicle_model?: string
 }
 

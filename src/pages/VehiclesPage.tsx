@@ -11,7 +11,10 @@ type VehicleFormState = {
   license_plate: string
   vehicle_class_id: string
   make_id: string
+  make_name: string
   model_id: string
+  model_name: string
+  vehicle_model: string
   fuel_type: string
   color: string
 }
@@ -20,7 +23,10 @@ const EMPTY_FORM: VehicleFormState = {
   license_plate: '',
   vehicle_class_id: '',
   make_id: '',
+  make_name: '',
   model_id: '',
+  model_name: '',
+  vehicle_model: '',
   fuel_type: 'Xăng',
   color: '',
 }
@@ -76,7 +82,9 @@ export default function VehiclesPage() {
       ...EMPTY_FORM,
       vehicle_class_id: classes[0]?._id ?? '',
       make_id: makes[0]?._id ?? '',
+      make_name: '',
       model_id: '', // Will be selected based on make
+      model_name: '',
     })
     setEditingId(null)
     setShowForm(true)
@@ -84,11 +92,15 @@ export default function VehiclesPage() {
 
   const openEdit = (vehicle: Vehicle) => {
     const model = models.find(m => m._id === vehicle.model_id)
+    const make = makes.find(m => m._id === model?.make_id)
     setForm({
       license_plate: vehicle.license_plate,
       vehicle_class_id: vehicle.vehicle_class_id,
-      make_id: model?.make_id ?? '',
-      model_id: vehicle.model_id,
+      make_id: model?.make_id ?? 'other',
+      make_name: model?.make_id ? '' : (make?.make_name || ''),
+      model_id: vehicle.model_id ?? 'other',
+      model_name: vehicle.model_id ? '' : (model?.model_name || ''),
+      vehicle_model: vehicle.vehicle_model || '',
       fuel_type: vehicle.fuel_type,
       color: vehicle.color,
     })
@@ -111,6 +123,9 @@ export default function VehiclesPage() {
         license_plate: form.license_plate.trim().toUpperCase(),
         vehicle_class_id: form.vehicle_class_id,
         model_id: form.model_id,
+        make_name: form.make_id === 'other' ? form.make_name.trim() : undefined,
+        model_name: (form.model_id === 'other' || form.make_id === 'other') ? form.model_name.trim() : undefined,
+        vehicle_model: form.vehicle_model.trim(),
         fuel_type: form.fuel_type,
         color: form.color,
       }
@@ -187,8 +202,8 @@ export default function VehiclesPage() {
                   value={form.make_id}
                   onChange={(e) => {
                     const make_id = e.target.value;
-                    const defaultModel = models.find(m => m.make_id === make_id)?._id ?? '';
-                    setForm((p) => ({ ...p, make_id, model_id: defaultModel }))
+                    const defaultModel = make_id === 'other' ? 'other' : (models.find(m => m.make_id === make_id)?._id ?? '');
+                    setForm((p) => ({ ...p, make_id, model_id: defaultModel, make_name: '', model_name: '' }))
                   }}
                   className={`${AUTH_INPUT_CLASS} mt-1`}
                   disabled={saving}
@@ -197,7 +212,19 @@ export default function VehiclesPage() {
                   {makes.map((opt) => (
                     <option key={opt._id} value={opt._id}>{opt.make_name}</option>
                   ))}
+                  <option value="other">Khác (Nhập tay)</option>
                 </select>
+                {form.make_id === 'other' && (
+                  <input
+                    type="text"
+                    required
+                    placeholder="Nhập tên hãng xe..."
+                    value={form.make_name}
+                    onChange={(e) => setForm((p) => ({ ...p, make_name: e.target.value }))}
+                    className={`${AUTH_INPUT_CLASS} mt-2`}
+                    disabled={saving}
+                  />
+                )}
               </label>
 
               <label className="block text-sm">
@@ -205,15 +232,27 @@ export default function VehiclesPage() {
                 <select
                   required
                   value={form.model_id}
-                  onChange={(e) => setForm((p) => ({ ...p, model_id: e.target.value }))}
+                  onChange={(e) => setForm((p) => ({ ...p, model_id: e.target.value, model_name: '' }))}
                   className={`${AUTH_INPUT_CLASS} mt-1`}
-                  disabled={saving || !form.make_id}
+                  disabled={saving || (!form.make_id && form.make_id !== 'other')}
                 >
                   <option value="">Chọn dòng xe</option>
                   {filteredModels.map((opt) => (
                     <option key={opt._id} value={opt._id}>{opt.model_name}</option>
                   ))}
+                  <option value="other">Khác (Nhập tay)</option>
                 </select>
+                {(form.model_id === 'other' || form.make_id === 'other') && (
+                  <input
+                    type="text"
+                    required
+                    placeholder="Nhập tên dòng xe..."
+                    value={form.model_name}
+                    onChange={(e) => setForm((p) => ({ ...p, model_name: e.target.value }))}
+                    className={`${AUTH_INPUT_CLASS} mt-2`}
+                    disabled={saving}
+                  />
+                )}
               </label>
             </div>
 
@@ -233,6 +272,19 @@ export default function VehiclesPage() {
                   </option>
                 ))}
               </select>
+            </label>
+
+            <label className="block text-sm">
+              <span className="font-medium text-slate-700">Tên xe (Phiên bản cụ thể) *</span>
+              <input
+                type="text"
+                required
+                placeholder="VD: SH 150i, Camry 2.5Q..."
+                value={form.vehicle_model}
+                onChange={(e) => setForm((p) => ({ ...p, vehicle_model: e.target.value }))}
+                className={`${AUTH_INPUT_CLASS} mt-1`}
+                disabled={saving}
+              />
             </label>
 
             <div className="grid grid-cols-2 gap-4">
@@ -329,7 +381,7 @@ export default function VehiclesPage() {
                         {vehicle.license_plate}
                       </p>
                       <p className="text-sm text-slate-600">
-                        {make?.make_name || 'Hãng xe'} {model?.model_name || 'Dòng xe'}
+                        {make?.make_name || 'Hãng xe'} {model?.model_name || 'Dòng xe'} {vehicle.vehicle_model ? `- ${vehicle.vehicle_model}` : ''}
                       </p>
                       <p className="text-xs text-slate-500 mt-1">
                         {vClass?.class_name || 'Loại xe'} · {vehicle.color} · {vehicle.fuel_type}

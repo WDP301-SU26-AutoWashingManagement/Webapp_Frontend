@@ -29,7 +29,7 @@ function BranchModal({ branch, onClose, onSaved }: BranchModalProps) {
     bay_counts: 2,
     is_active: true,
   })
-  
+
   const [geoInput, setGeoInput] = useState('')
   const [saving, setSaving] = useState(false)
   const [fetchingAddress, setFetchingAddress] = useState(false)
@@ -50,22 +50,30 @@ function BranchModal({ branch, onClose, onSaved }: BranchModalProps) {
 
     setFetchingAddress(true)
     try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`, {
-        headers: {
-          'Accept-Language': 'vi' // Request Vietnamese locale
-        }
-      })
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`,
+        { headers: { 'Accept-Language': 'vi' } }
+      )
       const data = await res.json()
-      
+
       if (data && data.address) {
         const addr = data.address
+        console.log('Nominatim raw address:', addr) // ← thêm dòng này
         setForm(f => ({
           ...f,
           branch_address: {
-            city: addr.city || addr.province || addr.state || f.branch_address?.city || '',
-            district: addr.district || addr.county || addr.suburb || f.branch_address?.district || '',
-            ward: addr.quarter || addr.neighbourhood || addr.village || addr.suburb || f.branch_address?.ward || '',
-            street: (addr.road ? (addr.house_number ? `${addr.house_number} ${addr.road}` : addr.road) : f.branch_address?.street || '')
+            // Nominatim VN: không có province → dùng postcode để suy ra, hoặc để user tự nhập
+            // city thực ra là quận/huyện, suburb là phường
+            city: f.branch_address?.city || '',  // ← để trống, user tự nhập tỉnh/thành
+
+            // addr.city của Nominatim VN thường là quận/huyện
+            district: addr.city || addr.city_district || addr.district || addr.county || f.branch_address?.district || '',
+
+            // addr.suburb thường là phường/xã ở VN
+            ward: addr.suburb || addr.quarter || addr.neighbourhood || f.branch_address?.ward || '',
+
+            // road đã có sẵn, bỏ "Hẻm" prefix nếu muốn
+            street: addr.road || f.branch_address?.street || '',
           }
         }))
         showSuccess('Đã tự động điền địa chỉ thành công')
@@ -106,7 +114,7 @@ function BranchModal({ branch, onClose, onSaved }: BranchModalProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     // Parse Geo
     let geo: { latitude: number; longitude: number } | undefined
     if (geoInput.trim()) {
@@ -128,8 +136,8 @@ function BranchModal({ branch, onClose, onSaved }: BranchModalProps) {
       if (branch?._id || branch?.id) {
         const id = branch._id || branch.id
         if (id) {
-            await branchService.update(id, payload as UpdateBranchPayload)
-            showSuccess('Cập nhật chi nhánh thành công!')
+          await branchService.update(id, payload as UpdateBranchPayload)
+          showSuccess('Cập nhật chi nhánh thành công!')
         }
       } else {
         await branchService.create(payload)
@@ -175,7 +183,7 @@ function BranchModal({ branch, onClose, onSaved }: BranchModalProps) {
               />
             </div>
           </div>
-          
+
           <div className="admin-form-row">
             <div className="admin-form-group">
               <label className="admin-form-label">Phường/Xã <span className="text-red-500">*</span></label>
@@ -209,8 +217,8 @@ function BranchModal({ branch, onClose, onSaved }: BranchModalProps) {
                 onChange={e => setGeoInput(e.target.value)}
                 placeholder="VD: 21.028511, 105.804817"
               />
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={handleAutoFillAddress}
                 disabled={fetchingAddress || !geoInput.trim()}
                 className="admin-btn admin-btn--primary px-3 whitespace-nowrap"
@@ -326,7 +334,7 @@ export default function BossBranchesPage() {
   const handleToggleActive = async (branch: Branch) => {
     const id = branch._id || branch.id
     if (!id) return
-    
+
     try {
       if (branch.is_active) {
         // Backend: DELETE actually means "Ngừng hoạt động" (set is_active = false)
@@ -426,8 +434,8 @@ export default function BossBranchesPage() {
                     </td>
                     <td style={{ textAlign: 'right' }}>
                       <div className="flex items-center justify-end gap-2">
-                        <button 
-                          className="admin-btn admin-btn--ghost px-2 py-1" 
+                        <button
+                          className="admin-btn admin-btn--ghost px-2 py-1"
                           title={branch.is_active ? "Tạm ngưng" : "Kích hoạt"}
                           onClick={() => handleToggleActive(branch)}
                         >

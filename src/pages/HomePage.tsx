@@ -3,6 +3,7 @@ import Features from '../components/Features'
 import How from '../components/How'
 import Tiers from '../components/Tiers'
 import Branches from '../components/Branches'
+import ComboPackages from '../components/ComboPackages'
 
 export default function HomePage() {
     return (
@@ -11,6 +12,7 @@ export default function HomePage() {
             <Hero />
             <How />
             <Features />
+            <ComboPackages />
             <Branches />
             <Tiers />
         </main>

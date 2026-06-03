@@ -101,6 +101,15 @@ export const adminServicePackageService = {
       return data.map(item => (typeof item === 'object' && item !== null) ? (item._id || item.id || item) : item)
     }
     return []
+  },
+
+  async listDetailedServicesByPackage(id: string): Promise<any[]> {
+    const body = await apiClient.get<{ success?: boolean; data?: any[] }>(`/service-packages/${id}/services`)
+    const data = body.data || []
+    if (Array.isArray(data)) {
+      return data
+    }
+    return []
   }
 }
 

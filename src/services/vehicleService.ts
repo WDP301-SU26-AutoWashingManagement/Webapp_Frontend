@@ -17,6 +17,7 @@ function normalizeVehicle(raw: Record<string, unknown>): Vehicle {
     license_plate: String(raw.license_plate ?? ''),
     fuel_type: String(raw.fuel_type ?? ''),
     color: String(raw.color ?? ''),
+    vehicle_model: raw.vehicle_model != null ? String(raw.vehicle_model) : undefined,
     created_at: raw.created_at != null ? String(raw.created_at) : undefined,
     updated_at: raw.updated_at != null ? String(raw.updated_at) : undefined,
   }
@@ -76,10 +77,12 @@ export const vehicleService = {
       customer_id: payload.customer_id ?? (await resolveCustomerRoleId()),
       vehicle_class_id: payload.vehicle_class_id,
       model_id: payload.model_id,
+      make_name: payload.make_name,
+      model_name: payload.model_name,
       license_plate: payload.license_plate,
       fuel_type: payload.fuel_type,
       color: payload.color,
-      vehicle_model: "unknown", // Required by Backend
+      vehicle_model: payload.vehicle_model,
     })
     return normalizeVehicle(unwrapApiData<Record<string, unknown>>(body))
   },
