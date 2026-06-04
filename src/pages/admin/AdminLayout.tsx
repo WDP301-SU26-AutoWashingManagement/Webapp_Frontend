@@ -13,6 +13,8 @@ import {
   Tag,
   BarChart3,
   Award,
+  Layers,
+  Package,
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import logo2 from '../../assets/logo2.png'
@@ -34,9 +36,19 @@ const NAV_ITEMS = [
     to: '/admin/bookings',
   },
   {
-    label: 'Dịch vụ',
+    label: 'Nhóm dịch vụ',
+    icon: Layers,
+    to: '/admin/service-groups',
+  },
+  {
+    label: 'Dịch vụ lẻ',
     icon: Wrench,
     to: '/admin/services',
+  },
+  {
+    label: 'Gói dịch vụ (Combo)',
+    icon: Package,
+    to: '/admin/service-packages',
   },
   {
     label: 'Khuyến mãi',

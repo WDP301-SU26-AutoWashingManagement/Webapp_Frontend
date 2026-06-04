@@ -21,6 +21,8 @@ import Toaster from './components/Toaster'
 import AdminLayout from './pages/admin/AdminLayout'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminServicesPage from './pages/admin/AdminServicesPage'
+import AdminServiceGroupsPage from './pages/admin/AdminServiceGroupsPage'
+import AdminServicePackagesPage from './pages/admin/AdminServicePackagesPage'
 import AdminPromotionsPage from './pages/admin/AdminPromotionsPage'
 import AdminTiersPage from './pages/admin/AdminTiersPage'
 import InternalProfilePage from './pages/shared/InternalProfilePage'
@@ -125,6 +127,8 @@ function AppContent() {
             element={<AdminPlaceholderPage title="Đặt lịch" description="Quản lý lịch đặt rửa xe" />}
           />
           <Route path="services" element={<AdminServicesPage />} />
+          <Route path="service-groups" element={<AdminServiceGroupsPage />} />
+          <Route path="service-packages" element={<AdminServicePackagesPage />} />
           <Route path="promotions" element={<AdminPromotionsPage />} />
           <Route path="tiers" element={<AdminTiersPage />} />
           <Route
