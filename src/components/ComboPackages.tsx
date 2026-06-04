@@ -18,7 +18,7 @@ export default function ComboPackages() {
     async function loadPackages() {
       try {
         const res = await adminServicePackageService.list({ is_active: true, limit: 12 })
-        
+
         const packagesWithDetails = await Promise.all(
           res.items.map(async (pkg) => {
             const services = await adminServicePackageService.listDetailedServicesByPackage(pkg._id || pkg.id || '')
@@ -47,7 +47,7 @@ export default function ComboPackages() {
     return (
       <section className="marketing-section page-section px-6 md:px-16 bg-white" id="combos">
         <div className="max-w-5xl mx-auto text-center">
-            <p className="text-slate-500 animate-pulse">Đang tải các gói dịch vụ...</p>
+          <p className="text-slate-500 animate-pulse">Đang tải các gói dịch vụ...</p>
         </div>
       </section>
     )
@@ -61,7 +61,7 @@ export default function ComboPackages() {
         <div className="section-label">Gói Dịch Vụ - Combo</div>
         <h2 className="section-title">
           <span className="block">Giải pháp toàn diện</span>
-          <span className="mt-2 block sm:mt-3">Cho xế yêu của bạn</span>
+          <span className="mt-2 block sm:mt-3">Cho phương tiện của bạn</span>
         </h2>
         <p className="section-sub">Tiết kiệm thời gian và chi phí với các gói dịch vụ được thiết kế tối ưu.</p>
 
@@ -83,7 +83,7 @@ export default function ComboPackages() {
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-slate-500 min-h-[40px] line-clamp-2">{pkg.description}</p>
+                <p className="text-base text-slate-500 min-h-[40px] line-clamp-2">{pkg.description}</p>
               </div>
 
               {/* Price & Action */}
