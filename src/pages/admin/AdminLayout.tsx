@@ -36,6 +36,11 @@ const NAV_ITEMS = [
     to: '/admin/bookings',
   },
   {
+    label: 'Nhân viên',
+    icon: Users,
+    to: '/admin/staffs',
+  },
+  {
     label: 'Nhóm dịch vụ',
     icon: Layers,
     to: '/admin/service-groups',

@@ -1,26 +1,27 @@
 import { useState, useRef, useEffect } from 'react'
 import {
-  Plus, Search, RefreshCw, X, Check, Users, Mail, Phone, Lock, Building, UserSquare
+  Plus, Search, RefreshCw, X, Check, Users, Mail, Phone, Lock, Building, Wrench
 } from 'lucide-react'
 import { showError, showSuccess } from '../../utils/toast'
 import { getErrorMessage } from '../../utils/errors'
-import { bossAccountService } from '../../services/bossAccountService'
-import type { CreateInternalAccountPayload } from '../../services/bossAccountService'
+import { adminStaffService } from '../../services/adminStaffService'
+import type { CreateStaffPayload } from '../../services/adminStaffService'
 import { branchService } from '../../services/branchService'
 import type { Branch } from '../../services/branchService'
 
-interface AccountModalProps {
+interface StaffModalProps {
   onClose: () => void
   onSaved: () => void
 }
 
-function AccountModal({ onClose, onSaved }: AccountModalProps) {
-  const [form, setForm] = useState<CreateInternalAccountPayload>({
+function StaffModal({ onClose, onSaved }: StaffModalProps) {
+  const [form, setForm] = useState<CreateStaffPayload>({
     full_name: '',
     email: '',
     password: '',
     phone: '',
     role: 'staff',
+    staff_type: 'physical',
     branch_id: '',
   })
   const [saving, setSaving] = useState(false)
@@ -62,11 +63,11 @@ function AccountModal({ onClose, onSaved }: AccountModalProps) {
 
     setSaving(true)
     try {
-      await bossAccountService.createAccount(form)
-      showSuccess('Tạo tài khoản thành công!')
+      await adminStaffService.createStaff(form)
+      showSuccess('Tạo tài khoản nhân viên thành công!')
       onSaved()
     } catch (err) {
-      showError(getErrorMessage(err, 'Không thể tạo tài khoản'))
+      showError(getErrorMessage(err, 'Không thể tạo tài khoản nhân viên'))
     } finally {
       setSaving(false)
     }
@@ -76,7 +77,7 @@ function AccountModal({ onClose, onSaved }: AccountModalProps) {
     <div className="admin-modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="admin-modal">
         <div className="admin-modal__header">
-          <h2 className="admin-modal__title">Thêm tài khoản nội bộ</h2>
+          <h2 className="admin-modal__title">Thêm tài khoản nhân viên</h2>
           <button type="button" onClick={onClose} className="admin-modal__close"><X size={18} /></button>
         </div>
 
@@ -134,25 +135,25 @@ function AccountModal({ onClose, onSaved }: AccountModalProps) {
 
           <div className="admin-form-group">
             <label className="admin-form-label">
-              Vai trò <span className="text-red-500">*</span>
+              Loại nhân viên <span className="text-red-500">*</span>
             </label>
             <div className="relative">
               <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                <UserSquare size={15} />
+                <Wrench size={15} />
               </span>
               <select
                 className="admin-form-input pl-9"
-                value={form.role}
+                value={form.staff_type}
                 onChange={(e) =>
                   setForm((f) => ({
                     ...f,
-                    role: e.target.value as "admin" | "staff",
+                    staff_type: e.target.value as "technical" | "physical",
                   }))
                 }
                 required
               >
-                <option value="staff">Quản lý chi nhánh (Manager)</option>
-                <option value="admin">Quản lý hệ thống (Admin)</option>
+                <option value="physical">Nhân viên phổ thông (Physical)</option>
+                <option value="technical">Kỹ thuật viên (Technical)</option>
               </select>
             </div>
           </div>
@@ -214,7 +215,7 @@ function AccountModal({ onClose, onSaved }: AccountModalProps) {
   )
 }
 
-export default function BossAccountsPage() {
+export default function AdminStaffsPage() {
   const [modalOpen, setModalOpen] = useState(false)
   const [search, setSearch] = useState('')
 
@@ -223,11 +224,11 @@ export default function BossAccountsPage() {
       {/* Header */}
       <div className="admin-page__header">
         <div>
-          <h1 className="admin-page__title">Tài khoản nội bộ</h1>
-          <p className="admin-page__subtitle">Quản lý và cấp quyền tài khoản cho Quản lý (Admin) và Nhân viên (Staff).</p>
+          <h1 className="admin-page__title">Nhân viên</h1>
+          <p className="admin-page__subtitle">Quản lý và cấp quyền tài khoản cho nhân viên phổ thông và kỹ thuật viên.</p>
         </div>
         <button className="admin-btn admin-btn--primary" onClick={() => setModalOpen(true)}>
-          <Plus size={15} /> Thêm tài khoản mới
+          <Plus size={15} /> Thêm nhân viên
         </button>
       </div>
 
@@ -253,7 +254,7 @@ export default function BossAccountsPage() {
           <div style={{ display: 'inline-flex', padding: '1rem', background: '#f8fafc', borderRadius: '50%', marginBottom: '1rem' }}>
             <Users size={32} className="text-slate-400" />
           </div>
-          <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: '#334155' }}>Chưa có  danh sách</h3>
+          <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: '#334155' }}>Chưa có danh sách</h3>
           <p style={{ color: '#64748b', marginTop: '0.5rem', maxWidth: '400px', marginInline: 'auto' }}>
             .
           </p>
@@ -261,7 +262,7 @@ export default function BossAccountsPage() {
       </div>
 
       {modalOpen && (
-        <AccountModal
+        <StaffModal
           onClose={() => setModalOpen(false)}
           onSaved={() => setModalOpen(false)}
         />
