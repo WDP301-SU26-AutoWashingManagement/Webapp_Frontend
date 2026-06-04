@@ -23,6 +23,7 @@ import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminServicesPage from './pages/admin/AdminServicesPage'
 import AdminServiceGroupsPage from './pages/admin/AdminServiceGroupsPage'
 import AdminServicePackagesPage from './pages/admin/AdminServicePackagesPage'
+import AdminStaffsPage from './pages/admin/AdminStaffsPage'
 import AdminPromotionsPage from './pages/admin/AdminPromotionsPage'
 import AdminTiersPage from './pages/admin/AdminTiersPage'
 import InternalProfilePage from './pages/shared/InternalProfilePage'
@@ -34,12 +35,25 @@ import BossDashboard from './pages/boss/BossDashboard'
 import BossAccountsPage from './pages/boss/BossAccountsPage'
 import BossBranchesPage from './pages/boss/BossBranchesPage'
 
+// Staff
+import StaffLayout from './pages/staff/StaffLayout'
+import StaffDashboard from './pages/staff/StaffDashboard'
+import StaffBookingsPage from './pages/staff/StaffBookingsPage'
+import StaffCheckinPage from './pages/staff/StaffCheckinPage'
+import StaffPaymentsPage from './pages/staff/StaffPaymentsPage'
+import StaffTechnicalLayout from './pages/staff/StaffTechnicalLayout'
+import StaffTechnicalDashboard from './pages/staff/StaffTechnicalDashboard'
+import StaffTechnicalBookingsPage from './pages/staff/StaffTechnicalBookingsPage'
+import StaffTechnicalNotesPage from './pages/staff/StaffTechnicalNotesPage'
+import StaffTechnicalHistoryPage from './pages/staff/StaffTechnicalHistoryPage'
+
 import { useAuth } from './hooks/useAuth'
 import './App.css'
 
 const AUTH_PATHS = ['/login', '/register', '/forgot-password']
 const ADMIN_PATHS_PREFIX = '/admin'
 const BOSS_PATHS_PREFIX = '/boss'
+const STAFF_PATHS_PREFIX = '/staff'
 
 function AppContent() {
   const { pathname } = useLocation()
@@ -48,7 +62,8 @@ function AppContent() {
   const isAuthPage = AUTH_PATHS.includes(pathname)
   const isAdminPage = pathname.startsWith(ADMIN_PATHS_PREFIX)
   const isBossPage = pathname.startsWith(BOSS_PATHS_PREFIX)
-  const isDashboardPage = isAdminPage || isBossPage
+  const isStaffPage = pathname.startsWith(STAFF_PATHS_PREFIX)
+  const isDashboardPage = isAdminPage || isBossPage || isStaffPage
 
   // Nếu là Admin nhưng đang ở trang ngoài (trang chủ, features, ...) -> đá về dashboard
   if (!loading && isAuthenticated && user?.role === 'admin' && !isAdminPage) {
@@ -58,6 +73,11 @@ function AppContent() {
   // Nếu là Boss nhưng đang ở trang ngoài -> đá về dashboard
   if (!loading && isAuthenticated && user?.role === 'boss' && !isBossPage) {
     return <Navigate to="/boss/dashboard" replace />
+  }
+
+  // Nếu là Staff nhưng đang ở trang ngoài -> đá về dashboard
+  if (!loading && isAuthenticated && user?.role === 'staff' && !isStaffPage) {
+    return <Navigate to="/staff/dashboard" replace />
   }
 
   return (
@@ -126,6 +146,7 @@ function AppContent() {
             path="bookings"
             element={<AdminPlaceholderPage title="Đặt lịch" description="Quản lý lịch đặt rửa xe" />}
           />
+          <Route path="staffs" element={<AdminStaffsPage />} />
           <Route path="services" element={<AdminServicesPage />} />
           <Route path="service-groups" element={<AdminServiceGroupsPage />} />
           <Route path="service-packages" element={<AdminServicePackagesPage />} />
@@ -164,6 +185,40 @@ function AppContent() {
             path="settings"
             element={<InternalProfilePage />}
           />
+        </Route>
+
+        {/* ── Staff protected ── */}
+        <Route
+          path="/staff"
+          element={
+            <ProtectedRoute roles={['staff']}>
+              <StaffLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Navigate to="/staff/dashboard" replace />} />
+          <Route path="dashboard" element={<StaffDashboard />} />
+          <Route path="bookings" element={<StaffBookingsPage />} />
+          <Route path="checkin" element={<StaffCheckinPage />} />
+          <Route path="payments" element={<StaffPaymentsPage />} />
+          <Route path="settings" element={<InternalProfilePage />} />
+        </Route>
+
+        {/* ── Staff technical protected ── */}
+        <Route
+          path="/staff/technical"
+          element={
+            <ProtectedRoute roles={['staff']}>
+              <StaffTechnicalLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Navigate to="/staff/technical/dashboard" replace />} />
+          <Route path="dashboard" element={<StaffTechnicalDashboard />} />
+          <Route path="bookings" element={<StaffTechnicalBookingsPage />} />
+          <Route path="notes" element={<StaffTechnicalNotesPage />} />
+          <Route path="history" element={<StaffTechnicalHistoryPage />} />
+          <Route path="settings" element={<InternalProfilePage />} />
         </Route>
 
         {/* ── Auth (guest only) ── */}
