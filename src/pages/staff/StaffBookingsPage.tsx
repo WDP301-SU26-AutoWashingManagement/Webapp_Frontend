@@ -26,7 +26,7 @@ export default function StaffBookingsPage() {
                         <tbody>
                             <tr className="admin-table__row">
                                 <td colSpan={5} className="admin-empty-text">
-                                    Chưa có dữ liệu booking. Kết nối API sẽ hiển thị dữ liệu ở đây.
+
                                 </td>
                             </tr>
                         </tbody>

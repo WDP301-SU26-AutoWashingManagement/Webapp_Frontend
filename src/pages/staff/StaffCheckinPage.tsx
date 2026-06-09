@@ -13,7 +13,7 @@ export default function StaffCheckinPage() {
                     <h2 className="admin-card__title">Danh sách xe cần checkin</h2>
                 </div>
                 <div className="admin-empty-text" style={{ padding: '2rem' }}>
-                    Chưa có dữ liệu. Khi kết nối API, bạn sẽ thấy các xe sắp tới ở đây.
+
                 </div>
             </div>
         </div>

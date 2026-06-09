@@ -13,14 +13,14 @@ export default function StaffDashboard() {
                     <div className="admin-card__header">
                         <h2 className="admin-card__title">Nhiệm vụ hôm nay</h2>
                     </div>
-                    <p className="admin-empty-text">Danh sách booking và checkin sẽ hiển thị ở đây khi dữ liệu được kết nối.</p>
+                    <p className="admin-empty-text"></p>
                 </div>
 
                 <div className="admin-card">
                     <div className="admin-card__header">
                         <h2 className="admin-card__title">Trạng thái thanh toán</h2>
                     </div>
-                    <p className="admin-empty-text">Thông tin thanh toán và số liệu sẽ xuất hiện ở đây.</p>
+                    <p className="admin-empty-text">.</p>
                 </div>
             </div>
         </div>

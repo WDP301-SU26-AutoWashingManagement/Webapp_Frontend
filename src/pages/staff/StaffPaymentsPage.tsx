@@ -12,7 +12,7 @@ export default function StaffPaymentsPage() {
                 <div className="admin-card__header">
                     <h2 className="admin-card__title">Giao diện thanh toán</h2>
                 </div>
-                <p className="admin-empty-text">Phần form và trạng thái thanh toán sẽ được thêm khi kết nối API.</p>
+                <p className="admin-empty-text"></p>
             </div>
         </div>
     )

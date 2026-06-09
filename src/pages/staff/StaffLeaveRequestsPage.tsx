@@ -203,23 +203,23 @@ export default function StaffLeaveRequestsPage() {
               <p style={{ color: '#64748b', marginTop: '0.5rem' }}>Nhấn vào nút "Tạo đơn xin nghỉ" ở trên nếu bạn cần xin nghỉ.</p>
             </div>
           ) : (
-            <table className="admin-table">
+            <table className="admin-table" style={{ tableLayout: 'fixed', width: '100%' }}>
               <thead>
                 <tr>
-                  <th>Từ ngày</th>
-                  <th>Đến ngày</th>
-                  <th>Lý do</th>
-                  <th>Trạng thái</th>
-                  <th>Ghi chú phản hồi</th>
+                  <th style={{ textAlign: 'center' }}>Từ ngày</th>
+                  <th style={{ textAlign: 'center' }}>Đến ngày</th>
+                  <th style={{ textAlign: 'center' }}>Lý do</th>
+                  <th style={{ textAlign: 'center' }}>Trạng thái</th>
+                  <th style={{ textAlign: 'center' }}>Ghi chú phản hồi</th>
                 </tr>
               </thead>
               <tbody>
                 {myRequests.map((req) => (
                   <tr key={req._id || req.id}>
-                    <td>{new Date(req.from_date).toLocaleDateString('vi-VN')}</td>
-                    <td>{new Date(req.to_date).toLocaleDateString('vi-VN')}</td>
-                    <td>{req.reason}</td>
-                    <td>
+                    <td style={{ textAlign: 'center' }}>{new Date(req.from_date).toLocaleDateString('vi-VN')}</td>
+                    <td style={{ textAlign: 'center' }}>{new Date(req.to_date).toLocaleDateString('vi-VN')}</td>
+                    <td style={{ textAlign: 'center', wordBreak: 'break-word' }}>{req.reason}</td>
+                    <td style={{ textAlign: 'center' }}>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium`} style={{
                         backgroundColor: req.request_status === 'approved' ? '#dcfce7' : req.request_status === 'rejected' ? '#fee2e2' : '#fef3c7',
                         color: req.request_status === 'approved' ? '#166534' : req.request_status === 'rejected' ? '#991b1b' : '#92400e'
@@ -227,7 +227,7 @@ export default function StaffLeaveRequestsPage() {
                         {req.request_status.toUpperCase()}
                       </span>
                     </td>
-                    <td>{req.reviewer_note || '-'}</td>
+                    <td style={{ textAlign: 'center', wordBreak: 'break-word' }}>{req.reviewer_note || '-'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -257,24 +257,24 @@ export default function StaffLeaveRequestsPage() {
               <p style={{ color: '#64748b', marginTop: '0.5rem' }}>Mọi đơn xin nghỉ đã được xử lý xong.</p>
             </div>
           ) : (
-            <table className="admin-table">
+            <table className="admin-table" style={{ tableLayout: 'fixed', width: '100%' }}>
               <thead>
                 <tr>
-                  <th>Nhân viên ID</th>
-                  <th>Từ ngày</th>
-                  <th>Đến ngày</th>
-                  <th>Lý do</th>
-                  <th style={{ textAlign: 'right' }}>Thao tác</th>
+                  <th style={{ textAlign: 'center' }}>Nhân viên ID</th>
+                  <th style={{ textAlign: 'center' }}>Từ ngày</th>
+                  <th style={{ textAlign: 'center' }}>Đến ngày</th>
+                  <th style={{ textAlign: 'center' }}>Lý do</th>
+                  <th style={{ textAlign: 'center' }}>Thao tác</th>
                 </tr>
               </thead>
               <tbody>
                 {pendingRequests.map((req) => (
                   <tr key={req._id || req.id}>
-                    <td><span style={{ fontSize: '0.875rem', fontFamily: 'monospace' }}>{req.staff_id}</span></td>
-                    <td>{new Date(req.from_date).toLocaleDateString('vi-VN')}</td>
-                    <td>{new Date(req.to_date).toLocaleDateString('vi-VN')}</td>
-                    <td>{req.reason}</td>
-                    <td style={{ textAlign: 'right', display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                    <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}><span style={{ fontSize: '0.875rem', fontFamily: 'monospace' }}>{req.staff_id}</span></td>
+                    <td style={{ textAlign: 'center' }}>{new Date(req.from_date).toLocaleDateString('vi-VN')}</td>
+                    <td style={{ textAlign: 'center' }}>{new Date(req.to_date).toLocaleDateString('vi-VN')}</td>
+                    <td style={{ textAlign: 'center', wordBreak: 'break-word' }}>{req.reason}</td>
+                    <td style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
                       <button 
                         onClick={() => openReviewModal((req._id || req.id)!, 'approved')} 
                         style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.25rem 0.75rem', backgroundColor: '#dcfce7', color: '#166534', borderRadius: '0.25rem', fontWeight: 500, fontSize: '0.875rem' }}>
@@ -315,25 +315,25 @@ export default function StaffLeaveRequestsPage() {
               <p style={{ color: '#64748b', marginTop: '0.5rem' }}>Danh sách các đơn đã được phê duyệt trống.</p>
             </div>
           ) : (
-            <table className="admin-table">
+            <table className="admin-table" style={{ tableLayout: 'fixed', width: '100%' }}>
               <thead>
                 <tr>
-                  <th>Nhân viên ID</th>
-                  <th>Từ ngày</th>
-                  <th>Đến ngày</th>
-                  <th>Lý do</th>
-                  <th>Trạng thái</th>
-                  <th>Người duyệt</th>
+                  <th style={{ textAlign: 'center' }}>Nhân viên ID</th>
+                  <th style={{ textAlign: 'center' }}>Từ ngày</th>
+                  <th style={{ textAlign: 'center' }}>Đến ngày</th>
+                  <th style={{ textAlign: 'center' }}>Lý do</th>
+                  <th style={{ textAlign: 'center' }}>Trạng thái</th>
+                  <th style={{ textAlign: 'center' }}>Ghi chú</th>
                 </tr>
               </thead>
               <tbody>
                 {approvedRequests.map((req) => (
                   <tr key={req._id || req.id}>
-                    <td><span style={{ fontSize: '0.875rem', fontFamily: 'monospace' }}>{req.staff_id}</span></td>
-                    <td>{new Date(req.from_date).toLocaleDateString('vi-VN')}</td>
-                    <td>{new Date(req.to_date).toLocaleDateString('vi-VN')}</td>
-                    <td>{req.reason}</td>
-                    <td>
+                    <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}><span style={{ fontSize: '0.875rem', fontFamily: 'monospace' }}>{req.staff_id}</span></td>
+                    <td style={{ textAlign: 'center' }}>{new Date(req.from_date).toLocaleDateString('vi-VN')}</td>
+                    <td style={{ textAlign: 'center' }}>{new Date(req.to_date).toLocaleDateString('vi-VN')}</td>
+                    <td style={{ textAlign: 'center', wordBreak: 'break-word' }}>{req.reason}</td>
+                    <td style={{ textAlign: 'center' }}>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium`} style={{
                         backgroundColor: req.request_status === 'approved' ? '#dcfce7' : req.request_status === 'rejected' ? '#fee2e2' : '#fef3c7',
                         color: req.request_status === 'approved' ? '#166534' : req.request_status === 'rejected' ? '#991b1b' : '#92400e'
@@ -341,7 +341,7 @@ export default function StaffLeaveRequestsPage() {
                         {req.request_status.toUpperCase()}
                       </span>
                     </td>
-                    <td><span style={{ fontSize: '0.875rem', color: '#334155' }}>{req.reviewer_note || (req.request_status === 'approved' ? 'Đã duyệt' : 'Từ chối')}</span></td>
+                    <td style={{ textAlign: 'center', wordBreak: 'break-word' }}><span style={{ fontSize: '0.875rem', color: '#334155' }}>{req.reviewer_note || (req.request_status === 'approved' ? 'Đã duyệt' : 'Từ chối')}</span></td>
                   </tr>
                 ))}
               </tbody>
