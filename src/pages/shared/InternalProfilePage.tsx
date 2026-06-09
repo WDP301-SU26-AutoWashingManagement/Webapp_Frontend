@@ -206,13 +206,66 @@ export default function InternalProfilePage() {
                   </div>
                 )}
 
-                <div className="flex items-center justify-between text-sm text-slate-700 bg-slate-50 p-3 rounded-lg border border-slate-100">
-                  <div className="flex items-center gap-2"><Star size={16} className="text-yellow-500" /> Điểm hạng</div>
-                  <span className="font-bold">{String(profile.role_data.membership_points ?? 0)}</span>
-                </div>
+                {(() => {
+                  const currentPoints = Number(profile.role_data.membership_points ?? 0);
+                  
+                  // Chỉ sử dụng FALLBACK_TIERS nếu Backend chưa trả về next_tier
+                  // Thiết lập mốc điểm giống với cấu hình hiện tại của bạn: Silver (15 điểm)
+                  const FALLBACK_TIERS = [
+                    { tier_name: 'Silver', min_membership_points: 15 },
+                    { tier_name: 'Gold', min_membership_points: 50 },
+                    { tier_name: 'Platinum', min_membership_points: 100 }
+                  ];
+                  
+                  let localNextTier = profile.role_data.next_tier as any;
+                  if (!localNextTier) {
+                    localNextTier = FALLBACK_TIERS.find(t => t.min_membership_points > currentPoints);
+                  }
+
+                  if (localNextTier) {
+                    const nextTierPoints = Number(localNextTier.min_membership_points);
+                    const percentage = Math.min(100, (currentPoints / nextTierPoints) * 100);
+                    const pointsNeeded = nextTierPoints - currentPoints;
+
+                    return (
+                      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3 relative overflow-hidden">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 font-medium text-slate-600"><Star size={16} className="text-amber-500" /> Điểm xét hạng</div>
+                          <div className="text-right">
+                            <span className="text-lg font-bold text-amber-600">{currentPoints.toLocaleString('vi-VN')}</span>
+                            <span className="text-sm font-medium text-slate-400"> / {nextTierPoints.toLocaleString('vi-VN')}</span>
+                          </div>
+                        </div>
+                        
+                        <div className="relative pt-1">
+                          <div className="overflow-hidden h-2.5 text-xs flex rounded-full bg-slate-100">
+                            <div 
+                              style={{ width: `${percentage}%` }}
+                              className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-gradient-to-r from-amber-400 to-amber-600 transition-all duration-500"
+                            ></div>
+                          </div>
+                          <div className="absolute right-0 -mt-4 mr-[-8px] text-amber-500 bg-white rounded-full p-0.5 shadow-sm border border-amber-100">
+                            <Crown size={14} />
+                          </div>
+                        </div>
+                        
+                        <p className="text-xs text-slate-500 mt-2 text-right font-medium">
+                          Còn <span className="text-amber-600 font-bold">{pointsNeeded.toLocaleString('vi-VN')}</span> điểm để thăng hạng <span className="uppercase text-amber-600 font-bold">{localNextTier.tier_name}</span>
+                        </p>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="flex items-center justify-between text-sm text-slate-700 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                      <div className="flex items-center gap-2"><Star size={16} className="text-yellow-500" /> Điểm xét hạng</div>
+                      <span className="font-bold">{currentPoints.toLocaleString('vi-VN')}</span>
+                    </div>
+                  );
+                })()}
                 <div className="flex items-center justify-between text-sm text-slate-700 bg-slate-50 p-3 rounded-lg border border-slate-100">
                   <div className="flex items-center gap-2"><Award size={16} className="text-cyan-500" /> Điểm thưởng</div>
-                  <span className="font-bold">{String(profile.role_data.reward_points ?? 0)}</span>
+                  <span className="font-bold">{Number(profile.role_data.reward_points ?? 0).toLocaleString('vi-VN')}</span>
                 </div>
                 {Boolean(profile.role_data.referral_code) && (
                   <div className="flex items-center justify-between text-sm text-slate-700 bg-slate-50 p-3 rounded-lg border border-slate-100">
