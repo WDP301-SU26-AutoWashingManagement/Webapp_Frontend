@@ -10,6 +10,8 @@ import {
     Menu,
     X,
     ChevronRight,
+    CalendarOff,
+    CalendarDays
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import logo2 from '../../assets/logo2.png'
@@ -34,6 +36,16 @@ const NAV_ITEMS = [
         label: 'Lịch sử xe',
         icon: History,
         to: '/staff/technical/history',
+    },
+    {
+        label: 'Lịch làm việc',
+        icon: CalendarDays,
+        to: '/staff/technical/schedules',
+    },
+    {
+        label: 'Nghỉ phép',
+        icon: CalendarOff,
+        to: '/staff/technical/leave-requests',
     },
     {
         label: 'Cài đặt',

@@ -41,11 +41,13 @@ import StaffDashboard from './pages/staff/StaffDashboard'
 import StaffBookingsPage from './pages/staff/StaffBookingsPage'
 import StaffCheckinPage from './pages/staff/StaffCheckinPage'
 import StaffPaymentsPage from './pages/staff/StaffPaymentsPage'
+import StaffLeaveRequestsPage from './pages/staff/StaffLeaveRequestsPage'
 import StaffTechnicalLayout from './pages/staff/StaffTechnicalLayout'
 import StaffTechnicalDashboard from './pages/staff/StaffTechnicalDashboard'
 import StaffTechnicalBookingsPage from './pages/staff/StaffTechnicalBookingsPage'
 import StaffTechnicalNotesPage from './pages/staff/StaffTechnicalNotesPage'
 import StaffTechnicalHistoryPage from './pages/staff/StaffTechnicalHistoryPage'
+import StaffSchedulePage from './pages/staff/StaffSchedulePage'
 
 import { useAuth } from './hooks/useAuth'
 import './App.css'
@@ -201,6 +203,8 @@ function AppContent() {
           <Route path="bookings" element={<StaffBookingsPage />} />
           <Route path="checkin" element={<StaffCheckinPage />} />
           <Route path="payments" element={<StaffPaymentsPage />} />
+          <Route path="leave-requests" element={<StaffLeaveRequestsPage />} />
+          <Route path="schedules" element={<StaffSchedulePage />} />
           <Route path="settings" element={<InternalProfilePage />} />
         </Route>
 
@@ -218,6 +222,8 @@ function AppContent() {
           <Route path="bookings" element={<StaffTechnicalBookingsPage />} />
           <Route path="notes" element={<StaffTechnicalNotesPage />} />
           <Route path="history" element={<StaffTechnicalHistoryPage />} />
+          <Route path="leave-requests" element={<StaffLeaveRequestsPage />} />
+          <Route path="schedules" element={<StaffSchedulePage />} />
           <Route path="settings" element={<InternalProfilePage />} />
         </Route>
 
