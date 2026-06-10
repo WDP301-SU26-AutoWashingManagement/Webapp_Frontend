@@ -40,7 +40,7 @@ export default function VehiclesPage() {
   const [classes, setClasses] = useState<VehicleClass[]>([])
   const [makes, setMakes] = useState<VehicleMake[]>([])
   const [models, setModels] = useState<VehicleModelData[]>([])
-  
+
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState<VehicleFormState>(EMPTY_FORM)
@@ -129,7 +129,7 @@ export default function VehiclesPage() {
         fuel_type: form.fuel_type,
         color: form.color,
       }
-      
+
       if (editingId) {
         await vehicleService.update(editingId, payload)
         showSuccess('Cập nhật phương tiện thành công')
@@ -193,7 +193,7 @@ export default function VehiclesPage() {
                 disabled={saving}
               />
             </label>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <label className="block text-sm">
                 <span className="font-medium text-slate-700">Hãng xe *</span>
@@ -366,7 +366,7 @@ export default function VehiclesPage() {
               const model = models.find(m => m._id === vehicle.model_id)
               const make = makes.find(m => m._id === model?.make_id)
               const vClass = classes.find(c => c._id === vehicle.vehicle_class_id)
-              
+
               return (
                 <li
                   key={id || vehicle.license_plate}
