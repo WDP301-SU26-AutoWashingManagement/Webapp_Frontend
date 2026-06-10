@@ -60,9 +60,10 @@ export const bookingService = {
 
   async create(payload: CreateBookingInput): Promise<WashBooking> {
     const body = await apiClient.post<ApiResponse<Record<string, unknown>>>('/bookings', {
+      branch_id: payload.branch_id,
       vehicle_id: payload.vehicle_id,
-      service_package_id: payload.service_package_id,
       scheduled_at: payload.scheduled_at,
+      services: payload.services,
       booking_source: payload.booking_source ?? 'web',
       ...(payload.promotion_id ? { promotion_id: payload.promotion_id } : {}),
     })
@@ -72,8 +73,39 @@ export const bookingService = {
   async cancel(id: string, reason: string): Promise<WashBooking> {
     const body = await apiClient.patch<ApiResponse<Record<string, unknown>>>(
       `/bookings/${id}/cancel`,
-      { reason },
+      { cancellation_reason: reason },
     )
+    return normalizeWashBooking(unwrapApiData<Record<string, unknown>>(body))
+  },
+
+  async confirm(id: string, staff_id?: string): Promise<WashBooking> {
+    const body = await apiClient.patch<ApiResponse<Record<string, unknown>>>(
+      `/bookings/${id}/confirm`,
+      staff_id ? { staff_id } : {},
+    )
+    return normalizeWashBooking(unwrapApiData<Record<string, unknown>>(body))
+  },
+
+  async assignStaff(id: string, staff_id: string): Promise<WashBooking> {
+    const body = await apiClient.post<ApiResponse<Record<string, unknown>>>(
+      `/bookings/${id}/assign-staff`,
+      { staff_id },
+    )
+    return normalizeWashBooking(unwrapApiData<Record<string, unknown>>(body))
+  },
+
+  async checkin(id: string): Promise<WashBooking> {
+    const body = await apiClient.patch<ApiResponse<Record<string, unknown>>>(`/bookings/${id}/checkin`)
+    return normalizeWashBooking(unwrapApiData<Record<string, unknown>>(body))
+  },
+
+  async start(id: string): Promise<WashBooking> {
+    const body = await apiClient.patch<ApiResponse<Record<string, unknown>>>(`/bookings/${id}/start`)
+    return normalizeWashBooking(unwrapApiData<Record<string, unknown>>(body))
+  },
+
+  async complete(id: string): Promise<WashBooking> {
+    const body = await apiClient.patch<ApiResponse<Record<string, unknown>>>(`/bookings/${id}/complete`)
     return normalizeWashBooking(unwrapApiData<Record<string, unknown>>(body))
   },
 }

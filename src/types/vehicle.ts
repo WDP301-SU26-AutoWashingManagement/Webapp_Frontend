@@ -40,8 +40,8 @@ export interface Vehicle {
   _id?: string
   id?: string
   customer_id?: string
-  vehicle_class_id: string
-  model_id: string
+  vehicle_class_id?: string
+  model_id?: string
   license_plate: string
   fuel_type: string
   color: string

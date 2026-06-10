@@ -173,3 +173,24 @@ export function getScheduleFieldHints(windowDays = DEFAULT_BOOKING_WINDOW_DAYS):
     `Tối đa ${windowDays} ngày kể từ hiện tại`,
   ].join(' · ')
 }
+
+export function getAvailableTimeSlots(dateStr: string, minDatetime: string, maxDatetime: string): string[] {
+  const minDateStr = minDatetime.split('T')[0]
+  const maxDateStr = maxDatetime.split('T')[0]
+
+  if (dateStr < minDateStr || dateStr > maxDateStr) return []
+
+  const minTimeStr = dateStr === minDateStr ? minDatetime.split('T')[1] : "00:00"
+  const maxTimeStr = dateStr === maxDateStr ? maxDatetime.split('T')[1] : "23:59"
+
+  const slots: string[] = []
+  for (let h = BUSINESS_HOURS.open; h < BUSINESS_HOURS.close; h++) {
+    const hStr = pad2(h)
+    const slot00 = `${hStr}:00`
+    const slot30 = `${hStr}:30`
+
+    if (slot00 >= minTimeStr && slot00 <= maxTimeStr) slots.push(slot00)
+    if (slot30 >= minTimeStr && slot30 <= maxTimeStr) slots.push(slot30)
+  }
+  return slots
+}

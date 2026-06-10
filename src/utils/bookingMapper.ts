@@ -24,7 +24,7 @@ export function normalizeWashBooking(raw: Record<string, unknown>): WashBooking 
     const v = vehicleRef as Record<string, unknown>
     vehicle_id = normalizeMongoId(v)
     vehicle = {
-      plate_number: v.plate_number != null ? String(v.plate_number) : undefined,
+      plate_number: v.plate_number != null ? String(v.plate_number) : v.license_plate != null ? String(v.license_plate) : undefined,
       brand: v.brand != null ? String(v.brand) : undefined,
       vehicle_model:
         v.vehicle_model != null
