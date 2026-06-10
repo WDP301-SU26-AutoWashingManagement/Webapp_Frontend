@@ -21,25 +21,25 @@ export interface CreateStaffAbsentRequestPayload {
 export const staffManagerService = {
   // Staff tạo đơn xin nghỉ
   async createRequest(payload: CreateStaffAbsentRequestPayload): Promise<StaffAbsentRequest> {
-    const response = await apiClient.post<ApiResponse<StaffAbsentRequest>>('/staff-manager', payload)
+    const response = await apiClient.post<ApiResponse<StaffAbsentRequest>>('/staff-absent', payload)
     return response.data as StaffAbsentRequest
   },
 
   // Staff xem danh sách đơn của chính mình
   async getMyRequests(): Promise<StaffAbsentRequest[]> {
-    const response = await apiClient.get<ApiResponse<StaffAbsentRequest[]>>('/staff-manager/me')
+    const response = await apiClient.get<ApiResponse<StaffAbsentRequest[]>>('/staff-absent/me')
     return response.data as StaffAbsentRequest[]
   },
 
   // Quản lý xem các đơn đang chờ duyệt
   async getPendingRequests(): Promise<StaffAbsentRequest[]> {
-    const response = await apiClient.get<ApiResponse<StaffAbsentRequest[]>>('/staff-manager/pending')
+    const response = await apiClient.get<ApiResponse<StaffAbsentRequest[]>>('/staff-absent/pending')
     return response.data as StaffAbsentRequest[]
   },
 
   // Quản lý phê duyệt hoặc từ chối đơn
   async reviewRequest(requestId: string, status: 'approved' | 'rejected', note?: string): Promise<StaffAbsentRequest> {
-    const response = await apiClient.patch<ApiResponse<StaffAbsentRequest>>(`/staff-manager/${requestId}/review`, { status, note })
+    const response = await apiClient.patch<ApiResponse<StaffAbsentRequest>>(`/staff-absent/${requestId}/review`, { status, note })
     return response.data as StaffAbsentRequest
   },
 
@@ -49,7 +49,7 @@ export const staffManagerService = {
     if (from_date) params.from_date = from_date
     if (to_date) params.to_date = to_date
     
-    const response = await apiClient.get<ApiResponse<StaffAbsentRequest[]>>('/staff-manager/staff-off', { params })
+    const response = await apiClient.get<ApiResponse<StaffAbsentRequest[]>>('/staff-absent/staff-off', { params })
     return response.data as StaffAbsentRequest[]
   }
 }
