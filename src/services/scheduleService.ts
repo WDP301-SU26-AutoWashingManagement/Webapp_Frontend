@@ -17,19 +17,19 @@ export interface Schedule {
   max_staff: number;
   algorithm?: string;
   shift_minutes?: number;
-  assigned_staff: string[] | StaffMini[]; 
+  assigned_staff: string[] | StaffMini[];
   createdAt?: string;
   updatedAt?: string;
 }
 
 export const scheduleService = {
   getAllSchedules: async (): Promise<Schedule[]> => {
-    const res = await apiClient.get<ApiResponse<Schedule[]>>('/schedules');
+    const res = await apiClient.get<ApiResponse<Schedule[]>>('/schedule/schedules');
     return res.data || [];
   },
 
   getScheduleById: async (id: string): Promise<Schedule> => {
-    const res = await apiClient.get<ApiResponse<Schedule>>(`/schedules/${id}`);
+    const res = await apiClient.get<ApiResponse<Schedule>>(`/schedule/schedules/${id}`);
     return res.data as Schedule;
   }
 };

@@ -35,6 +35,7 @@ import {
   snapDatetimeLocalValue,
   toDatetimeLocalValue,
   validateScheduledAt,
+  getAvailableTimeSlots,
 } from '../utils/bookingSchedule'
 import { estimateBookingPrice, formatPromotionLabel } from '../utils/promotionPricing'
 import { getApiErrorMessage } from '../utils/errors'
@@ -48,7 +49,7 @@ export default function NewBookingPage() {
 
   // -- UI State --
   const [step, setStep] = useState(1)
-  const totalSteps = 4
+  const totalSteps = 3
   const [saving, setSaving] = useState(false)
   const [loadingFormOptions, setLoadingFormOptions] = useState(true)
   const formOptionsLoaded = useRef(false)
@@ -69,7 +70,6 @@ export default function NewBookingPage() {
     promotion_code: '',
     vat_requested: false,
     tax_code: '',
-    payment_method: 'bank',
   })
 
   const [activeTab, setActiveTab] = useState<'combo' | 'single'>('combo')
@@ -131,6 +131,31 @@ export default function NewBookingPage() {
     }),
     [],
   )
+
+  const dateValue = form.scheduled_at ? form.scheduled_at.split('T')[0] : ''
+  const timeValue = form.scheduled_at ? form.scheduled_at.split('T')[1] : ''
+
+  const availableTimeSlots = useMemo(() => {
+    if (!dateValue) return []
+    return getAvailableTimeSlots(dateValue, scheduleBounds.min, scheduleBounds.max)
+  }, [dateValue, scheduleBounds])
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newDate = e.target.value
+    if (!newDate) {
+      setForm((p) => ({ ...p, scheduled_at: '' }))
+      return
+    }
+    const newSlots = getAvailableTimeSlots(newDate, scheduleBounds.min, scheduleBounds.max)
+    const newTime = (timeValue && newSlots.includes(timeValue)) ? timeValue : (newSlots[0] || '08:00')
+    setForm((p) => ({ ...p, scheduled_at: `${newDate}T${newTime}` }))
+  }
+
+  const handleTimeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newTime = e.target.value
+    if (!dateValue) return
+    setForm((p) => ({ ...p, scheduled_at: `${dateValue}T${newTime}` }))
+  }
 
   const selectedVehicle = useMemo(
     () => vehicles.find((v) => (v._id ?? v.id) === form.vehicle_id),
@@ -240,21 +265,32 @@ export default function NewBookingPage() {
     setSaving(true)
     try {
       const promotionId = validatedPromotion?._id ?? validatedPromotion?.id
-      // Hiện tại bookingService cũ chưa hỗ trợ branch_id và payment_method, gửi kèm để sau này backend dùng
+
+      const servicesPayload: Array<{ service_id: string; service_package_id?: string }> = []
+
+      form.service_ids.forEach(id => {
+        servicesPayload.push({ service_id: id })
+      })
+
+      if (form.combo_package_id && includedServiceIdsInCombo.length > 0) {
+        includedServiceIdsInCombo.forEach((id: string) => {
+          servicesPayload.push({
+            service_id: id,
+            service_package_id: form.combo_package_id
+          })
+        })
+      }
+
       await bookingService.create({
+        branch_id: form.branch_id,
         vehicle_id: form.vehicle_id,
-        // Giữ service_package_id cho API cũ khỏi lỗi, đồng thời gửi service_ids cho API mới
-        service_package_id: form.combo_package_id || form.service_ids[0],
-        service_ids: form.service_ids,
         scheduled_at: parseDatetimeLocalValue(form.scheduled_at)!.toISOString(),
+        services: servicesPayload,
         booking_source: 'web',
         ...(promotionId ? { promotion_id: promotionId } : {}),
-        // Các trường mới chuẩn bị sẵn cho luồng Invoice & Appointment PayOS
-        ...(form.branch_id ? { branch_id: form.branch_id } : {}),
         vat_requested: form.vat_requested,
         tax_code: form.tax_code,
-        payment_method: form.payment_method,
-      } as any)
+      })
       showSuccess('Đặt lịch thành công')
       navigate('/bookings')
     } catch (err) {
@@ -285,7 +321,7 @@ export default function NewBookingPage() {
               style={{ width: `${((step - 1) / (totalSteps - 1)) * 100}%` }}
             ></div>
 
-            {[1, 2, 3, 4].map((s) => (
+            {[1, 2, 3].map((s) => (
               <div key={s} className="relative z-10 flex flex-col items-center gap-2">
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-colors duration-300 ${s <= step ? 'bg-[#0ea5b7] text-white shadow-md shadow-cyan-200' : 'bg-white text-slate-400 border-2 border-slate-200'}`}>
                   {s < step ? <CheckCircle2 size={20} /> : s}
@@ -293,8 +329,7 @@ export default function NewBookingPage() {
                 <span className={`text-xs font-semibold ${s <= step ? 'text-slate-800' : 'text-slate-400'} hidden sm:block`}>
                   {s === 1 && 'Cơ bản'}
                   {s === 2 && 'Dịch vụ'}
-                  {s === 3 && 'Khuyến mãi'}
-                  {s === 4 && 'Thanh toán'}
+                  {s === 3 && 'Xác nhận'}
                 </span>
               </div>
             ))}
@@ -367,16 +402,30 @@ export default function NewBookingPage() {
                         <div className="flex items-center gap-3 mb-4 text-cyan-700 font-medium">
                           <Calendar size={20} /> Chọn giờ hẹn
                         </div>
-                        <input
-                          type="datetime-local"
-                          required
-                          value={form.scheduled_at}
-                          min={scheduleBounds.min}
-                          max={scheduleBounds.max}
-                          step={SLOT_DURATION_MINUTES * 60}
-                          onChange={(e) => setForm((p) => ({ ...p, scheduled_at: snapDatetimeLocalValue(e.target.value) }))}
-                          className={`${AUTH_INPUT_CLASS} bg-white`}
-                        />
+                        <div className="flex gap-3">
+                          <input
+                            type="date"
+                            required
+                            value={dateValue}
+                            min={scheduleBounds.min.split('T')[0]}
+                            max={scheduleBounds.max.split('T')[0]}
+                            onChange={handleDateChange}
+                            className={`${AUTH_INPUT_CLASS} bg-white flex-1`}
+                          />
+                          <select
+                            required
+                            value={timeValue}
+                            onChange={handleTimeChange}
+                            className={`${AUTH_INPUT_CLASS} bg-white w-32`}
+                            disabled={!dateValue || availableTimeSlots.length === 0}
+                          >
+                            {dateValue && availableTimeSlots.length > 0 ? (
+                              availableTimeSlots.map(t => <option key={t} value={t}>{t}</option>)
+                            ) : (
+                              <option value="">Giờ</option>
+                            )}
+                          </select>
+                        </div>
                         <p className="mt-3 text-xs text-slate-500 bg-white p-3 rounded-lg border border-slate-100 shadow-sm leading-relaxed">
                           💡 {getScheduleFieldHints(BOOKING_WINDOW_DAYS)}
                         </p>
@@ -503,9 +552,9 @@ export default function NewBookingPage() {
                                 key={id}
                                 onClick={toggleService}
                                 className={`relative cursor-pointer p-5 transition-all flex items-start gap-4 
-                                  ${isIncludedInCombo ? 'bg-slate-50/50 cursor-not-allowed opacity-70' 
-                                  : isSelected ? 'bg-[#fff5ee]' 
-                                  : 'hover:bg-slate-50'}`}
+                                  ${isIncludedInCombo ? 'bg-slate-50/50 cursor-not-allowed opacity-70'
+                                    : isSelected ? 'bg-[#fff5ee]'
+                                      : 'hover:bg-slate-50'}`}
                               >
                                 <div className="pt-0.5">
                                   <input
@@ -525,7 +574,7 @@ export default function NewBookingPage() {
                                         </span>
                                       )}
                                     </div>
-                                    <p className={`text-lg font-bold whitespace-nowrap ${isIncludedInCombo ? 'text-slate-400 line-through' : 'text-[#ea580c]'}`}>{formatPrice(pkg.service_price)}</p>
+                                    <p className={`text-lg font-bold whitespace-nowrap ${isIncludedInCombo ? 'text-slate-400' : 'text-[#ea580c]'}`}>{formatPrice(pkg.service_price)}</p>
                                   </div>
                                   <div className="text-sm font-medium text-slate-500">
                                     ⏱ {pkg.duration_minutes} phút
@@ -542,86 +591,15 @@ export default function NewBookingPage() {
               </div>
             )}
 
-            {/* STEP 3: KHUYẾN MÃI & VAT */}
+            {/* STEP 3: KHUYẾN MÃI & XÁC NHẬN */}
             {step === 3 && (
-              <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
-                <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                  <Tag className="text-rose-500" /> Ưu đãi & Khuyến mãi
-                </h3>
-
-                <div className="bg-rose-50/50 border border-rose-100 rounded-xl p-5">
-                  <label className="block text-sm">
-                    <span className="font-semibold text-slate-700">Mã giảm giá (Nếu có)</span>
-                    <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-                      <input
-                        type="text"
-                        value={form.promotion_code}
-                        onChange={(e) => {
-                          setValidatedPromotion(null)
-                          setForm((p) => ({ ...p, promotion_code: e.target.value.toUpperCase() }))
-                        }}
-                        placeholder="Nhập mã khuyến mãi..."
-                        className={`${AUTH_INPUT_CLASS} flex-1 uppercase border-rose-200 focus:border-rose-400 focus:ring-rose-200`}
-                        disabled={validatingPromotion}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => void handleApplyPromotion()}
-                        disabled={validatingPromotion || !form.promotion_code.trim()}
-                        className="shrink-0 rounded-lg bg-rose-500 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-rose-600 disabled:opacity-50"
-                      >
-                        {validatingPromotion ? 'Đang kiểm tra...' : 'Áp dụng'}
-                      </button>
-                    </div>
-                    {validatedPromotion && (
-                      <div className="mt-3 flex items-center gap-2 text-sm font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-lg p-3">
-                        <CheckCircle2 size={16} /> Đã áp dụng: {formatPromotionLabel(validatedPromotion)}
-                      </div>
-                    )}
-                  </label>
-                </div>
-
-                <div className="border-t border-slate-100 pt-8">
-                  <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2 mb-4">
-                    <Receipt className="text-blue-500" /> Yêu cầu xuất hóa đơn (VAT)
-                  </h3>
-                  <div className="flex items-start gap-3">
-                    <input
-                      type="checkbox"
-                      id="vat_req"
-                      checked={form.vat_requested}
-                      onChange={e => setForm(p => ({ ...p, vat_requested: e.target.checked }))}
-                      className="mt-1 w-5 h-5 rounded border-gray-300 text-cyan-600 focus:ring-cyan-600"
-                    />
-                    <div className="flex-1">
-                      <label htmlFor="vat_req" className="font-medium text-slate-700 cursor-pointer block">Tôi muốn xuất hóa đơn đỏ (VAT) cho dịch vụ này</label>
-                      {form.vat_requested && (
-                        <div className="mt-3 animate-in fade-in slide-in-from-top-2">
-                          <input
-                            type="text"
-                            placeholder="Nhập Mã số thuế công ty..."
-                            required={form.vat_requested}
-                            value={form.tax_code}
-                            onChange={e => setForm(p => ({ ...p, tax_code: e.target.value }))}
-                            className={AUTH_INPUT_CLASS}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* STEP 4: THANH TOÁN */}
-            {step === 4 && (
               <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                 <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-                  <CreditCard className="text-emerald-500" /> Thanh toán & Xác nhận
+                  <CheckCircle2 className="text-emerald-500" /> Xác nhận & Đặt lịch
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
-                  {/* Cột Tóm tắt đơn */}
+                  {/* Cột Tóm tắt đơn & Ưu đãi */}
                   <div className="md:col-span-3 space-y-6">
                     <div className="bg-slate-50 border border-slate-200 rounded-xl p-5">
                       <h4 className="font-bold text-slate-700 border-b border-slate-200 pb-3 mb-4 uppercase text-xs tracking-wider">Thông tin đơn đặt lịch</h4>
@@ -644,19 +622,62 @@ export default function NewBookingPage() {
                       </ul>
                     </div>
 
-                    <div>
-                      <h4 className="font-bold text-slate-700 mb-3">Phương thức thanh toán</h4>
-                      <div className="grid grid-cols-2 gap-3">
-                        <label className={`cursor-pointer flex flex-col items-center justify-center gap-2 p-4 border-2 rounded-xl transition-all ${form.payment_method === 'bank' ? 'border-[#0ea5b7] bg-cyan-50' : 'border-slate-200 hover:bg-slate-50'}`}>
-                          <input type="radio" name="payment" value="bank" className="sr-only" checked={form.payment_method === 'bank'} onChange={() => setForm(p => ({ ...p, payment_method: 'bank' }))} />
-                          <Banknote size={24} className={form.payment_method === 'bank' ? 'text-[#0ea5b7]' : 'text-slate-400'} />
-                          <span className="font-medium text-sm text-center">Chuyển khoản (Mã QR)</span>
-                        </label>
-                        <label className={`cursor-pointer flex flex-col items-center justify-center gap-2 p-4 border-2 rounded-xl transition-all ${form.payment_method === 'cash' ? 'border-[#0ea5b7] bg-cyan-50' : 'border-slate-200 hover:bg-slate-50'}`}>
-                          <input type="radio" name="payment" value="cash" className="sr-only" checked={form.payment_method === 'cash'} onChange={() => setForm(p => ({ ...p, payment_method: 'cash' }))} />
-                          <ShieldCheck size={24} className={form.payment_method === 'cash' ? 'text-[#0ea5b7]' : 'text-slate-400'} />
-                          <span className="font-medium text-sm text-center">Tiền mặt tại quầy</span>
-                        </label>
+                    <div className="bg-rose-50/50 border border-rose-100 rounded-xl p-5">
+                      <label className="block text-sm">
+                        <span className="font-semibold text-slate-700">Mã giảm giá (Nếu có)</span>
+                        <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                          <input
+                            type="text"
+                            value={form.promotion_code}
+                            onChange={(e) => {
+                              setValidatedPromotion(null)
+                              setForm((p) => ({ ...p, promotion_code: e.target.value.toUpperCase() }))
+                            }}
+                            placeholder="Nhập mã khuyến mãi..."
+                            className={`${AUTH_INPUT_CLASS} flex-1 uppercase border-rose-200 focus:border-rose-400 focus:ring-rose-200`}
+                            disabled={validatingPromotion}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => void handleApplyPromotion()}
+                            disabled={validatingPromotion || !form.promotion_code.trim()}
+                            className="shrink-0 rounded-lg bg-rose-500 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-rose-600 disabled:opacity-50"
+                          >
+                            {validatingPromotion ? 'Đang kiểm tra...' : 'Áp dụng'}
+                          </button>
+                        </div>
+                        {validatedPromotion && (
+                          <div className="mt-3 flex items-center gap-2 text-sm font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+                            <CheckCircle2 size={16} /> Đã áp dụng: {formatPromotionLabel(validatedPromotion)}
+                          </div>
+                        )}
+                      </label>
+                    </div>
+
+                    <div className="border border-slate-200 rounded-xl p-5">
+                      <div className="flex items-start gap-3">
+                        <input
+                          type="checkbox"
+                          id="vat_req"
+                          checked={form.vat_requested}
+                          onChange={e => setForm(p => ({ ...p, vat_requested: e.target.checked }))}
+                          className="mt-1 w-5 h-5 rounded border-gray-300 text-cyan-600 focus:ring-cyan-600"
+                        />
+                        <div className="flex-1">
+                          <label htmlFor="vat_req" className="font-medium text-slate-700 cursor-pointer block">Tôi muốn xuất hóa đơn đỏ (VAT) cho dịch vụ này</label>
+                          {form.vat_requested && (
+                            <div className="mt-3 animate-in fade-in slide-in-from-top-2">
+                              <input
+                                type="text"
+                                placeholder="Nhập Mã số thuế công ty..."
+                                required={form.vat_requested}
+                                value={form.tax_code}
+                                onChange={e => setForm(p => ({ ...p, tax_code: e.target.value }))}
+                                className={AUTH_INPUT_CLASS}
+                              />
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -668,16 +689,28 @@ export default function NewBookingPage() {
                       <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 rounded-full bg-white opacity-10"></div>
                       <div className="absolute bottom-0 left-0 -ml-8 -mb-8 w-24 h-24 rounded-full bg-white opacity-10"></div>
 
-                      <h4 className="font-bold text-cyan-50 mb-6 uppercase tracking-widest text-xs relative z-10">Tổng thanh toán</h4>
+                      <h4 className="font-bold text-cyan-50 mb-6 uppercase tracking-widest text-xs relative z-10">Tổng thanh toán dự kiến</h4>
 
                       {priceEstimate ? (
-                        <div className="space-y-4 relative z-10 flex-1">
-                          <div className="flex justify-between items-center text-sm text-cyan-100">
+                        <div className="space-y-3 relative z-10 flex-1">
+                          {selectedCombo && (
+                            <div className="flex justify-between items-start text-sm text-cyan-100">
+                              <span className="pr-4">Gói Combo ({selectedCombo.package_name})</span>
+                              <span className="whitespace-nowrap">{formatPrice(selectedCombo.finalPrice)}</span>
+                            </div>
+                          )}
+                          {selectedServices.map(s => (
+                            <div key={s._id || s.id} className="flex justify-between items-start text-sm text-cyan-100">
+                              <span className="pr-4">{s.service_name}</span>
+                              <span className="whitespace-nowrap">{formatPrice(s.service_price || 0)}</span>
+                            </div>
+                          ))}
+                          <div className="flex justify-between items-center text-sm text-white font-medium pt-2 border-t border-cyan-500/50">
                             <span>Tạm tính</span>
                             <span>{formatPrice(priceEstimate.basePrice)}</span>
                           </div>
                           {priceEstimate.discount > 0 && (
-                            <div className="flex justify-between items-center text-sm text-rose-200 font-medium">
+                            <div className="flex justify-between items-center text-sm text-rose-200 font-medium pt-1">
                               <span>Giảm giá</span>
                               <span>− {formatPrice(priceEstimate.discount)}</span>
                             </div>
@@ -686,6 +719,9 @@ export default function NewBookingPage() {
                           <div>
                             <div className="text-xs text-cyan-100 mb-1">Thành tiền</div>
                             <div className="text-3xl font-black">{formatPrice(priceEstimate.finalPrice)}</div>
+                          </div>
+                          <div className="mt-auto pt-4 text-xs text-cyan-100 italic">
+                            * Thanh toán sau khi hoàn thành dịch vụ.
                           </div>
                         </div>
                       ) : (

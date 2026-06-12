@@ -110,9 +110,10 @@ export default function AdminDashboard() {
           startDate: fmt(thirtyDaysAgo),
           endDate: fmt(today),
         }),
-        apiClient.get<{ data: { date: string; profit: number }[] }>(
-          `/admin/profit?startDate=${fmt(thirtyDaysAgo)}&endDate=${fmt(today)}`
-        ),
+        apiClient.post<{ data: { date: string; profit: number }[] }>('/admin/profit', {
+          startDate: fmt(thirtyDaysAgo),
+          endDate: fmt(today),
+        }),
         apiClient.get<{ data: { serviceName: string; count: number }[] }>('/admin/top-services'),
       ])
 

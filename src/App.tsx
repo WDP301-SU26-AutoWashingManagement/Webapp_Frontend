@@ -28,6 +28,7 @@ import AdminPromotionsPage from './pages/admin/AdminPromotionsPage'
 import AdminTiersPage from './pages/admin/AdminTiersPage'
 import InternalProfilePage from './pages/shared/InternalProfilePage'
 import AdminPlaceholderPage from './pages/admin/AdminPlaceholderPage'
+import AdminCustomersPage from './pages/admin/AdminCustomersPage'
 
 // Boss
 import BossLayout from './pages/boss/BossLayout'
@@ -140,10 +141,7 @@ function AppContent() {
         >
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="dashboard" element={<AdminDashboard />} />
-          <Route
-            path="customers"
-            element={<AdminPlaceholderPage title="Khách hàng" description="Quản lý tài khoản khách hàng" />}
-          />
+          <Route path="customers" element={<AdminCustomersPage />} />
           <Route
             path="bookings"
             element={<AdminPlaceholderPage title="Đặt lịch" description="Quản lý lịch đặt rửa xe" />}

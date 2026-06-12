@@ -23,11 +23,18 @@ export interface WashBooking {
 }
 
 export interface CreateBookingInput {
+  branch_id: string
   vehicle_id: string
-  service_package_id: string
   scheduled_at: string
+  services: Array<{
+    service_id: string
+    service_package_id?: string
+  }>
   promotion_id?: string
   booking_source?: 'web' | 'app' | 'admin'
+  vat_requested?: boolean
+  tax_code?: string
+  payment_method?: string
 }
 
 export interface BookingListParams {
