@@ -574,7 +574,7 @@ export default function NewBookingPage() {
                                         </span>
                                       )}
                                     </div>
-                                    <p className={`text-lg font-bold whitespace-nowrap ${isIncludedInCombo ? 'text-slate-400 line-through' : 'text-[#ea580c]'}`}>{formatPrice(pkg.service_price)}</p>
+                                    <p className={`text-lg font-bold whitespace-nowrap ${isIncludedInCombo ? 'text-slate-400' : 'text-[#ea580c]'}`}>{formatPrice(pkg.service_price)}</p>
                                   </div>
                                   <div className="text-sm font-medium text-slate-500">
                                     ⏱ {pkg.duration_minutes} phút
@@ -692,13 +692,25 @@ export default function NewBookingPage() {
                       <h4 className="font-bold text-cyan-50 mb-6 uppercase tracking-widest text-xs relative z-10">Tổng thanh toán dự kiến</h4>
 
                       {priceEstimate ? (
-                        <div className="space-y-4 relative z-10 flex-1">
-                          <div className="flex justify-between items-center text-sm text-cyan-100">
+                        <div className="space-y-3 relative z-10 flex-1">
+                          {selectedCombo && (
+                            <div className="flex justify-between items-start text-sm text-cyan-100">
+                              <span className="pr-4">Gói Combo ({selectedCombo.package_name})</span>
+                              <span className="whitespace-nowrap">{formatPrice(selectedCombo.finalPrice)}</span>
+                            </div>
+                          )}
+                          {selectedServices.map(s => (
+                            <div key={s._id || s.id} className="flex justify-between items-start text-sm text-cyan-100">
+                              <span className="pr-4">{s.service_name}</span>
+                              <span className="whitespace-nowrap">{formatPrice(s.service_price || 0)}</span>
+                            </div>
+                          ))}
+                          <div className="flex justify-between items-center text-sm text-white font-medium pt-2 border-t border-cyan-500/50">
                             <span>Tạm tính</span>
                             <span>{formatPrice(priceEstimate.basePrice)}</span>
                           </div>
                           {priceEstimate.discount > 0 && (
-                            <div className="flex justify-between items-center text-sm text-rose-200 font-medium">
+                            <div className="flex justify-between items-center text-sm text-rose-200 font-medium pt-1">
                               <span>Giảm giá</span>
                               <span>− {formatPrice(priceEstimate.discount)}</span>
                             </div>
