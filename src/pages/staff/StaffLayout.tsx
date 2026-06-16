@@ -11,7 +11,8 @@ import {
     X,
     ChevronRight,
     CalendarOff,
-    CalendarDays
+    CalendarDays,
+    Users
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import logo2 from '../../assets/logo2.png'
@@ -21,6 +22,11 @@ const NAV_ITEMS = [
         label: 'Tổng quan',
         icon: LayoutDashboard,
         to: '/staff/dashboard',
+    },
+    {
+        label: 'Khách hàng',
+        icon: Users,
+        to: '/staff/customers',
     },
     {
         label: 'Quản lý booking',

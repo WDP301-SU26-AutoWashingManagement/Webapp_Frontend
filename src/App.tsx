@@ -27,7 +27,7 @@ import AdminStaffsPage from './pages/admin/AdminStaffsPage'
 import AdminTiersPage from './pages/admin/AdminTiersPage'
 import InternalProfilePage from './pages/shared/InternalProfilePage'
 import AdminPlaceholderPage from './pages/admin/AdminPlaceholderPage'
-import AdminCustomersPage from './pages/admin/AdminCustomersPage'
+
 
 // Boss
 import BossLayout from './pages/boss/BossLayout'
@@ -35,6 +35,7 @@ import BossDashboard from './pages/boss/BossDashboard'
 import BossAccountsPage from './pages/boss/BossAccountsPage'
 import BossBranchesPage from './pages/boss/BossBranchesPage'
 import BossPromotionsPage from './pages/boss/BossPromotionsPage'
+import SharedCustomersPage from './pages/shared/SharedCustomersPage'
 
 // Staff
 import StaffLayout from './pages/staff/StaffLayout'
@@ -141,7 +142,7 @@ function AppContent() {
         >
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="dashboard" element={<AdminDashboard />} />
-          <Route path="customers" element={<AdminCustomersPage />} />
+          <Route path="customers" element={<SharedCustomersPage />} />
           <Route
             path="bookings"
             element={<AdminPlaceholderPage title="Đặt lịch" description="Quản lý lịch đặt rửa xe" />}
@@ -173,6 +174,7 @@ function AppContent() {
         >
           <Route index element={<Navigate to="/boss/dashboard" replace />} />
           <Route path="dashboard" element={<BossDashboard />} />
+          <Route path="customers" element={<SharedCustomersPage />} />
           <Route
             path="accounts"
             element={<BossAccountsPage />}
@@ -202,6 +204,8 @@ function AppContent() {
         >
           <Route index element={<Navigate to="/staff/dashboard" replace />} />
           <Route path="dashboard" element={<StaffDashboard />} />
+          <Route path="customers" element={<SharedCustomersPage />} />
+
           <Route path="bookings" element={<StaffBookingsPage />} />
           <Route path="checkin" element={<StaffCheckinPage />} />
           <Route path="payments" element={<StaffPaymentsPage />} />

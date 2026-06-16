@@ -21,6 +21,11 @@ const NAV_ITEMS = [
     to: '/boss/dashboard',
   },
   {
+    label: 'Khách hàng',
+    icon: Users,
+    to: '/boss/customers',
+  },
+  {
     label: 'Tài khoản nội bộ',
     icon: Users,
     to: '/boss/accounts',
