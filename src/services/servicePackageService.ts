@@ -9,7 +9,7 @@ interface ServiceListEnvelope {
   data?: Record<string, unknown>[]
 }
 
-function normalizeServicePackage(raw: Record<string, unknown>): ServicePackage {
+function normalizeServicePackage(raw: Record<string, unknown>): any {
   const id = normalizeMongoId(raw._id ?? raw.id)
   return {
     _id: id || undefined,
@@ -34,7 +34,7 @@ export const servicePackageService = {
       return data
         .filter((item): item is Record<string, unknown> => item != null && typeof item === 'object')
         .map(normalizeServicePackage)
-        .filter((pkg) => pkg.service_name && pkg.is_active !== false)
+        .filter((pkg: any) => (pkg.service_name || pkg.package_name) && pkg.is_active !== false)
     })
   },
 }
