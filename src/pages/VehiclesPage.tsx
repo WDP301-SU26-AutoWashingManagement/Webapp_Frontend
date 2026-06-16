@@ -86,7 +86,6 @@ export default function VehiclesPage() {
 
   const openEdit = (vehicle: Vehicle) => {
     const model = models.find(m => m._id === vehicle.model_id)
-    const make = makes.find(m => m._id === model?.make_id)
     setForm({
       license_plate: vehicle.license_plate,
       vehicle_class_id: vehicle.vehicle_class_id ?? '',

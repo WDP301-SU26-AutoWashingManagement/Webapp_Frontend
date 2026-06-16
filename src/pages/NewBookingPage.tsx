@@ -29,18 +29,16 @@ import {
   DEFAULT_BOOKING_WINDOW_DAYS,
   getEarliestBookableTime,
   getLatestBookableTime,
-  getScheduleFieldHints,
   parseDatetimeLocalValue,
-  SLOT_DURATION_MINUTES,
-  snapDatetimeLocalValue,
   toDatetimeLocalValue,
+  getScheduleFieldHints,
   validateScheduledAt,
   getAvailableTimeSlots,
 } from '../utils/bookingSchedule'
 import { estimateBookingPrice, formatPromotionLabel } from '../utils/promotionPricing'
 import { getApiErrorMessage } from '../utils/errors'
 import { showError, showSuccess } from '../utils/toast'
-import { MapPin, Car, Calendar, CheckCircle2, ChevronRight, ChevronLeft, CreditCard, Receipt, Tag, Star, Banknote, ShieldCheck, Plus } from 'lucide-react'
+import { MapPin, Calendar, CheckCircle2, ChevronRight, ChevronLeft, Star, Plus } from 'lucide-react'
 
 const BOOKING_WINDOW_DAYS = DEFAULT_BOOKING_WINDOW_DAYS
 
