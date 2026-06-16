@@ -8,7 +8,8 @@ import {
   Menu,
   X,
   ChevronRight,
-  Building
+  Building,
+  Tag
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import logo2 from '../../assets/logo2.png'
@@ -28,6 +29,11 @@ const NAV_ITEMS = [
     label: 'Quản lý Chi nhánh',
     icon: Building,
     to: '/boss/branches',
+  },
+  {
+    label: 'Khuyến mãi',
+    icon: Tag,
+    to: '/boss/promotions',
   },
   {
     label: 'Cài đặt',

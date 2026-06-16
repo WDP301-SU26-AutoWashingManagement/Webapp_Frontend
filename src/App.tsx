@@ -24,7 +24,6 @@ import AdminServicesPage from './pages/admin/AdminServicesPage'
 import AdminServiceGroupsPage from './pages/admin/AdminServiceGroupsPage'
 import AdminServicePackagesPage from './pages/admin/AdminServicePackagesPage'
 import AdminStaffsPage from './pages/admin/AdminStaffsPage'
-import AdminPromotionsPage from './pages/admin/AdminPromotionsPage'
 import AdminTiersPage from './pages/admin/AdminTiersPage'
 import InternalProfilePage from './pages/shared/InternalProfilePage'
 import AdminPlaceholderPage from './pages/admin/AdminPlaceholderPage'
@@ -35,6 +34,7 @@ import BossLayout from './pages/boss/BossLayout'
 import BossDashboard from './pages/boss/BossDashboard'
 import BossAccountsPage from './pages/boss/BossAccountsPage'
 import BossBranchesPage from './pages/boss/BossBranchesPage'
+import BossPromotionsPage from './pages/boss/BossPromotionsPage'
 
 // Staff
 import StaffLayout from './pages/staff/StaffLayout'
@@ -150,7 +150,7 @@ function AppContent() {
           <Route path="services" element={<AdminServicesPage />} />
           <Route path="service-groups" element={<AdminServiceGroupsPage />} />
           <Route path="service-packages" element={<AdminServicePackagesPage />} />
-          <Route path="promotions" element={<AdminPromotionsPage />} />
+
           <Route path="tiers" element={<AdminTiersPage />} />
           <Route
             path="reports"
@@ -180,6 +180,10 @@ function AppContent() {
           <Route
             path="branches"
             element={<BossBranchesPage />}
+          />
+          <Route
+            path="promotions"
+            element={<BossPromotionsPage />}
           />
           <Route
             path="settings"

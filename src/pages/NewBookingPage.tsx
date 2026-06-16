@@ -214,7 +214,7 @@ export default function NewBookingPage() {
       setValidatedPromotion(promotion)
       setForm((prev) => ({
         ...prev,
-        promotion_code: promotion.promotion_code,
+        promotion_code: promotion.code,
       }))
       showSuccess(message || 'Mã khuyến mãi hợp lệ')
     } catch (err) {

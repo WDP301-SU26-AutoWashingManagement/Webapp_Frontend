@@ -55,11 +55,7 @@ const NAV_ITEMS = [
     icon: Package,
     to: '/admin/service-packages',
   },
-  {
-    label: 'Khuyến mãi',
-    icon: Tag,
-    to: '/admin/promotions',
-  },
+
   {
     label: 'Cấp bậc',
     icon: Award,

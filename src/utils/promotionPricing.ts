@@ -11,22 +11,22 @@ export interface PriceEstimate {
 
 export function computePromotionDiscount(
   basePrice: number,
-  promotion: Pick<Promotion, 'discount_type' | 'discount_value'>,
+  promotion: Pick<Promotion, 'type' | 'discount_percentage' | 'discount_amount' | 'min_order_amount'>,
 ): number {
   if (basePrice <= 0) return 0
+  if (basePrice < (promotion.min_order_amount || 0)) return 0
 
-  const raw =
-    promotion.discount_type === 'percentage'
-      ? basePrice * (promotion.discount_value / 100)
-      : promotion.discount_value
+  if (promotion.type === 'bonus_service') return 0
 
-  const maxDiscount = basePrice * (MAX_PRICE_DISCOUNT_PERCENTAGE / 100)
-  return Math.min(Math.max(0, raw), maxDiscount)
+  const raw = basePrice * ((promotion.discount_percentage || 0) / 100)
+  const maxDiscount = promotion.discount_amount || Infinity
+
+  return Math.min(raw, maxDiscount)
 }
 
 export function estimateBookingPrice(
   basePrice: number,
-  promotion?: Pick<Promotion, 'discount_type' | 'discount_value'> | null,
+  promotion?: Pick<Promotion, 'type' | 'discount_percentage' | 'discount_amount' | 'min_order_amount'> | null,
 ): PriceEstimate {
   const discount = promotion ? computePromotionDiscount(basePrice, promotion) : 0
   return {
@@ -37,13 +37,13 @@ export function estimateBookingPrice(
 }
 
 export function formatPromotionLabel(
-  promotion: Pick<Promotion, 'promotion_code' | 'discount_type' | 'discount_value'>,
+  promotion: Pick<Promotion, 'code' | 'type' | 'discount_percentage' | 'discount_amount'>,
 ): string {
-  if (promotion.discount_type === 'percentage') {
-    return `${promotion.promotion_code} (−${promotion.discount_value}%)`
+  if (promotion.type === 'bonus_service') {
+    return `${promotion.code} (Tặng thêm dịch vụ)`
   }
-  return `${promotion.promotion_code} (−${new Intl.NumberFormat('vi-VN', {
+  return `${promotion.code} (−${promotion.discount_percentage}%, tối đa ${new Intl.NumberFormat('vi-VN', {
     style: 'currency',
     currency: 'VND',
-  }).format(promotion.discount_value)})`
+  }).format(promotion.discount_amount)})`
 }
