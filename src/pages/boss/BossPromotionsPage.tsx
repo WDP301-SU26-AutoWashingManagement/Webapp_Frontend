@@ -3,8 +3,10 @@ import {
   Plus, Search, RefreshCw, Pencil, Trash2, ToggleLeft, ToggleRight,
   X, Check, ChevronLeft, ChevronRight, Tag, Calendar, Percent, Hash,
 } from 'lucide-react'
-import type { Promotion, PromotionDiscountType, CreatePromotionInput } from '../../types/promotion'
+import type { Promotion, PromotionType, CreatePromotionInput } from '../../types/promotion'
+import type { Service } from '../../types/service'
 import { adminPromotionService } from '../../services/adminPromotionService'
+import { adminServiceService } from '../../services/adminServiceService'
 import { showError, showSuccess } from '../../utils/toast'
 import { getErrorMessage } from '../../utils/errors'
 
@@ -24,8 +26,8 @@ const toInputDate = (iso?: string) => {
 const getStatus = (p: Promotion): 'active' | 'inactive' | 'expired' | 'scheduled' => {
   if (!p.is_active) return 'inactive'
   const now = Date.now()
-  if (p.end_at && new Date(p.end_at).getTime() < now) return 'expired'
-  if (p.start_at && new Date(p.start_at).getTime() > now) return 'scheduled'
+  if (p.end_date && new Date(p.end_date).getTime() < now) return 'expired'
+  if (p.start_date && new Date(p.start_date).getTime() > now) return 'scheduled'
   return 'active'
 }
 
@@ -52,39 +54,49 @@ interface PromotionModalProps {
 function PromotionModal({ initial, onClose, onSaved }: PromotionModalProps) {
   const isEdit = !!initial
   const [form, setForm] = useState<CreatePromotionInput>({
-    promotion_code: initial?.promotion_code ?? '',
-    discount_type: initial?.discount_type ?? 'percentage',
-    discount_value: initial?.discount_value ?? 0,
-    start_at: toInputDate(initial?.start_at),
-    end_at: toInputDate(initial?.end_at),
+    promotion_name: initial?.promotion_name ?? '',
+    description: initial?.description ?? '',
+    code: initial?.code ?? '',
+    type: initial?.type ?? 'discount',
+    discount_percentage: initial?.discount_percentage ?? 0,
+    discount_amount: initial?.discount_amount ?? 0,
+    min_order_amount: initial?.min_order_amount ?? 0,
+    start_date: toInputDate(initial?.start_date),
+    end_date: toInputDate(initial?.end_date),
     is_active: initial?.is_active ?? true,
-    auto_post: initial?.auto_notification ?? false,
+    service_ids: initial?.service_ids ?? [],
   })
   const [saving, setSaving] = useState(false)
+  const [services, setServices] = useState<Service[]>([])
   const codeRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => { codeRef.current?.focus() }, [])
+  useEffect(() => {
+    codeRef.current?.focus()
+    adminServiceService.list({ limit: 100, is_active: true })
+      .then(res => setServices(res.items))
+      .catch(console.error)
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const code = form.promotion_code.trim().toUpperCase()
+    const code = form.code.trim().toUpperCase()
     if (code.length < 3) {
       showError('Mã khuyến mãi phải có ít nhất 3 ký tự')
       return
     }
-    if (!isEdit && form.discount_value < 0) {
-      showError('Giá trị giảm không được âm')
-      return
-    }
-    if (!isEdit && form.discount_type === 'percentage' && form.discount_value > 100) {
+    if (form.type === 'discount' && (form.discount_percentage ?? 0) > 100) {
       showError('Phần trăm giảm không được vượt quá 100%')
       return
     }
-    if (!form.start_at || !form.end_at) {
+    if (form.type === 'bonus_service' && (!form.service_ids || form.service_ids.length === 0)) {
+      showError('Vui lòng chọn ít nhất 1 dịch vụ tặng kèm')
+      return
+    }
+    if (!form.start_date || !form.end_date) {
       showError('Vui lòng chọn ngày bắt đầu và kết thúc')
       return
     }
-    if (form.start_at > form.end_at) {
+    if (form.start_date > form.end_date) {
       showError('Ngày kết thúc phải sau hoặc bằng ngày bắt đầu')
       return
     }
@@ -93,21 +105,21 @@ function PromotionModal({ initial, onClose, onSaved }: PromotionModalProps) {
     try {
       if (isEdit) {
         await adminPromotionService.update(getId(initial!), {
-          discount_type: form.discount_type,
-          start_at: form.start_at,
-          end_at: form.end_at,
+          promotion_name: form.promotion_name,
+          description: form.description,
+          type: form.type,
+          discount_percentage: form.discount_percentage,
+          discount_amount: form.discount_amount,
+          min_order_amount: form.min_order_amount,
+          start_date: form.start_date,
+          end_date: form.end_date,
           is_active: form.is_active,
-          auto_post: form.auto_post,
+          service_ids: form.service_ids,
         })
       } else {
         await adminPromotionService.create({
-          promotion_code: code,
-          discount_type: form.discount_type,
-          discount_value: form.discount_value,
-          start_at: form.start_at,
-          end_at: form.end_at,
-          is_active: form.is_active,
-          auto_post: form.auto_post,
+          ...form,
+          code,
         })
       }
       showSuccess(isEdit ? 'Cập nhật khuyến mãi thành công' : 'Thêm khuyến mãi thành công')
@@ -131,51 +143,119 @@ function PromotionModal({ initial, onClose, onSaved }: PromotionModalProps) {
 
         <form onSubmit={handleSubmit} className="admin-modal__body">
           <div className="admin-form-group">
-            <label className="admin-form-label">Mã khuyến mãi <span className="text-red-500">*</span></label>
+            <label className="admin-form-label">Tên chương trình KM <span className="text-red-500">*</span></label>
             <input
-              ref={codeRef}
-              className="admin-form-input uppercase"
-              value={form.promotion_code}
-              onChange={e => setForm(f => ({ ...f, promotion_code: e.target.value.toUpperCase() }))}
-              placeholder="SUMMER2025"
-              maxLength={50}
-              disabled={isEdit}
+              className="admin-form-input"
+              value={form.promotion_name}
+              onChange={e => setForm(f => ({ ...f, promotion_name: e.target.value }))}
+              placeholder="VD: Tri ân khách hàng hè..."
+              maxLength={100}
+              required
             />
-            {isEdit && <p className="admin-form-hint">Mã không thể chỉnh sửa sau khi tạo</p>}
           </div>
 
           <div className="admin-form-row">
             <div className="admin-form-group">
-              <label className="admin-form-label">Loại giảm giá <span className="text-red-500">*</span></label>
-              <select
-                className="admin-form-input"
-                value={form.discount_type}
-                onChange={e => setForm(f => ({ ...f, discount_type: e.target.value as PromotionDiscountType }))}
-              >
-                <option value="percentage">Phần trăm (%)</option>
-                <option value="fixed">Số tiền cố định (đ)</option>
-              </select>
+              <label className="admin-form-label">Mã khuyến mãi (Code) <span className="text-red-500">*</span></label>
+              <input
+                ref={codeRef}
+                className="admin-form-input uppercase"
+                value={form.code}
+                onChange={e => setForm(f => ({ ...f, code: e.target.value.toUpperCase() }))}
+                placeholder="SUMMER2025"
+                maxLength={50}
+                disabled={isEdit}
+                required
+              />
+              {isEdit && <p className="admin-form-hint">Mã không thể chỉnh sửa sau khi tạo</p>}
             </div>
             <div className="admin-form-group">
-              <label className="admin-form-label">
-                Giá trị giảm {form.discount_type === 'percentage' ? '(%)' : '(đ)'}
-                <span className="text-red-500"> *</span>
-              </label>
+              <label className="admin-form-label">Đơn tối thiểu (đ) <span className="text-red-500">*</span></label>
               <input
                 type="number"
                 className="admin-form-input"
-                value={form.discount_value}
+                value={form.min_order_amount}
                 min={0}
-                max={form.discount_type === 'percentage' ? 100 : undefined}
-                disabled={isEdit}
-                onChange={e => setForm(f => ({ ...f, discount_value: Number(e.target.value) }))}
+                onChange={e => setForm(f => ({ ...f, min_order_amount: Number(e.target.value) }))}
+                required
               />
-              {isEdit && (
-                <p className="admin-form-hint">
-                  Giá trị giảm không thể đổi sau khi tạo (giới hạn phía server).
-                </p>
-              )}
             </div>
+          </div>
+
+          <div className="admin-form-group">
+            <label className="admin-form-label">Loại khuyến mãi <span className="text-red-500">*</span></label>
+            <select
+              className="admin-form-input"
+              value={form.type}
+              onChange={e => setForm(f => ({ ...f, type: e.target.value as PromotionType }))}
+            >
+              <option value="discount">Giảm giá</option>
+              <option value="bonus_service">Tặng thêm dịch vụ</option>
+            </select>
+          </div>
+
+          {form.type === 'discount' && (
+            <div className="admin-form-row">
+              <div className="admin-form-group">
+                <label className="admin-form-label">Giảm phần trăm (%) <span className="text-red-500">*</span></label>
+                <input
+                  type="number"
+                  className="admin-form-input"
+                  value={form.discount_percentage}
+                  min={0}
+                  max={100}
+                  onChange={e => setForm(f => ({ ...f, discount_percentage: Number(e.target.value) }))}
+                />
+              </div>
+              <div className="admin-form-group">
+                <label className="admin-form-label">Tối đa (đ) <span className="text-red-500">*</span></label>
+                <input
+                  type="number"
+                  className="admin-form-input"
+                  value={form.discount_amount}
+                  min={0}
+                  onChange={e => setForm(f => ({ ...f, discount_amount: Number(e.target.value) }))}
+                />
+              </div>
+            </div>
+          )}
+
+          {form.type === 'bonus_service' && (
+            <div className="admin-form-group">
+              <label className="admin-form-label">Chọn dịch vụ tặng kèm <span className="text-red-500">*</span></label>
+              <div className="admin-form-input max-h-[150px] overflow-y-auto space-y-2 p-3 bg-slate-50">
+                {services.length === 0 ? <p className="text-sm text-slate-500">Đang tải dịch vụ...</p> : services.map(srv => {
+                  const id = srv._id || srv.id || ''
+                  const isChecked = form.service_ids?.includes(id)
+                  return (
+                    <label key={id} className="flex items-center gap-2 cursor-pointer text-sm">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={(e) => {
+                          const newIds = e.target.checked
+                            ? [...(form.service_ids || []), id]
+                            : (form.service_ids || []).filter(x => x !== id)
+                          setForm(f => ({ ...f, service_ids: newIds }))
+                        }}
+                      />
+                      <span>{srv.service_name}</span>
+                    </label>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          <div className="admin-form-group">
+            <label className="admin-form-label">Mô tả chi tiết</label>
+            <textarea
+              className="admin-form-input"
+              value={form.description}
+              onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+              placeholder="VD: Giảm 10% tối đa 50k..."
+              rows={2}
+            />
           </div>
 
           <div className="admin-form-row">
@@ -184,8 +264,9 @@ function PromotionModal({ initial, onClose, onSaved }: PromotionModalProps) {
               <input
                 type="date"
                 className="admin-form-input"
-                value={form.start_at}
-                onChange={e => setForm(f => ({ ...f, start_at: e.target.value }))}
+                value={form.start_date}
+                onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))}
+                required
               />
             </div>
             <div className="admin-form-group">
@@ -193,26 +274,12 @@ function PromotionModal({ initial, onClose, onSaved }: PromotionModalProps) {
               <input
                 type="date"
                 className="admin-form-input"
-                value={form.end_at}
-                min={form.start_at}
-                onChange={e => setForm(f => ({ ...f, end_at: e.target.value }))}
+                value={form.end_date}
+                min={form.start_date}
+                onChange={e => setForm(f => ({ ...f, end_date: e.target.value }))}
+                required
               />
             </div>
-          </div>
-
-          <div className="admin-form-group">
-            <label className="admin-form-label">Thông báo tự động</label>
-            <label className="admin-toggle">
-              <input
-                type="checkbox"
-                checked={!!form.auto_post}
-                onChange={e => setForm(f => ({ ...f, auto_post: e.target.checked }))}
-              />
-              <span className="admin-toggle__track" />
-              <span className="admin-toggle__label">
-                {form.auto_post ? 'Bật' : 'Tắt'}
-              </span>
-            </label>
           </div>
 
           <div className="admin-form-group">
@@ -244,7 +311,7 @@ function PromotionModal({ initial, onClose, onSaved }: PromotionModalProps) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 const PAGE_SIZE = 10
 
-export default function AdminPromotionsPage() {
+export default function BossPromotionsPage() {
   const [items, setItems] = useState<Promotion[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
@@ -293,7 +360,7 @@ export default function AdminPromotionsPage() {
   }
 
   const handleDelete = async (p: Promotion) => {
-    if (!window.confirm(`Xoá mã "${p.promotion_code}"? Hành động này không thể hoàn tác.`)) return
+    if (!window.confirm(`Xoá mã "${p.code}"? Hành động này không thể hoàn tác.`)) return
     const id = getId(p)
     setDeletingId(id)
     try {
@@ -361,11 +428,11 @@ export default function AdminPromotionsPage() {
         <table className="admin-table">
           <thead>
             <tr>
-              <th>Mã KM</th>
-              <th>Loại / Giá trị</th>
-              <th>Thời hạn</th>
-              <th>Thông báo</th>
-              <th>Trạng thái</th>
+              <th className="text-center">Mã</th>
+              <th>Chương trình</th>
+              <th className="text-center">Mô tả</th>
+              <th className="text-center">Thời hạn</th>
+              <th className="text-center">Trạng thái</th>
               <th className="text-right">Thao tác</th>
             </tr>
           </thead>
@@ -381,34 +448,33 @@ export default function AdminPromotionsPage() {
               const status = getStatus(promo)
               return (
                 <tr key={id} className="admin-table__row">
-                  <td>
-                    <div className="admin-promo-code">
+                  <td className="text-center">
+                    <div className="admin-promo-code mx-auto w-fit">
                       <Tag size={12} />
-                      {promo.promotion_code}
+                      {promo.code}
                     </div>
                   </td>
                   <td>
-                    <span className={`admin-table__badge ${promo.discount_type === 'percentage' ? 'admin-table__badge--purple' : 'admin-table__badge--blue'}`}>
-                      {promo.discount_type === 'percentage'
-                        ? <><Percent size={10} /> {promo.discount_value}%</>
-                        : <><Hash size={10} /> {promo.discount_value.toLocaleString('vi-VN')}đ</>
+                    <p className="font-medium">{promo.promotion_name}</p>
+                    {/* <p className="text-xs text-slate-500 truncate max-w-[200px]" title={promo.description}>{promo.description}</p> */}
+                  </td>
+                  <td className="text-center">
+                    <span className={`admin-table__badge mx-auto w-fit ${promo.type === 'discount' ? 'admin-table__badge--purple' : 'admin-table__badge--blue'}`}>
+                      {promo.type === 'discount'
+                        ? <>Giảm giá</>
+                        : <>Tặng dịch vụ</>
                       }
                     </span>
                   </td>
-                  <td>
-                    <div className="admin-table__meta">
+                  <td className="text-center">
+                    <div className="admin-table__meta mx-auto w-fit">
                       <Calendar size={12} />
-                      <span>{fmtDate(promo.start_at)} → {fmtDate(promo.end_at)}</span>
+                      <span>{fmtDate(promo.start_date)} → {fmtDate(promo.end_date)}</span>
                     </div>
                   </td>
-                  <td>
-                    <span className="admin-table__meta">
-                      {promo.auto_notification ? 'Có' : 'Không'}
-                    </span>
-                  </td>
-                  <td>
+                  <td className="text-center">
                     <button
-                      className={`admin-status-badge ${STATUS_CLASS[status]}`}
+                      className={`admin-status-badge mx-auto w-fit ${STATUS_CLASS[status]}`}
                       onClick={() => void handleToggle(promo)}
                       disabled={togglingId === id}
                       title={promo.is_active ? 'Nhấn để tạm ngừng' : 'Nhấn để kích hoạt'}

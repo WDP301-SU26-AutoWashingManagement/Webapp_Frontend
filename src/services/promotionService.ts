@@ -9,20 +9,22 @@ function normalizePromotion(raw: Record<string, unknown>): Promotion {
   return {
     _id: id || undefined,
     id: id || undefined,
-    promotion_code: String(raw.promotion_code ?? ''),
-    discount_type: raw.discount_type === 'fixed' ? 'fixed' : 'percentage',
-    discount_value: Number(raw.discount_value ?? 0),
-    bonus_reward_point:
-      raw.bonus_reward_point != null ? Number(raw.bonus_reward_point) : undefined,
-    start_at: raw.start_at != null ? String(raw.start_at) : undefined,
-    end_at: raw.end_at != null ? String(raw.end_at) : undefined,
-    auto_notification:
-      raw.auto_notification === true || raw.auto_post === true,
+    boss_id: normalizeMongoId(raw.boss_id) || undefined,
+    promotion_name: String(raw.promotion_name ?? ''),
+    description: String(raw.description ?? ''),
+    code: String(raw.code ?? ''),
+    type: raw.type === 'bonus_service' ? 'bonus_service' : 'discount',
+    service_ids: Array.isArray(raw.service_ids) ? raw.service_ids.map(s => normalizeMongoId(s)).filter(Boolean) as string[] : [],
+    discount_percentage: Number(raw.discount_percentage ?? 0),
+    discount_amount: Number(raw.discount_amount ?? 0),
+    min_order_amount: Number(raw.min_order_amount ?? 0),
+    start_date: raw.start_date != null ? String(raw.start_date) : new Date().toISOString(),
+    end_date: raw.end_date != null ? String(raw.end_date) : new Date().toISOString(),
     is_active: raw.is_active !== false,
   }
 }
 
-/** GET /promotions/validate/:code — public, không cần token. */
+/** GET /promotions/discount — public, không cần token. */
 export const promotionService = {
   async validateCode(code: string): Promise<ValidatePromotionResult> {
     const trimmed = code.trim().toUpperCase()
@@ -30,18 +32,35 @@ export const promotionService = {
       throw new Error('Vui lòng nhập mã khuyến mãi')
     }
 
-    const body = await apiClient.get<ApiResponse<Record<string, unknown>>>(
-      `/promotions/validate/${encodeURIComponent(trimmed)}`,
-    )
+    // Backend route is POST /promotions/discount
+    const body = await apiClient.post<ApiResponse<Record<string, unknown>>>('/promotions/discount', {
+      code: trimmed,
+    })
 
-    const data = unwrapApiData<Record<string, unknown>>(body)
-
+    const raw = unwrapApiData<Record<string, unknown>>(body)
     return {
-      promotion: normalizePromotion(data),
-      message:
-        typeof body === 'object' && body != null && 'message' in body
-          ? String((body as ApiResponse).message ?? '')
-          : undefined,
+      promotion: normalizePromotion(raw),
+      message: 'Áp dụng mã thành công',
     }
+  },
+
+  async list(params?: { page?: number; limit?: number }): Promise<Promotion[]> {
+    const body = await apiClient.get<ApiResponse<unknown[]>>('/promotions', { params })
+    const data = unwrapApiData<unknown[]>(body)
+    return Array.isArray(data) ? data.map(i => normalizePromotion(i as Record<string, unknown>)) : []
+  },
+
+  async create(payload: import('../types/promotion').CreatePromotionInput): Promise<Promotion> {
+    const body = await apiClient.post<ApiResponse<Record<string, unknown>>>('/promotions', payload)
+    return normalizePromotion(unwrapApiData<Record<string, unknown>>(body))
+  },
+
+  async update(id: string, payload: import('../types/promotion').UpdatePromotionInput): Promise<Promotion> {
+    const body = await apiClient.patch<ApiResponse<Record<string, unknown>>>(`/promotions/${id}`, payload)
+    return normalizePromotion(unwrapApiData<Record<string, unknown>>(body))
+  },
+
+  async remove(id: string): Promise<void> {
+    await apiClient.delete(`/promotions/${id}`)
   },
 }

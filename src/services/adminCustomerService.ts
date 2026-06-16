@@ -21,6 +21,21 @@ export interface AdminCustomer {
   has_online_access: boolean
 }
 
+export interface CreateCustomerInput {
+  email: string
+  full_name: string
+  phone?: string
+  password?: string
+  avatar_url?: string
+  tier_id?: string
+  membership_points?: number
+  reward_points?: number
+}
+
+export interface UpdateCustomerInput extends Partial<CreateCustomerInput> {
+  is_active?: boolean
+}
+
 export interface CustomerListParams {
   page?: number
   limit?: number
@@ -70,5 +85,19 @@ export const adminCustomerService = {
     const totalPages = pagination?.totalPages ?? (Math.ceil(total / limit) || 1)
 
     return { items, total, page, limit, totalPages }
+  },
+
+  async create(data: CreateCustomerInput): Promise<AdminCustomer> {
+    const body = await apiClient.post<{ data: Record<string, unknown> }>('/customers', data)
+    return normalizeCustomer(body.data || {})
+  },
+
+  async update(id: string, data: UpdateCustomerInput): Promise<AdminCustomer> {
+    const body = await apiClient.patch<{ data: Record<string, unknown> }>(`/customers/${id}`, data)
+    return normalizeCustomer(body.data || {})
+  },
+
+  async remove(id: string): Promise<void> {
+    await apiClient.delete(`/customers/${id}`)
   }
 }

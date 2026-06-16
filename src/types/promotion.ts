@@ -1,45 +1,37 @@
-export type PromotionDiscountType = 'percentage' | 'fixed'
-
-export interface PromotionObjects {
-  tiers?: string[]
-  vehicle_types?: string[]
-  services?: string[]
-}
+export type PromotionType = 'discount' | 'bonus_service'
 
 export interface Promotion {
   _id?: string
   id?: string
-  promotion_code: string
-  discount_type: PromotionDiscountType
-  discount_value: number
-  promotion_objects?: PromotionObjects
-  bonus_reward_point?: number
-  auto_notification?: boolean
-  start_at?: string
-  end_at?: string
-  is_active?: boolean
+  boss_id?: string
+  promotion_name: string
+  description: string
+  code: string
+  type: PromotionType
+  service_ids: string[]
+  discount_percentage: number
+  discount_amount: number
+  min_order_amount: number
+  start_date: string
+  end_date: string
+  is_active: boolean
 }
 
 export interface CreatePromotionInput {
-  promotion_code: string
-  discount_type: PromotionDiscountType
-  discount_value: number
-  start_at: string
-  end_at: string
-  is_active?: boolean
-  /** Khớp Joi BE: `auto_post` */
-  auto_post?: boolean
-  promotion_objects?: PromotionObjects
+  promotion_name: string
+  description: string
+  code: string
+  type: PromotionType
+  service_ids?: string[]
+  discount_percentage?: number
+  discount_amount?: number
+  min_order_amount: number
+  start_date: string
+  end_date: string
+  is_active: boolean
 }
 
-export type UpdatePromotionInput = {
-  discount_type?: PromotionDiscountType
-  start_at?: string
-  end_at?: string
-  is_active?: boolean
-  auto_post?: boolean
-  promotion_objects?: PromotionObjects
-}
+export type UpdatePromotionInput = Partial<CreatePromotionInput>
 
 export interface ValidatePromotionResult {
   promotion: Promotion

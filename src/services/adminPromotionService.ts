@@ -11,7 +11,7 @@ export interface PromotionListParams {
   page?: number
   limit?: number
   is_active?: boolean
-  discount_type?: CreatePromotionInput['discount_type']
+  type?: CreatePromotionInput['type']
   search?: string
   start_from?: string
   start_to?: string
@@ -40,63 +40,65 @@ export function promotionDateToIsoRange(startDate: string, endDate: string): {
   return { start_at, end_at }
 }
 
-function normalizePromotionObjects(raw: unknown): Promotion['promotion_objects'] {
-  if (raw == null || typeof raw !== 'object') return undefined
-  const o = raw as Record<string, unknown>
-  return {
-    tiers: Array.isArray(o.tiers) ? o.tiers.map(String) : undefined,
-    vehicle_types: Array.isArray(o.vehicle_types) ? o.vehicle_types.map(String) : undefined,
-    services: Array.isArray(o.services) ? o.services.map(String) : undefined,
-  }
-}
-
 function normalizePromotion(raw: Record<string, unknown>): Promotion {
   const id = normalizeMongoId(raw._id ?? raw.id)
   return {
     _id: id || undefined,
     id: id || undefined,
-    promotion_code: String(raw.promotion_code ?? ''),
-    discount_type: raw.discount_type === 'fixed' ? 'fixed' : 'percentage',
-    discount_value: Number(raw.discount_value ?? 0),
-    promotion_objects: normalizePromotionObjects(raw.promotion_objects),
-    bonus_reward_point:
-      raw.bonus_reward_point != null ? Number(raw.bonus_reward_point) : undefined,
-    auto_notification:
-      raw.auto_notification === true || raw.auto_post === true,
-    start_at: raw.start_at != null ? String(raw.start_at) : undefined,
-    end_at: raw.end_at != null ? String(raw.end_at) : undefined,
+    boss_id: normalizeMongoId(raw.boss_id) || undefined,
+    promotion_name: String(raw.promotion_name ?? ''),
+    description: String(raw.description ?? ''),
+    code: String(raw.code ?? ''),
+    type: raw.type === 'bonus_service' ? 'bonus_service' : 'discount',
+    service_ids: Array.isArray(raw.service_ids) ? raw.service_ids.map(s => normalizeMongoId(s)).filter(Boolean) as string[] : [],
+    discount_percentage: Number(raw.discount_percentage ?? 0),
+    discount_amount: Number(raw.discount_amount ?? 0),
+    min_order_amount: Number(raw.min_order_amount ?? 0),
+    start_date: raw.start_date != null ? String(raw.start_date) : new Date().toISOString(),
+    end_date: raw.end_date != null ? String(raw.end_date) : new Date().toISOString(),
     is_active: raw.is_active !== false,
   }
 }
 
 function buildCreateBody(data: CreatePromotionInput): Record<string, unknown> {
-  const { start_at, end_at } = promotionDateToIsoRange(data.start_at, data.end_at)
+  const { start_at, end_at } = promotionDateToIsoRange(data.start_date, data.end_date)
   const body: Record<string, unknown> = {
-    promotion_code: data.promotion_code.trim().toUpperCase(),
-    discount_type: data.discount_type,
-    discount_value: data.discount_value,
-    start_at,
-    end_at,
-  }
-  if (data.is_active !== undefined) body.is_active = data.is_active
-  if (data.auto_post !== undefined) body.auto_post = data.auto_post
-  if (data.promotion_objects && Object.keys(data.promotion_objects).length > 0) {
-    body.promotion_objects = data.promotion_objects
+    promotion_name: data.promotion_name,
+    description: data.description,
+    code: data.code.trim().toUpperCase(),
+    type: data.type,
+    min_order_amount: data.min_order_amount,
+    start_date: start_at,
+    end_date: end_at,
+    is_active: data.is_active,
+    service_ids: data.type === 'bonus_service' ? data.service_ids : undefined,
+    discount_percentage: data.type === 'discount' ? (data.discount_percentage ?? 0) : undefined,
+    discount_amount: data.type === 'discount' ? (data.discount_amount ?? 0) : undefined,
   }
   return body
 }
 
-/** BE từ chối mọi PATCH có `discount_value` — không gửi field đó khi update. */
 function buildUpdateBody(data: UpdatePromotionInput): Record<string, unknown> {
   const body: Record<string, unknown> = {}
-  if (data.discount_type !== undefined) body.discount_type = data.discount_type
+  if (data.promotion_name !== undefined) body.promotion_name = data.promotion_name
+  if (data.description !== undefined) body.description = data.description
+  if (data.code !== undefined) body.code = data.code.trim().toUpperCase()
+  if (data.type !== undefined) {
+    body.type = data.type
+    if (data.type === 'bonus_service') {
+      body.service_ids = data.service_ids
+    }
+  }
+  if (data.min_order_amount !== undefined) body.min_order_amount = data.min_order_amount
   if (data.is_active !== undefined) body.is_active = data.is_active
-  if (data.auto_post !== undefined) body.auto_post = data.auto_post
-  if (data.promotion_objects !== undefined) body.promotion_objects = data.promotion_objects
-  if (data.start_at && data.end_at) {
-    const range = promotionDateToIsoRange(data.start_at, data.end_at)
-    body.start_at = range.start_at
-    body.end_at = range.end_at
+  if (data.service_ids !== undefined) body.service_ids = data.service_ids
+  if (data.discount_percentage !== undefined) body.discount_percentage = data.discount_percentage
+  if (data.discount_amount !== undefined) body.discount_amount = data.discount_amount
+  
+  if (data.start_date && data.end_date) {
+    const range = promotionDateToIsoRange(data.start_date, data.end_date)
+    body.start_date = range.start_at
+    body.end_date = range.end_at
   }
   return body
 }
@@ -119,7 +121,7 @@ function toListQueryParams(
   if (params.page !== undefined) query.page = params.page
   if (params.limit !== undefined) query.limit = params.limit
   if (params.is_active !== undefined) query.is_active = params.is_active
-  if (params.discount_type) query.discount_type = params.discount_type
+  if (params.type) query.type = params.type
   if (params.search) query.search = params.search
   if (params.start_from) query.start_from = params.start_from
   if (params.start_to) query.start_to = params.start_to
@@ -165,7 +167,7 @@ export const adminPromotionService = {
     const body = await apiClient.patch<{
       success?: boolean
       data?: Record<string, unknown>
-    }>(`/promotions/${id}/toggle-active`, { is_active })
+    }>(`/promotions/${id}`, { is_active })
     return unwrapPromotionEntity(body)
   },
 
