@@ -43,19 +43,32 @@ export default function StaffInProgressPage() {
         }
     }
 
+    const handleCompleteWashing = async () => {
+        if (!confirmModal.booking) return;
+        try {
+            await bookingService.complete(confirmModal.booking._id || confirmModal.booking.id!)
+            showSuccess('Đã hoàn thành rửa xe')
+            setConfirmModal({isOpen: false, action: '', booking: null})
+            fetchBookings()
+        } catch (err: any) {
+            showError(err?.response?.data?.message || 'Lỗi khi cập nhật trạng thái')
+        }
+    }
+
     const openPaymentModal = (b: WashBooking) => {
         setPaymentModal({isOpen: true, booking: b})
     }
 
     const getStatusText = (status: string) => {
         switch (status) {
-            case 'checked_in': return <span className="px-2 py-1 bg-indigo-50 text-indigo-600 rounded text-xs font-semibold">Đã nhận xe</span>
-            case 'in_progress': return <span className="px-2 py-1 bg-purple-50 text-purple-600 rounded text-xs font-semibold">Đang thực hiện</span>
+            case 'checked_in': return <span className="px-2 py-1 bg-indigo-50 text-indigo-600 rounded text-xs font-semibold">checked_in</span>
+            case 'in_progress': return <span className="px-2 py-1 bg-purple-50 text-purple-600 rounded text-xs font-semibold">in_progress</span>
+            case 'washed': return <span className="px-2 py-1 bg-teal-50 text-teal-600 rounded text-xs font-semibold">washed</span>
             default: return status
         }
     }
 
-    const filteredItems = data.items.filter((b: WashBooking) => b.booking_status === 'checked_in' || b.booking_status === 'in_progress');
+    const filteredItems = data.items.filter((b: WashBooking) => b.booking_status === 'checked_in' || b.booking_status === 'in_progress' || b.booking_status === 'washed');
 
     return (
         <div className="admin-page">
@@ -121,6 +134,13 @@ export default function StaffInProgressPage() {
                                                     </button>
                                                 ) : b.booking_status === 'in_progress' ? (
                                                     <button
+                                                        onClick={() => setConfirmModal({isOpen: true, action: 'complete', booking: b})}
+                                                        className="text-xs font-semibold px-3 py-1.5 rounded bg-teal-500 text-white hover:bg-teal-600 transition shadow-sm flex items-center gap-1"
+                                                    >
+                                                        <Check size={14} /> Hoàn thành
+                                                    </button>
+                                                ) : b.booking_status === 'washed' ? (
+                                                    <button
                                                         onClick={() => openPaymentModal(b)}
                                                         className={`text-xs font-semibold px-3 py-1.5 rounded transition shadow-sm flex items-center gap-1 bg-rose-50 text-rose-600 hover:bg-rose-100`}
                                                     >
@@ -149,15 +169,24 @@ export default function StaffInProgressPage() {
               }}
             />
 
-            {/* --- MODAL XÁC NHẬN BẮT ĐẦU RỬA --- */}
+            {/* --- MODAL XÁC NHẬN CHUYỂN TRẠNG THÁI --- */}
             {confirmModal.isOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
                     <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
-                        <h2 className="text-xl font-bold text-slate-800 mb-2">Chuyển trạng thái</h2>
-                        <p className="text-slate-600 mb-6 text-sm">Bạn có chắc chắn muốn xác nhận <strong className="text-purple-600">Bắt đầu làm dịch vụ</strong> cho xe <span className="font-bold">{confirmModal.booking?.vehicle?.plate_number}</span> (Đơn #{confirmModal.booking?._id?.slice(-6).toUpperCase()})?</p>
+                        <h2 className="text-xl font-bold text-slate-800 mb-2">Xác nhận thao tác</h2>
+                        <p className="text-slate-600 mb-6 text-sm">
+                            Bạn có chắc chắn muốn xác nhận <strong className={confirmModal.action === 'start' ? "text-purple-600" : "text-teal-600"}>
+                                {confirmModal.action === 'start' ? 'Bắt đầu làm dịch vụ' : 'Hoàn thành rửa xe'}
+                            </strong> cho xe <span className="font-bold">{confirmModal.booking?.vehicle?.plate_number}</span> (Đơn #{confirmModal.booking?._id?.slice(-6).toUpperCase()})?
+                        </p>
                         <div className="flex justify-end gap-3">
                             <button onClick={() => setConfirmModal({isOpen: false, action: '', booking: null})} className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">Huỷ bỏ</button>
-                            <button onClick={handleStartWashing} className="px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors flex items-center gap-1">
+                            <button 
+                                onClick={confirmModal.action === 'start' ? handleStartWashing : handleCompleteWashing} 
+                                className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors flex items-center gap-1 ${
+                                    confirmModal.action === 'start' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-teal-600 hover:bg-teal-700'
+                                }`}
+                            >
                                 <Check size={16} /> Đồng ý
                             </button>
                         </div>

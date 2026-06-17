@@ -42,5 +42,7 @@ export interface CreateBookingInput {
 export interface BookingListParams {
   page?: number
   limit?: number
-  booking_status?: BookingStatus
+  booking_status?: BookingStatus | string
+  from_date?: string
+  to_date?: string
 }

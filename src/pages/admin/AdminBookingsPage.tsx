@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { RefreshCw } from 'lucide-react'
+import { RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react'
 import { bookingService, type BookingListResult } from '../../services/bookingService'
 import type { WashBooking } from '../../types/booking'
 import { showError } from '../../utils/toast'
@@ -8,13 +8,34 @@ import BookingDetailModal from '../../components/BookingDetailModal'
 export default function AdminBookingsPage() {
   const [data, setData] = useState<BookingListResult>({ items: [], total: 0 })
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'confirmed' | 'checked_in' | 'in_progress' | 'completed' | 'cancelled'>('all')
+  const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'confirmed' | 'checked_in' | 'in_progress' | 'washed' | 'completed' | 'cancelled'>('all')
   const [detailModal, setDetailModal] = useState<WashBooking | null>(null)
+  
+  const [page, setPage] = useState(1)
+  const [selectedDate, setSelectedDate] = useState<string>('')
+  const limit = 10
 
-  const fetchBookings = async () => {
+  const fetchBookings = async (currentPage: number, tab: string, dateStr: string) => {
     setLoading(true)
     try {
-      const res = await bookingService.list({ limit: 100 })
+      let statusParam = tab === 'all' ? '' : tab;
+      if (tab === 'in_progress') {
+        // Fetch both in_progress and washed for this tab
+        statusParam = 'in_progress,washed';
+      }
+
+      const params: any = { page: currentPage, limit };
+      if (statusParam) params.booking_status = statusParam;
+      if (dateStr) {
+        const start = new Date(dateStr);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(dateStr);
+        end.setHours(23, 59, 59, 999);
+        params.from_date = start.toISOString();
+        params.to_date = end.toISOString();
+      }
+
+      const res = await bookingService.list(params)
       setData(res)
     } catch (error) {
       showError('Không thể tải danh sách booking')
@@ -24,25 +45,24 @@ export default function AdminBookingsPage() {
   }
 
   useEffect(() => {
-    fetchBookings()
-  }, [])
+    fetchBookings(page, activeTab, selectedDate)
+  }, [page, activeTab, selectedDate])
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'pending': return <span className="px-2 py-1 bg-amber-50 text-amber-600 rounded text-xs font-semibold">Chờ xác nhận</span>
-      case 'confirmed': return <span className="px-2 py-1 bg-blue-50 text-blue-600 rounded text-xs font-semibold">Đã xác nhận</span>
-      case 'checked_in': return <span className="px-2 py-1 bg-indigo-50 text-indigo-600 rounded text-xs font-semibold">Đã nhận xe</span>
-      case 'in_progress': return <span className="px-2 py-1 bg-purple-50 text-purple-600 rounded text-xs font-semibold">Đang thực hiện</span>
-      case 'completed': return <span className="px-2 py-1 bg-emerald-50 text-emerald-600 rounded text-xs font-semibold">Hoàn thành</span>
-      case 'cancelled': return <span className="px-2 py-1 bg-rose-50 text-rose-600 rounded text-xs font-semibold">Đã hủy</span>
+      case 'pending': return <span className="px-2 py-1 bg-amber-50 text-amber-600 rounded text-xs font-semibold">pending</span>
+      case 'confirmed': return <span className="px-2 py-1 bg-blue-50 text-blue-600 rounded text-xs font-semibold">confirmed</span>
+      case 'checked_in': return <span className="px-2 py-1 bg-indigo-50 text-indigo-600 rounded text-xs font-semibold">checked_in</span>
+      case 'in_progress': return <span className="px-2 py-1 bg-purple-50 text-purple-600 rounded text-xs font-semibold">in_progress</span>
+      case 'washed': return <span className="px-2 py-1 bg-teal-50 text-teal-600 rounded text-xs font-semibold">washed</span>
+      case 'completed': return <span className="px-2 py-1 bg-emerald-50 text-emerald-600 rounded text-xs font-semibold">completed</span>
+      case 'cancelled': return <span className="px-2 py-1 bg-rose-50 text-rose-600 rounded text-xs font-semibold">cancelled</span>
       default: return <span className="px-2 py-1 bg-slate-50 text-slate-600 rounded text-xs font-semibold">{status}</span>
     }
   }
 
-  const filteredItems = data.items.filter((b: WashBooking) => {
-    if (activeTab === 'all') return true
-    return b.booking_status === activeTab
-  })
+  const filteredItems = data.items;
+  const totalPages = Math.ceil((data.total || 0) / limit);
 
   return (
     <div className="admin-page animate-in fade-in duration-300">
@@ -51,33 +71,52 @@ export default function AdminBookingsPage() {
           <h1 className="admin-page__title">Lịch hẹn khách hàng</h1>
           <p className="admin-page__subtitle">Theo dõi toàn bộ danh sách đặt lịch trên hệ thống.</p>
         </div>
-        <button
-          onClick={fetchBookings}
-          className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 transition-all text-sm font-medium"
-        >
-          <RefreshCw size={14} className={loading ? 'animate-spin text-blue-500' : ''} />
-          Làm mới
-        </button>
+        <div className="flex items-center gap-3">
+          <input 
+            type="date" 
+            value={selectedDate}
+            onChange={(e) => {
+              setSelectedDate(e.target.value);
+              setPage(1);
+            }}
+            className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:border-blue-500 bg-white"
+          />
+          <button
+            onClick={() => fetchBookings(page, activeTab, selectedDate)}
+            className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 transition-all text-sm font-medium"
+          >
+            <RefreshCw size={14} className={loading ? 'animate-spin text-blue-500' : ''} />
+            Làm mới
+          </button>
+        </div>
       </div>
 
-      <div className="admin-card">
+      <div className="admin-card flex flex-col min-h-[500px]">
         <div className="flex gap-6 border-b border-slate-200 px-6 pt-4 overflow-x-auto">
           {[
-            { id: 'all', label: 'Tất cả' },
-            { id: 'pending', label: 'Chờ xác nhận' },
-            { id: 'confirmed', label: 'Đã xác nhận' },
-            { id: 'checked_in', label: 'Đã nhận xe' },
-            { id: 'in_progress', label: 'Đang thực hiện' },
-            { id: 'completed', label: 'Hoàn thành' },
-            { id: 'cancelled', label: 'Đã hủy' }
+            { id: 'all', label: 'All' },
+            { id: 'pending', label: 'Pending' },
+            { id: 'confirmed', label: 'Confirmed' },
+            { id: 'checked_in', label: 'Checked_in' },
+            { id: 'in_progress', label: 'In_progress' },
+            { id: 'washed', label: 'Washed' },
+            { id: 'completed', label: 'Completed' },
+            { id: 'cancelled', label: 'Cancelled' }
           ].map(tab => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`font-medium text-sm pb-3 border-b-2 transition-colors whitespace-nowrap ${activeTab === tab.id ? 'border-blue-500 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+            <button 
+              key={tab.id} 
+              onClick={() => {
+                setActiveTab(tab.id as any);
+                setPage(1);
+              }} 
+              className={`font-medium text-sm pb-3 border-b-2 transition-colors whitespace-nowrap ${activeTab === tab.id ? 'border-blue-500 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+            >
               {tab.label}
             </button>
           ))}
         </div>
-        
-        <div className="admin-table-wrap">
+
+        <div className="admin-table-wrap flex-1">
           <table className="admin-table">
             <thead>
               <tr>
@@ -99,8 +138,8 @@ export default function AdminBookingsPage() {
                 filteredItems.map((b: WashBooking) => {
                   const id = (b._id ?? b.id!).slice(-6).toUpperCase()
                   return (
-                    <tr 
-                      key={b._id || b.id} 
+                    <tr
+                      key={b._id || b.id}
                       onClick={() => setDetailModal(b)}
                       className="admin-table__row group hover:bg-slate-50 transition-colors cursor-pointer"
                     >
@@ -129,12 +168,37 @@ export default function AdminBookingsPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Phân trang */}
+        {!loading && totalPages > 1 && (
+            <div className="flex items-center justify-between px-6 py-4 border-t border-slate-200 mt-auto">
+                <div className="text-sm text-slate-500">
+                    Hiển thị trang <span className="font-semibold text-slate-900">{page}</span> / <span className="font-semibold text-slate-900">{totalPages}</span> (Tổng số {data.total} đơn)
+                </div>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => setPage(p => Math.max(1, p - 1))}
+                        disabled={page === 1}
+                        className="p-1.5 rounded border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:hover:bg-transparent"
+                    >
+                        <ChevronLeft size={18} />
+                    </button>
+                    <button
+                        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                        disabled={page === totalPages}
+                        className="p-1.5 rounded border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:hover:bg-transparent"
+                    >
+                        <ChevronRight size={18} />
+                    </button>
+                </div>
+            </div>
+        )}
       </div>
 
-      <BookingDetailModal 
-        booking={detailModal} 
-        isOpen={!!detailModal} 
-        onClose={() => setDetailModal(null)} 
+      <BookingDetailModal
+        booking={detailModal}
+        isOpen={!!detailModal}
+        onClose={() => setDetailModal(null)}
       />
     </div>
   )

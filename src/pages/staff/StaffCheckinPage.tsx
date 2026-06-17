@@ -45,7 +45,7 @@ export default function StaffCheckinPage() {
 
     const getStatusText = (status: string) => {
         switch (status) {
-            case 'confirmed': return <span className="text-blue-500 font-medium">Đã xác nhận (Đợi khách)</span>
+            case 'confirmed': return <span className="text-blue-500 font-medium">confirmed</span>
             default: return status
         }
     }
