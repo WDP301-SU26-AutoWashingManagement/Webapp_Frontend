@@ -3,6 +3,7 @@ export type BookingStatus =
   | 'confirmed'
   | 'checked_in'
   | 'in_progress'
+  | 'washed'
   | 'completed'
   | 'cancelled'
 

@@ -5,6 +5,7 @@ export const BOOKING_STATUS_LABELS: Record<BookingStatus, string> = {
   confirmed: 'Đã xác nhận',
   checked_in: 'Đã check-in',
   in_progress: 'Đang rửa',
+  washed: 'Đã rửa xong',
   completed: 'Hoàn thành',
   cancelled: 'Đã hủy',
 }
@@ -14,6 +15,7 @@ export const BOOKING_STATUS_STYLES: Record<BookingStatus, string> = {
   confirmed: 'bg-sky-50 text-sky-800 ring-sky-200',
   checked_in: 'bg-indigo-50 text-indigo-800 ring-indigo-200',
   in_progress: 'bg-violet-50 text-violet-800 ring-violet-200',
+  washed: 'bg-teal-50 text-teal-800 ring-teal-200',
   completed: 'bg-emerald-50 text-emerald-800 ring-emerald-200',
   cancelled: 'bg-slate-100 text-slate-600 ring-slate-200',
 }
