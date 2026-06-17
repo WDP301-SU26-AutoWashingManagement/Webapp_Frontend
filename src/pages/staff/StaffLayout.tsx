@@ -12,7 +12,8 @@ import {
     ChevronRight,
     CalendarOff,
     CalendarDays,
-    Users
+    Users,
+    PlayCircle
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import logo2 from '../../assets/logo2.png'
@@ -29,7 +30,7 @@ const NAV_ITEMS = [
         to: '/staff/customers',
     },
     {
-        label: 'Quản lý booking',
+        label: 'Quản lý lịch hẹn',
         icon: CalendarCheck,
         to: '/staff/bookings',
     },
@@ -39,7 +40,12 @@ const NAV_ITEMS = [
         to: '/staff/checkin',
     },
     {
-        label: 'Thanh toán',
+        label: 'Đang xử lý',
+        icon: PlayCircle,
+        to: '/staff/in-progress',
+    },
+    {
+        label: 'Lịch hẹn hoàn thành ',
         icon: CreditCard,
         to: '/staff/payments',
     },

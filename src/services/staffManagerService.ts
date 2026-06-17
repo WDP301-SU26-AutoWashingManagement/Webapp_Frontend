@@ -37,6 +37,12 @@ export const staffManagerService = {
     return response.data as StaffAbsentRequest[]
   },
 
+  // Quản lý xem các đơn đã từ chối
+  async getRejectedRequests(): Promise<StaffAbsentRequest[]> {
+    const response = await apiClient.get<ApiResponse<StaffAbsentRequest[]>>('/staff-absent/rejected')
+    return response.data as StaffAbsentRequest[]
+  },
+
   // Quản lý phê duyệt hoặc từ chối đơn
   async reviewRequest(requestId: string, status: 'approved' | 'rejected', note?: string): Promise<StaffAbsentRequest> {
     const response = await apiClient.patch<ApiResponse<StaffAbsentRequest>>(`/staff-absent/${requestId}/review`, { status, note })
@@ -51,5 +57,11 @@ export const staffManagerService = {
     
     const response = await apiClient.get<ApiResponse<StaffAbsentRequest[]>>('/staff-absent/staff-off', { params })
     return response.data as StaffAbsentRequest[]
+  },
+
+  // Lấy danh sách tất cả nhân viên (kèm ngày phép)
+  async getAllStaff(params?: { limit?: number, page?: number, search?: string }): Promise<any> {
+    const response = await apiClient.get<ApiResponse<any>>('/staff', { params })
+    return response.data
   }
 }
