@@ -20,6 +20,7 @@ import Toaster from './components/Toaster'
 // Admin
 import AdminLayout from './pages/admin/AdminLayout'
 import AdminDashboard from './pages/admin/AdminDashboard'
+import AdminBookingsPage from './pages/admin/AdminBookingsPage'
 import AdminServicesPage from './pages/admin/AdminServicesPage'
 import AdminServiceGroupsPage from './pages/admin/AdminServiceGroupsPage'
 import AdminServicePackagesPage from './pages/admin/AdminServicePackagesPage'
@@ -43,6 +44,7 @@ import StaffDashboard from './pages/staff/StaffDashboard'
 import StaffBookingsPage from './pages/staff/StaffBookingsPage'
 import StaffCheckinPage from './pages/staff/StaffCheckinPage'
 import StaffPaymentsPage from './pages/staff/StaffPaymentsPage'
+import StaffInProgressPage from './pages/staff/StaffInProgressPage'
 import StaffLeaveRequestsPage from './pages/staff/StaffLeaveRequestsPage'
 import StaffTechnicalLayout from './pages/staff/StaffTechnicalLayout'
 import StaffTechnicalDashboard from './pages/staff/StaffTechnicalDashboard'
@@ -145,7 +147,7 @@ function AppContent() {
           <Route path="customers" element={<SharedCustomersPage />} />
           <Route
             path="bookings"
-            element={<AdminPlaceholderPage title="Đặt lịch" description="Quản lý lịch đặt rửa xe" />}
+            element={<AdminBookingsPage />}
           />
           <Route path="staffs" element={<AdminStaffsPage />} />
           <Route path="services" element={<AdminServicesPage />} />
@@ -208,6 +210,7 @@ function AppContent() {
 
           <Route path="bookings" element={<StaffBookingsPage />} />
           <Route path="checkin" element={<StaffCheckinPage />} />
+          <Route path="in-progress" element={<StaffInProgressPage />} />
           <Route path="payments" element={<StaffPaymentsPage />} />
           <Route path="leave-requests" element={<StaffLeaveRequestsPage />} />
           <Route path="schedules" element={<StaffSchedulePage />} />

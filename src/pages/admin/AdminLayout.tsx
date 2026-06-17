@@ -31,7 +31,7 @@ const NAV_ITEMS = [
     to: '/admin/customers',
   },
   {
-    label: 'Đặt lịch',
+    label: 'Lịch hẹn',
     icon: CalendarCheck,
     to: '/admin/bookings',
   },

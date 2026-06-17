@@ -57,13 +57,38 @@ export function normalizeWashBooking(raw: Record<string, unknown>): WashBooking 
     service_package_id = normalizeMongoId(pkgRef)
   }
 
+  const custRef = raw.customer_id
+  let customer_id = ''
+  let customer: WashBooking['customer']
+
+  if (custRef != null && typeof custRef === 'object') {
+    const c = custRef as Record<string, unknown>
+    customer_id = normalizeMongoId(c)
+    
+    let uName: string | undefined;
+    let uPhone: string | undefined;
+    
+    if (c.user_id != null && typeof c.user_id === 'object') {
+      const u = c.user_id as Record<string, unknown>;
+      uName = u.full_name != null ? String(u.full_name) : u.fullname != null ? String(u.fullname) : undefined;
+      uPhone = u.phone != null ? String(u.phone) : u.phone_number != null ? String(u.phone_number) : undefined;
+    }
+    
+    customer = {
+      full_name: uName ?? (c.full_name != null ? String(c.full_name) : c.fullname != null ? String(c.fullname) : undefined),
+      phone_number: uPhone ?? (c.phone_number != null ? String(c.phone_number) : c.phone != null ? String(c.phone) : undefined),
+    }
+  } else {
+    customer_id = normalizeMongoId(custRef)
+  }
+
   const status = raw.booking_status
   const booking_status: BookingStatus = isBookingStatus(status) ? status : 'pending'
 
   return {
     _id: normalizeMongoId(raw._id) || undefined,
     id: normalizeMongoId(raw.id) || undefined,
-    customer_id: normalizeMongoId(raw.customer_id) || undefined,
+    customer_id: customer_id || undefined,
     vehicle_id,
     service_package_id: service_package_id || undefined,
     booking_status,
@@ -73,6 +98,7 @@ export function normalizeWashBooking(raw: Record<string, unknown>): WashBooking 
     final_price: typeof raw.final_price === 'number' ? raw.final_price : undefined,
     vehicle,
     service_package,
+    customer,
     created_at: raw.created_at != null ? String(raw.created_at) : undefined,
   }
 }

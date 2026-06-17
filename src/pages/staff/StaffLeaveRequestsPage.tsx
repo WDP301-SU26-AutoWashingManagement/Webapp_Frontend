@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react'
-import { Check, X, Plus, RefreshCw, AlertCircle, CalendarOff } from 'lucide-react'
+import { Check, X, Plus, RefreshCw, AlertCircle, CalendarOff, Clock, CheckCircle, XCircle, User } from 'lucide-react'
 import { staffManagerService, type StaffAbsentRequest } from '../../services/staffManagerService'
 import { showError, showSuccess } from '../../utils/toast'
 import { getErrorMessage } from '../../utils/errors'
 
 export default function StaffLeaveRequestsPage() {
-  const [activeTab, setActiveTab] = useState<'my' | 'pending' | 'approved'>('my')
+  const [activeTab, setActiveTab] = useState<'my' | 'pending' | 'approved' | 'rejected'>('my')
 
   const [myRequests, setMyRequests] = useState<StaffAbsentRequest[]>([])
   const [loadingMy, setLoadingMy] = useState(true)
@@ -19,6 +19,10 @@ export default function StaffLeaveRequestsPage() {
   const [approvedRequests, setApprovedRequests] = useState<StaffAbsentRequest[]>([])
   const [loadingApproved, setLoadingApproved] = useState(false)
   const [approvedError, setApprovedError] = useState<string | null>(null)
+
+  const [rejectedRequests, setRejectedRequests] = useState<StaffAbsentRequest[]>([])
+  const [loadingRejected, setLoadingRejected] = useState(false)
+  const [rejectedError, setRejectedError] = useState<string | null>(null)
 
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [form, setForm] = useState({ from_date: '', to_date: '', reason: '' })
@@ -46,9 +50,9 @@ export default function StaffLeaveRequestsPage() {
       setPendingRequests(data)
     } catch (err: any) {
       if (err?.status === 403 || err?.response?.status === 403) {
-         setPendingError('Bạn không có quyền quản lý để duyệt đơn.')
+        setPendingError('Bạn không có quyền quản lý để duyệt đơn.')
       } else {
-         setPendingError('Không thể tải danh sách đơn chờ duyệt.')
+        setPendingError('Không thể tải danh sách đơn chờ duyệt.')
       }
     } finally {
       setLoadingPending(false)
@@ -63,22 +67,41 @@ export default function StaffLeaveRequestsPage() {
       setApprovedRequests(data)
     } catch (err: any) {
       if (err?.status === 403 || err?.response?.status === 403) {
-         setApprovedError('Bạn không có quyền quản lý để xem danh sách này.')
+        setApprovedError('Bạn không có quyền quản lý để xem danh sách này.')
       } else {
-         setApprovedError('Không thể tải danh sách đơn đã duyệt.')
+        setApprovedError('Không thể tải danh sách đơn đã duyệt.')
       }
     } finally {
       setLoadingApproved(false)
     }
   }
 
+  const loadRejectedRequests = async () => {
+    try {
+      setLoadingRejected(true)
+      setRejectedError(null)
+      const data = await staffManagerService.getRejectedRequests()
+      setRejectedRequests(data)
+    } catch (err: any) {
+      if (err?.status === 403 || err?.response?.status === 403) {
+        setRejectedError('Bạn không có quyền quản lý để xem danh sách này.')
+      } else {
+        setRejectedError('Không thể tải danh sách đơn đã từ chối.')
+      }
+    } finally {
+      setLoadingRejected(false)
+    }
+  }
+
   useEffect(() => {
     if (activeTab === 'my') {
-        loadMyRequests()
+      loadMyRequests()
     } else if (activeTab === 'pending') {
       loadPendingRequests()
     } else if (activeTab === 'approved') {
       loadApprovedRequests()
+    } else if (activeTab === 'rejected') {
+      loadRejectedRequests()
     }
   }, [activeTab])
 
@@ -88,7 +111,7 @@ export default function StaffLeaveRequestsPage() {
       .then(() => {
         setIsManager(true)
         if (activeTab === 'my') {
-            setActiveTab('pending')
+          setActiveTab('pending')
         }
       })
       .catch((err: any) => {
@@ -163,28 +186,57 @@ export default function StaffLeaveRequestsPage() {
         )}
       </div>
 
-      <div className="admin-tabs" style={{ display: 'flex', gap: '1.5rem', borderBottom: '1px solid #e2e8f0', marginBottom: '1.5rem' }}>
+      <div className="flex bg-slate-100 p-1.5 rounded-xl w-fit mb-6 shadow-sm border border-slate-200">
         {!isManager && (
           <button
-            style={{ paddingBottom: '0.75rem', fontWeight: 500, borderBottom: activeTab === 'my' ? '2px solid #0d9488' : '2px solid transparent', color: activeTab === 'my' ? '#0d9488' : '#64748b', cursor: 'pointer', background: 'transparent', borderTop: 'none', borderLeft: 'none', borderRight: 'none' }}
             onClick={() => setActiveTab('my')}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 ${
+              activeTab === 'my' 
+                ? 'bg-white text-teal-700 shadow border border-slate-200/60' 
+                : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
+            }`}
           >
+            <User size={16} />
             Đơn của tôi
           </button>
         )}
         {isManager && (
           <>
             <button
-              style={{ paddingBottom: '0.75rem', fontWeight: 500, borderBottom: activeTab === 'pending' ? '2px solid #0d9488' : '2px solid transparent', color: activeTab === 'pending' ? '#0d9488' : '#64748b', cursor: 'pointer', background: 'transparent', borderTop: 'none', borderLeft: 'none', borderRight: 'none' }}
               onClick={() => setActiveTab('pending')}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 ${
+                activeTab === 'pending' 
+                  ? 'bg-white text-amber-600 shadow border border-slate-200/60' 
+                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
+              }`}
             >
-              Duyệt đơn (Quản lý)
+              <Clock size={16} />
+              Duyệt đơn
+              {pendingRequests.length > 0 && activeTab !== 'pending' && (
+                <span className="bg-amber-100 text-amber-700 py-0.5 px-2 rounded-full text-xs ml-1 font-bold">{pendingRequests.length}</span>
+              )}
             </button>
             <button
-              style={{ paddingBottom: '0.75rem', fontWeight: 500, borderBottom: activeTab === 'approved' ? '2px solid #0d9488' : '2px solid transparent', color: activeTab === 'approved' ? '#0d9488' : '#64748b', cursor: 'pointer', background: 'transparent', borderTop: 'none', borderLeft: 'none', borderRight: 'none' }}
               onClick={() => setActiveTab('approved')}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 ${
+                activeTab === 'approved' 
+                  ? 'bg-white text-teal-700 shadow border border-slate-200/60' 
+                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
+              }`}
             >
+              <CheckCircle size={16} />
               Đơn đã duyệt
+            </button>
+            <button
+              onClick={() => setActiveTab('rejected')}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 ${
+                activeTab === 'rejected' 
+                  ? 'bg-white text-rose-600 shadow border border-slate-200/60' 
+                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
+              }`}
+            >
+              <XCircle size={16} />
+              Đơn từ chối
             </button>
           </>
         )}
@@ -275,13 +327,13 @@ export default function StaffLeaveRequestsPage() {
                     <td style={{ textAlign: 'center' }}>{new Date(req.to_date).toLocaleDateString('vi-VN')}</td>
                     <td style={{ textAlign: 'center', wordBreak: 'break-word' }}>{req.reason}</td>
                     <td style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
-                      <button 
-                        onClick={() => openReviewModal((req._id || req.id)!, 'approved')} 
+                      <button
+                        onClick={() => openReviewModal((req._id || req.id)!, 'approved')}
                         style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.25rem 0.75rem', backgroundColor: '#dcfce7', color: '#166534', borderRadius: '0.25rem', fontWeight: 500, fontSize: '0.875rem' }}>
                         <Check size={16} /> Duyệt
                       </button>
-                      <button 
-                        onClick={() => openReviewModal((req._id || req.id)!, 'rejected')} 
+                      <button
+                        onClick={() => openReviewModal((req._id || req.id)!, 'rejected')}
                         style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.25rem 0.75rem', backgroundColor: '#fee2e2', color: '#991b1b', borderRadius: '0.25rem', fontWeight: 500, fontSize: '0.875rem' }}>
                         <X size={16} /> Từ chối
                       </button>
@@ -350,6 +402,62 @@ export default function StaffLeaveRequestsPage() {
         </div>
       )}
 
+      {activeTab === 'rejected' && (
+        <div className="admin-table-wrap">
+          {loadingRejected ? (
+            <div style={{ padding: '3rem', textAlign: 'center', color: '#64748b' }}>Đang tải danh sách đã từ chối...</div>
+          ) : rejectedError ? (
+            <div style={{ padding: '4rem 2rem', textAlign: 'center' }}>
+              <div style={{ display: 'inline-flex', padding: '1rem', background: '#fee2e2', borderRadius: '50%', marginBottom: '1rem' }}>
+                <AlertCircle size={32} color="#ef4444" />
+              </div>
+              <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: '#991b1b' }}>Từ chối truy cập</h3>
+              <p style={{ color: '#dc2626', marginTop: '0.5rem' }}>{rejectedError}</p>
+            </div>
+          ) : rejectedRequests.length === 0 ? (
+            <div style={{ padding: '4rem 2rem', textAlign: 'center' }}>
+              <div style={{ display: 'inline-flex', padding: '1rem', background: '#f8fafc', borderRadius: '50%', marginBottom: '1rem' }}>
+                <CalendarOff size={32} color="#cbd5e1" />
+              </div>
+              <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: '#334155' }}>Không có đơn nào bị từ chối</h3>
+              <p style={{ color: '#64748b', marginTop: '0.5rem' }}>Danh sách các đơn đã bị từ chối trống.</p>
+            </div>
+          ) : (
+            <table className="admin-table" style={{ tableLayout: 'fixed', width: '100%' }}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign: 'center' }}>Nhân viên ID</th>
+                  <th style={{ textAlign: 'center' }}>Từ ngày</th>
+                  <th style={{ textAlign: 'center' }}>Đến ngày</th>
+                  <th style={{ textAlign: 'center' }}>Lý do</th>
+                  <th style={{ textAlign: 'center' }}>Trạng thái</th>
+                  <th style={{ textAlign: 'center' }}>Ghi chú</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rejectedRequests.map((req) => (
+                  <tr key={req._id || req.id}>
+                    <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}><span style={{ fontSize: '0.875rem', fontFamily: 'monospace' }}>{req.staff_id}</span></td>
+                    <td style={{ textAlign: 'center' }}>{new Date(req.from_date).toLocaleDateString('vi-VN')}</td>
+                    <td style={{ textAlign: 'center' }}>{new Date(req.to_date).toLocaleDateString('vi-VN')}</td>
+                    <td style={{ textAlign: 'center', wordBreak: 'break-word' }}>{req.reason}</td>
+                    <td style={{ textAlign: 'center' }}>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium`} style={{
+                        backgroundColor: '#fee2e2',
+                        color: '#991b1b'
+                      }}>
+                        {req.request_status.toUpperCase()}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: 'center', wordBreak: 'break-word' }}><span style={{ fontSize: '0.875rem', color: '#334155' }}>{req.reviewer_note || 'Từ chối'}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+
       {/* Modal Tạo đơn */}
       {isModalOpen && (
         <div className="admin-modal-overlay" onClick={(e) => e.target === e.currentTarget && setIsModalOpen(false)}>
@@ -361,15 +469,15 @@ export default function StaffLeaveRequestsPage() {
             <form onSubmit={handleCreateSubmit} className="admin-modal__body">
               <div className="admin-form-group">
                 <label className="admin-form-label">Nghỉ từ ngày</label>
-                <input type="date" className="admin-form-input" value={form.from_date} onChange={e => setForm({...form, from_date: e.target.value})} required />
+                <input type="date" className="admin-form-input" value={form.from_date} onChange={e => setForm({ ...form, from_date: e.target.value })} required />
               </div>
               <div className="admin-form-group">
                 <label className="admin-form-label">Nghỉ đến ngày</label>
-                <input type="date" className="admin-form-input" value={form.to_date} onChange={e => setForm({...form, to_date: e.target.value})} required />
+                <input type="date" className="admin-form-input" value={form.to_date} onChange={e => setForm({ ...form, to_date: e.target.value })} required />
               </div>
               <div className="admin-form-group">
                 <label className="admin-form-label">Lý do nghỉ</label>
-                <textarea className="admin-form-input" rows={3} value={form.reason} onChange={e => setForm({...form, reason: e.target.value})} required placeholder="Ghi rõ lý do bạn xin nghỉ phép..." />
+                <textarea className="admin-form-input" rows={3} value={form.reason} onChange={e => setForm({ ...form, reason: e.target.value })} required placeholder="Ghi rõ lý do bạn xin nghỉ phép..." />
               </div>
               <div className="admin-modal__footer" style={{ marginTop: '1.5rem' }}>
                 <button type="button" onClick={() => setIsModalOpen(false)} className="admin-btn admin-btn--ghost">Hủy</button>
@@ -393,13 +501,13 @@ export default function StaffLeaveRequestsPage() {
             <form onSubmit={submitReview} className="admin-modal__body">
               <div className="admin-form-group">
                 <label className="admin-form-label">Ghi chú phản hồi</label>
-                <textarea 
-                  className="admin-form-input" 
-                  rows={3} 
-                  value={reviewModal.note} 
-                  onChange={e => setReviewModal(prev => prev ? { ...prev, note: e.target.value } : null)} 
-                  required 
-                  placeholder="Nhập lời nhắn cho nhân viên..." 
+                <textarea
+                  className="admin-form-input"
+                  rows={3}
+                  value={reviewModal.note}
+                  onChange={e => setReviewModal(prev => prev ? { ...prev, note: e.target.value } : null)}
+                  required
+                  placeholder="Nhập lời nhắn cho nhân viên..."
                 />
               </div>
               <div className="admin-modal__footer" style={{ marginTop: '1.5rem' }}>
