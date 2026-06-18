@@ -8,6 +8,7 @@ import { adminStaffService } from '../../services/adminStaffService'
 import type { CreateStaffPayload } from '../../services/adminStaffService'
 import { branchService } from '../../services/branchService'
 import type { Branch } from '../../services/branchService'
+import { useAuth } from '../../hooks/useAuth'
 
 interface StaffModalProps {
   onClose: () => void
@@ -21,7 +22,7 @@ function StaffModal({ onClose, onSaved }: StaffModalProps) {
     password: '',
     phone: '',
     role: 'staff',
-    staff_type: 'physical',
+    staff_type: 'technical',
     branch_id: '',
   })
   const [saving, setSaving] = useState(false)
@@ -147,13 +148,13 @@ function StaffModal({ onClose, onSaved }: StaffModalProps) {
                 onChange={(e) =>
                   setForm((f) => ({
                     ...f,
-                    staff_type: e.target.value as "technical" | "physical",
+                    staff_type: e.target.value as "technical" | "manager",
                   }))
                 }
                 required
               >
-                <option value="physical">Nhân viên phổ thông (Physical)</option>
                 <option value="technical">Kỹ thuật viên (Technical)</option>
+                <option value="manager">Quản lý (Manager)</option>
               </select>
             </div>
           </div>
@@ -216,8 +217,47 @@ function StaffModal({ onClose, onSaved }: StaffModalProps) {
 }
 
 export default function AdminStaffsPage() {
+  const { user } = useAuth()
+  const isAdminOrBoss = user?.role === 'admin' || user?.role === 'boss'
+
   const [modalOpen, setModalOpen] = useState(false)
   const [search, setSearch] = useState('')
+  const [staffType, setStaffType] = useState(isAdminOrBoss ? '' : 'technical')
+  const [page, setPage] = useState(1)
+  
+  const [staffs, setStaffs] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [totalPages, setTotalPages] = useState(1)
+
+  const fetchStaffs = async () => {
+    setLoading(true)
+    try {
+      const params: any = { page, limit: 10 }
+      if (search) params.search = search
+      
+      if (!isAdminOrBoss) {
+        params.staff_type = 'technical'
+      } else if (staffType) {
+        params.staff_type = staffType
+      }
+      
+      const res = await adminStaffService.getStaffList(params)
+      if (res.success && res.data) {
+        setStaffs(res.data.data || [])
+        setTotalPages(res.data.pagination?.total_pages || 1)
+      } else {
+        setStaffs([])
+      }
+    } catch (err) {
+      showError('Không tải được danh sách nhân viên')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchStaffs()
+  }, [page, search, staffType])
 
   return (
     <div className="admin-page">
@@ -227,18 +267,20 @@ export default function AdminStaffsPage() {
           <h1 className="admin-page__title">Nhân viên</h1>
           <p className="admin-page__subtitle">Quản lý và cấp quyền tài khoản cho nhân viên phổ thông và kỹ thuật viên.</p>
         </div>
-        <button className="admin-btn admin-btn--primary" onClick={() => setModalOpen(true)}>
-          <Plus size={15} /> Thêm nhân viên
-        </button>
+        {isAdminOrBoss && (
+          <button className="admin-btn admin-btn--primary" onClick={() => setModalOpen(true)}>
+            <Plus size={15} /> Thêm nhân viên
+          </button>
+        )}
       </div>
 
       {/* Filters */}
-      <div className="admin-filters">
+      <div className="admin-filters flex items-center gap-4">
         <div className="admin-search-wrap">
           <Search size={15} className="admin-search-icon" />
           <input
             className="admin-search-input"
-            placeholder="Tìm theo tên/email..."
+            placeholder="Tìm theo mã nhân viên..."
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
@@ -246,25 +288,99 @@ export default function AdminStaffsPage() {
             <button className="admin-search-clear" onClick={() => setSearch('')}><X size={13} /></button>
           )}
         </div>
+        
+        {isAdminOrBoss ? (
+          <select 
+            className="admin-form-input w-48"
+            value={staffType}
+            onChange={(e) => {
+              setStaffType(e.target.value)
+              setPage(1)
+            }}
+          >
+            <option value="">Tất cả loại NV</option>
+            <option value="manager">Quản lý (Manager)</option>
+            <option value="technical">Kỹ thuật (Technical)</option>
+          </select>
+        ) : (
+          <div className="admin-form-input w-48 bg-slate-50 text-slate-500 cursor-not-allowed flex items-center">
+            Kỹ thuật (Technical)
+          </div>
+        )}
       </div>
 
-      {/* Table (Placeholder for now) */}
+      {/* Table */}
       <div className="admin-table-wrap">
-        <div style={{ padding: '3rem 1rem', textAlign: 'center' }}>
-          <div style={{ display: 'inline-flex', padding: '1rem', background: '#f8fafc', borderRadius: '50%', marginBottom: '1rem' }}>
-            <Users size={32} className="text-slate-400" />
+        {loading ? (
+          <div className="p-8 text-center text-slate-500">Đang tải danh sách...</div>
+        ) : staffs.length === 0 ? (
+          <div style={{ padding: '3rem 1rem', textAlign: 'center' }}>
+            <div style={{ display: 'inline-flex', padding: '1rem', background: '#f8fafc', borderRadius: '50%', marginBottom: '1rem' }}>
+              <Users size={32} className="text-slate-400" />
+            </div>
+            <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: '#334155' }}>Chưa có nhân viên nào</h3>
           </div>
-          <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: '#334155' }}>Chưa có danh sách</h3>
-          <p style={{ color: '#64748b', marginTop: '0.5rem', maxWidth: '400px', marginInline: 'auto' }}>
-            .
-          </p>
-        </div>
+        ) : (
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Mã NV</th>
+                <th>Loại NV</th>
+                <th>Hệ số lương</th>
+                <th>Giờ/Tuần</th>
+                <th>Nghỉ phép</th>
+                <th>Ngày vào làm</th>
+              </tr>
+            </thead>
+            <tbody>
+              {staffs.map(staff => (
+                <tr key={staff._id}>
+                  <td className="font-medium text-slate-900">{staff.staff_code}</td>
+                  <td>
+                    <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-slate-100 text-slate-700 capitalize">
+                      {staff.staff_type}
+                    </span>
+                  </td>
+                  <td>{staff.salary_coefficient}</td>
+                  <td>{staff.hour_per_week}h</td>
+                  <td>
+                    <span className="text-slate-600 font-medium">{staff.used_leave_days ?? 0}</span>
+                    <span className="text-slate-400"> / {staff.annual_leave_days ?? 12}</span>
+                  </td>
+                  <td>{staff.hire_date ? new Date(staff.hire_date).toLocaleDateString('vi-VN') : '---'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex justify-center mt-6 gap-2">
+          {Array.from({ length: totalPages }).map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setPage(i + 1)}
+              className={`px-3 py-1 rounded text-sm font-medium ${
+                page === i + 1 
+                  ? 'bg-blue-600 text-white' 
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              {i + 1}
+            </button>
+          ))}
+        </div>
+      )}
 
       {modalOpen && (
         <StaffModal
           onClose={() => setModalOpen(false)}
-          onSaved={() => setModalOpen(false)}
+          onSaved={() => {
+            setModalOpen(false)
+            fetchStaffs()
+          }}
         />
       )}
     </div>

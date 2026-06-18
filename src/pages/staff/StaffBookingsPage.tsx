@@ -11,12 +11,12 @@ export default function StaffBookingsPage() {
   const [data, setData] = useState<BookingListResult>({ items: [], total: 0 })
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'pending' | 'in_progress' | 'completed' | 'all'>('pending')
-  
+
   // Modal states
-  const [confirmModal, setConfirmModal] = useState<{isOpen: boolean, action: 'confirm'|'checkin'|'start'|'', booking: WashBooking|null}>({
+  const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean, action: 'confirm' | 'checkin' | 'start' | '', booking: WashBooking | null }>({
     isOpen: false, action: '', booking: null
   })
-  const [paymentModal, setPaymentModal] = useState<{isOpen: boolean, booking: WashBooking | null}>({isOpen: false, booking: null})
+  const [paymentModal, setPaymentModal] = useState<{ isOpen: boolean, booking: WashBooking | null }>({ isOpen: false, booking: null })
   const [detailModal, setDetailModal] = useState<WashBooking | null>(null)
 
   const fetchBookings = async () => {
@@ -42,10 +42,10 @@ export default function StaffBookingsPage() {
       if (confirmModal.action === 'checkin') await bookingService.checkin(id)
       if (confirmModal.action === 'start') await bookingService.start(id)
       // Note: complete sẽ được tự động gọi khi thanh toán (PaymentModal)
-      
+
       showSuccess('Cập nhật trạng thái thành công')
       fetchBookings()
-      setConfirmModal({isOpen: false, action: '', booking: null})
+      setConfirmModal({ isOpen: false, action: '', booking: null })
     } catch (error: any) {
       showError(error?.response?.data?.message || 'Lỗi khi cập nhật trạng thái')
     }
@@ -53,25 +53,27 @@ export default function StaffBookingsPage() {
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'pending': return <span className="px-2 py-1 bg-amber-50 text-amber-600 rounded text-xs font-semibold">Chờ xác nhận</span>
-      case 'confirmed': return <span className="px-2 py-1 bg-blue-50 text-blue-600 rounded text-xs font-semibold">Đã xác nhận</span>
-      case 'checked_in': return <span className="px-2 py-1 bg-indigo-50 text-indigo-600 rounded text-xs font-semibold">Đã nhận xe</span>
-      case 'in_progress': return <span className="px-2 py-1 bg-purple-50 text-purple-600 rounded text-xs font-semibold">Đang thực hiện</span>
-      case 'completed': return <span className="px-2 py-1 bg-emerald-50 text-emerald-600 rounded text-xs font-semibold">Hoàn thành</span>
-      case 'cancelled': return <span className="px-2 py-1 bg-rose-50 text-rose-600 rounded text-xs font-semibold">Đã hủy</span>
+      case 'pending': return <span className="px-2 py-1 bg-amber-50 text-amber-600 rounded text-xs font-semibold">pending</span>
+      case 'confirmed': return <span className="px-2 py-1 bg-blue-50 text-blue-600 rounded text-xs font-semibold">confirmed</span>
+      case 'checked_in': return <span className="px-2 py-1 bg-indigo-50 text-indigo-600 rounded text-xs font-semibold">checked_in</span>
+      case 'in_progress': return <span className="px-2 py-1 bg-purple-50 text-purple-600 rounded text-xs font-semibold">in_progress</span>
+      case 'washed': return <span className="px-2 py-1 bg-teal-50 text-teal-600 rounded text-xs font-semibold">washed</span>
+      case 'completed': return <span className="px-2 py-1 bg-emerald-50 text-emerald-600 rounded text-xs font-semibold">completed</span>
+      case 'cancelled': return <span className="px-2 py-1 bg-rose-50 text-rose-600 rounded text-xs font-semibold">cancelled</span>
       default: return status
     }
   }
 
   const filteredItems = data.items.filter((b: WashBooking) => {
     if (activeTab === 'all') return true
+    if (activeTab === 'in_progress') return b.booking_status === 'in_progress' || b.booking_status === 'washed'
     return b.booking_status === activeTab
   })
 
   // Render các nút hành động dựa trên trạng thái
   const renderActions = (b: WashBooking) => {
     if (b.booking_status === 'pending') {
-      return <button onClick={() => setConfirmModal({isOpen: true, action: 'confirm', booking: b})} className="text-xs font-semibold bg-blue-500 text-white px-3 py-1.5 rounded hover:bg-blue-600 transition">Xác nhận</button>
+      return <button onClick={() => setConfirmModal({ isOpen: true, action: 'confirm', booking: b })} className="text-xs font-semibold bg-blue-500 text-white px-3 py-1.5 rounded hover:bg-blue-600 transition">Xác nhận</button>
     }
     return null
   }
@@ -96,16 +98,16 @@ export default function StaffBookingsPage() {
       <div className="admin-card">
         <div className="flex gap-6 border-b border-slate-200 px-6 pt-4 overflow-x-auto">
           {[
-            { id: 'pending', label: 'Chờ xác nhận' },
-            { id: 'cancelled', label: 'Đã hủy' },
-            { id: 'all', label: 'Tất cả' }
+            { id: 'pending', label: 'pending' },
+            { id: 'cancelled', label: 'cancelled' },
+            { id: 'all', label: 'all' }
           ].map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`font-medium text-sm pb-3 border-b-2 transition-colors whitespace-nowrap ${activeTab === tab.id ? 'border-cyan-500 text-cyan-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
               {tab.label}
             </button>
           ))}
         </div>
-        
+
         <div className="admin-table-wrap">
           <table className="admin-table">
             <thead>
@@ -128,8 +130,8 @@ export default function StaffBookingsPage() {
                 filteredItems.map((b: WashBooking) => {
                   const id = (b._id ?? b.id!).slice(-6).toUpperCase()
                   return (
-                    <tr 
-                      key={b._id || b.id} 
+                    <tr
+                      key={b._id || b.id}
                       onClick={() => setDetailModal(b)}
                       className="admin-table__row group hover:bg-slate-50 cursor-pointer"
                     >
@@ -168,7 +170,7 @@ export default function StaffBookingsPage() {
             <h2 className="text-xl font-bold text-slate-800 mb-2">Chuyển trạng thái</h2>
             <p className="text-slate-600 mb-6 text-sm">Bạn có chắc chắn muốn chuyển đơn <span className="font-bold">#{confirmModal.booking?._id?.slice(-6).toUpperCase()}</span> sang trạng thái: <strong className="text-blue-600">{actionName}</strong>?</p>
             <div className="flex justify-end gap-3">
-              <button onClick={() => setConfirmModal({isOpen: false, action: '', booking: null})} className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">Huỷ bỏ</button>
+              <button onClick={() => setConfirmModal({ isOpen: false, action: '', booking: null })} className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">Huỷ bỏ</button>
               <button onClick={handleProceedAction} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center gap-1">
                 <Check size={16} /> Đồng ý
               </button>
@@ -178,21 +180,21 @@ export default function StaffBookingsPage() {
       )}
 
       {/* --- MODAL THANH TOÁN --- */}
-      <PaymentModal 
-        isOpen={paymentModal.isOpen} 
-        onClose={() => setPaymentModal({isOpen: false, booking: null})} 
-        booking={paymentModal.booking!} 
+      <PaymentModal
+        isOpen={paymentModal.isOpen}
+        onClose={() => setPaymentModal({ isOpen: false, booking: null })}
+        booking={paymentModal.booking!}
         onSuccess={() => {
-          setPaymentModal({isOpen: false, booking: null})
+          setPaymentModal({ isOpen: false, booking: null })
           fetchBookings()
         }}
       />
 
-      <BookingDetailModal 
-        booking={detailModal} 
-        isOpen={!!detailModal} 
-        onClose={() => setDetailModal(null)} 
-        onPay={(b) => setPaymentModal({isOpen: true, booking: b})}
+      <BookingDetailModal
+        booking={detailModal}
+        isOpen={!!detailModal}
+        onClose={() => setDetailModal(null)}
+        onPay={(b) => setPaymentModal({ isOpen: true, booking: b })}
       />
 
     </div>

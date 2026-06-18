@@ -4,7 +4,10 @@ import { staffManagerService, type StaffAbsentRequest } from '../../services/sta
 import { showError, showSuccess } from '../../utils/toast'
 import { getErrorMessage } from '../../utils/errors'
 
+import { LeaveDaysTable } from '../../components/manager/LeaveDaysTable'
+
 export default function StaffLeaveRequestsPage() {
+  const [mainTab, setMainTab] = useState<'leave_days' | 'requests'>('leave_days')
   const [activeTab, setActiveTab] = useState<'my' | 'pending' | 'approved' | 'rejected'>('my')
 
   const [myRequests, setMyRequests] = useState<StaffAbsentRequest[]>([])
@@ -186,61 +189,88 @@ export default function StaffLeaveRequestsPage() {
         )}
       </div>
 
-      <div className="flex bg-slate-100 p-1.5 rounded-xl w-fit mb-6 shadow-sm border border-slate-200">
-        {!isManager && (
-          <button
-            onClick={() => setActiveTab('my')}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 ${
-              activeTab === 'my' 
-                ? 'bg-white text-teal-700 shadow border border-slate-200/60' 
-                : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
-            }`}
-          >
-            <User size={16} />
-            Đơn của tôi
-          </button>
-        )}
-        {isManager && (
-          <>
-            <button
-              onClick={() => setActiveTab('pending')}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 ${
-                activeTab === 'pending' 
-                  ? 'bg-white text-amber-600 shadow border border-slate-200/60' 
-                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
-              }`}
-            >
-              <Clock size={16} />
-              Duyệt đơn
-              {pendingRequests.length > 0 && activeTab !== 'pending' && (
-                <span className="bg-amber-100 text-amber-700 py-0.5 px-2 rounded-full text-xs ml-1 font-bold">{pendingRequests.length}</span>
-              )}
-            </button>
-            <button
-              onClick={() => setActiveTab('approved')}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 ${
-                activeTab === 'approved' 
-                  ? 'bg-white text-teal-700 shadow border border-slate-200/60' 
-                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
-              }`}
-            >
-              <CheckCircle size={16} />
-              Đơn đã duyệt
-            </button>
-            <button
-              onClick={() => setActiveTab('rejected')}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 ${
-                activeTab === 'rejected' 
-                  ? 'bg-white text-rose-600 shadow border border-slate-200/60' 
-                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
-              }`}
-            >
-              <XCircle size={16} />
-              Đơn từ chối
-            </button>
-          </>
-        )}
+      <div className="flex border-b border-slate-200 mb-6">
+        <button
+          onClick={() => setMainTab('leave_days')}
+          className={`py-3 px-6 font-medium text-sm border-b-2 transition-colors ${
+            mainTab === 'leave_days'
+              ? 'border-indigo-500 text-indigo-600'
+              : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+          }`}
+        >
+          Quản lý ngày phép
+        </button>
+        <button
+          onClick={() => setMainTab('requests')}
+          className={`py-3 px-6 font-medium text-sm border-b-2 transition-colors ${
+            mainTab === 'requests'
+              ? 'border-indigo-500 text-indigo-600'
+              : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+          }`}
+        >
+          Đơn nghỉ phép
+        </button>
       </div>
+
+      {mainTab === 'leave_days' ? (
+        <LeaveDaysTable />
+      ) : (
+        <>
+          <div className="flex bg-slate-100 p-1.5 rounded-xl w-fit mb-6 shadow-sm border border-slate-200">
+            {!isManager && (
+              <button
+                onClick={() => setActiveTab('my')}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 ${
+                  activeTab === 'my' 
+                    ? 'bg-white text-teal-700 shadow border border-slate-200/60' 
+                    : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
+                }`}
+              >
+                <User size={16} />
+                Đơn của tôi
+              </button>
+            )}
+            {isManager && (
+              <>
+                <button
+                  onClick={() => setActiveTab('pending')}
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 ${
+                    activeTab === 'pending' 
+                      ? 'bg-white text-amber-600 shadow border border-slate-200/60' 
+                      : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
+                  }`}
+                >
+                  <Clock size={16} />
+                  Duyệt đơn
+                  {pendingRequests.length > 0 && activeTab !== 'pending' && (
+                    <span className="bg-amber-100 text-amber-700 py-0.5 px-2 rounded-full text-xs ml-1 font-bold">{pendingRequests.length}</span>
+                  )}
+                </button>
+                <button
+                  onClick={() => setActiveTab('approved')}
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 ${
+                    activeTab === 'approved' 
+                      ? 'bg-white text-teal-700 shadow border border-slate-200/60' 
+                      : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
+                  }`}
+                >
+                  <CheckCircle size={16} />
+                  Đơn đã duyệt
+                </button>
+                <button
+                  onClick={() => setActiveTab('rejected')}
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 ${
+                    activeTab === 'rejected' 
+                      ? 'bg-white text-rose-600 shadow border border-slate-200/60' 
+                      : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
+                  }`}
+                >
+                  <XCircle size={16} />
+                  Đơn từ chối
+                </button>
+              </>
+            )}
+          </div>
 
       {!isManager && activeTab === 'my' && (
         <div className="admin-table-wrap">
@@ -456,6 +486,8 @@ export default function StaffLeaveRequestsPage() {
             </table>
           )}
         </div>
+      )}
+      </>
       )}
 
       {/* Modal Tạo đơn */}

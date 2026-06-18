@@ -20,11 +20,11 @@ type BookingTab = 'upcoming' | 'completed' | 'cancelled'
 const TAB_CONFIG: { id: BookingTab; label: string; statuses: BookingStatus[] }[] = [
   {
     id: 'upcoming',
-    label: 'Sắp tới',
+    label: 'upcoming',
     statuses: ['pending', 'confirmed', 'checked_in', 'in_progress'],
   },
-  { id: 'completed', label: 'Hoàn thành', statuses: ['completed'] },
-  { id: 'cancelled', label: 'Đã hủy', statuses: ['cancelled'] },
+  { id: 'completed', label: 'completed', statuses: ['completed'] },
+  { id: 'cancelled', label: 'cancelled', statuses: ['cancelled'] },
 ]
 
 function bookingId(b: WashBooking): string {

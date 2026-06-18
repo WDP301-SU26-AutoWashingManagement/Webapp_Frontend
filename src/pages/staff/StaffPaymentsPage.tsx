@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { RefreshCw } from 'lucide-react'
+import { RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react'
 import { bookingService, type BookingListResult } from '../../services/bookingService'
 import type { WashBooking } from '../../types/booking'
 import { showError } from '../../utils/toast'
@@ -9,11 +9,23 @@ export default function StaffPaymentsPage() {
     const [data, setData] = useState<BookingListResult>({ items: [], total: 0 })
     const [loading, setLoading] = useState(true)
     const [detailModal, setDetailModal] = useState<WashBooking | null>(null)
+    const [page, setPage] = useState(1)
+    const [selectedDate, setSelectedDate] = useState<string>('')
+    const limit = 10
 
-    const fetchBookings = async () => {
+    const fetchBookings = async (currentPage: number, dateStr: string) => {
         setLoading(true)
         try {
-            const res = await bookingService.list({ limit: 50 })
+            const params: any = { page: currentPage, limit, booking_status: 'completed' }
+            if (dateStr) {
+                const start = new Date(dateStr);
+                start.setHours(0, 0, 0, 0);
+                const end = new Date(dateStr);
+                end.setHours(23, 59, 59, 999);
+                params.from_date = start.toISOString();
+                params.to_date = end.toISOString();
+            }
+            const res = await bookingService.list(params)
             setData(res)
         } catch (error) {
             showError('Không thể tải danh sách booking')
@@ -23,33 +35,52 @@ export default function StaffPaymentsPage() {
     }
 
     useEffect(() => {
-        fetchBookings()
-    }, [])
+        fetchBookings(page, selectedDate)
+    }, [page, selectedDate])
 
     const getStatusText = (status: string) => {
         switch (status) {
-            case 'completed': return <span className="text-emerald-500 font-medium">Hoàn thành</span>
+            case 'completed': return <span className="text-emerald-500 font-medium">completed</span>
             default: return status
         }
     }
 
-    const filteredItems = data.items.filter((b: WashBooking) => b.booking_status === 'completed');
+    const filteredItems = data.items;
+    const totalPages = Math.ceil((data.total || 0) / limit);
 
     return (
         <div className="admin-page">
-            <div className="admin-page__header">
+            <div className="admin-page__header flex justify-between items-end">
                 <div>
                     <h1 className="admin-page__title">Lịch hẹn hoàn thành</h1>
                     <p className="admin-page__subtitle">Danh sách các lịch hẹn đã hoàn thành và thanh toán.</p>
                 </div>
+                <div className="flex items-center gap-3">
+                    <input 
+                        type="date" 
+                        value={selectedDate}
+                        onChange={(e) => {
+                            setSelectedDate(e.target.value);
+                            setPage(1);
+                        }}
+                        className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:border-blue-500 bg-white"
+                    />
+                    <button
+                        onClick={() => fetchBookings(page, selectedDate)}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 transition-all text-sm font-medium"
+                    >
+                        <RefreshCw size={14} className={loading ? 'animate-spin text-blue-500' : ''} />
+                        Làm mới
+                    </button>
+                </div>
             </div>
 
-            <div className="admin-card">
+            <div className="admin-card flex flex-col min-h-[500px]">
                 <div className="admin-card__header pb-2">
                     <h2 className="admin-card__title">Đã thanh toán</h2>
                 </div>
                 
-                <div className="admin-table-wrap mt-2">
+                <div className="admin-table-wrap mt-2 flex-1">
                     <table className="admin-table">
                         <thead>
                             <tr>
@@ -102,6 +133,31 @@ export default function StaffPaymentsPage() {
                         </tbody>
                     </table>
                 </div>
+
+                {/* Phân trang */}
+                {!loading && totalPages > 1 && (
+                    <div className="flex items-center justify-between px-6 py-4 border-t border-slate-200 mt-auto">
+                        <div className="text-sm text-slate-500">
+                            Hiển thị trang <span className="font-semibold text-slate-900">{page}</span> / <span className="font-semibold text-slate-900">{totalPages}</span> (Tổng số {data.total} đơn)
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setPage(p => Math.max(1, p - 1))}
+                                disabled={page === 1}
+                                className="p-1.5 rounded border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:hover:bg-transparent"
+                            >
+                                <ChevronLeft size={18} />
+                            </button>
+                            <button
+                                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                                disabled={page === totalPages}
+                                className="p-1.5 rounded border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:hover:bg-transparent"
+                            >
+                                <ChevronRight size={18} />
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
 
             <BookingDetailModal 

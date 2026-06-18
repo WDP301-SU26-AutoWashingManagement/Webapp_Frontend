@@ -3,7 +3,12 @@ import { Search, Filter, Eye } from 'lucide-react';
 import { staffManagerService } from '../../services/staffManagerService';
 import type { StaffLeaveRecord } from '../../types/schedule.types';
 
+import { useAuth } from '../../hooks/useAuth';
+
 export const LeaveDaysTable: React.FC = () => {
+  const { user } = useAuth();
+  const isManager = user?.role === 'admin' || user?.role === 'boss' || user?.staff_type === 'manager';
+
   const [searchTerm, setSearchTerm] = useState('');
   const [records, setRecords] = useState<StaffLeaveRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -13,14 +18,21 @@ export const LeaveDaysTable: React.FC = () => {
       setLoading(true);
       try {
         const data = await staffManagerService.getAllStaff({ limit: 100 });
-        if (data && Array.isArray(data.items)) {
-          const mapped = data.items.map((staff: any) => ({
+        if (data && Array.isArray(data.data)) {
+          let mapped = data.data.map((staff: any) => ({
             staffId: staff.staff_code || staff._id,
             staffName: staff.user_id?.full_name || staff.user_id?.email || 'Chưa cập nhật',
             totalLeaveDays: staff.annual_leave_days ?? 12,
             usedLeaveDays: staff.used_leave_days ?? 0,
-            remainingLeaveDays: (staff.annual_leave_days ?? 12) - (staff.used_leave_days ?? 0)
+            remainingLeaveDays: (staff.annual_leave_days ?? 12) - (staff.used_leave_days ?? 0),
+            userId: typeof staff.user_id === 'object' ? staff.user_id._id : staff.user_id,
           }));
+
+          // Nếu không phải manager/admin thì chỉ xem của chính mình
+          if (!isManager && user?.user_id) {
+            mapped = mapped.filter((r: any) => r.userId === user.user_id);
+          }
+
           setRecords(mapped);
         }
       } catch (error) {
@@ -30,7 +42,7 @@ export const LeaveDaysTable: React.FC = () => {
       }
     };
     fetchStaff();
-  }, []);
+  }, [isManager, user?.user_id]);
 
   // Lọc theo tên nhân viên
   const filteredRecords = records.filter(record => 
@@ -40,7 +52,7 @@ export const LeaveDaysTable: React.FC = () => {
   return (
     <div className="w-full bg-white rounded-lg shadow-sm border border-slate-200">
       <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-4">
-        <h2 className="text-lg font-semibold text-slate-800">Quản lý ngày phép nhân viên</h2>
+        <h2 className="text-lg font-semibold text-slate-800">{isManager ? 'Quản lý ngày phép nhân viên' : 'Ngày phép của tôi'}</h2>
         
         <div className="flex items-center gap-2 w-full sm:w-auto">
           {/* Thanh tìm kiếm */}

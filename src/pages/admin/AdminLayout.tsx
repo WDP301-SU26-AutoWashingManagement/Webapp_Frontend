@@ -19,58 +19,67 @@ import {
 import { useAuth } from '../../hooks/useAuth'
 import logo2 from '../../assets/logo2.png'
 
-const NAV_ITEMS = [
+const NAV_GROUPS = [
   {
-    label: 'Tổng quan',
-    icon: LayoutDashboard,
-    to: '/admin/dashboard',
+    title: 'Lịch hẹn & Doanh thu',
+    items: [
+      {
+        label: 'Tổng quan',
+        icon: LayoutDashboard,
+        to: '/admin/dashboard',
+      },
+      {
+        label: 'Lịch hẹn',
+        icon: CalendarCheck,
+        to: '/admin/bookings',
+      },
+      {
+        label: 'Báo cáo',
+        icon: BarChart3,
+        to: '/admin/reports',
+      },
+    ]
   },
   {
-    label: 'Khách hàng',
-    icon: Users,
-    to: '/admin/customers',
-  },
-  {
-    label: 'Lịch hẹn',
-    icon: CalendarCheck,
-    to: '/admin/bookings',
-  },
-  {
-    label: 'Nhân viên',
-    icon: Users,
-    to: '/admin/staffs',
-  },
-  {
-    label: 'Nhóm dịch vụ',
-    icon: Layers,
-    to: '/admin/service-groups',
-  },
-  {
-    label: 'Dịch vụ lẻ',
-    icon: Wrench,
-    to: '/admin/services',
-  },
-  {
-    label: 'Gói dịch vụ (Combo)',
-    icon: Package,
-    to: '/admin/service-packages',
-  },
-
-  {
-    label: 'Cấp bậc',
-    icon: Award,
-    to: '/admin/tiers',
-  },
-  {
-    label: 'Báo cáo',
-    icon: BarChart3,
-    to: '/admin/reports',
-  },
-  {
-    label: 'Cài đặt',
-    icon: Settings,
-    to: '/admin/settings',
-  },
+    title: 'Nội bộ',
+    items: [
+      {
+        label: 'Khách hàng',
+        icon: Users,
+        to: '/admin/customers',
+      },
+      {
+        label: 'Nhân viên',
+        icon: Users,
+        to: '/admin/staffs',
+      },
+      {
+        label: 'Nhóm dịch vụ',
+        icon: Layers,
+        to: '/admin/service-groups',
+      },
+      {
+        label: 'Dịch vụ lẻ',
+        icon: Wrench,
+        to: '/admin/services',
+      },
+      {
+        label: 'Gói dịch vụ (Combo)',
+        icon: Package,
+        to: '/admin/service-packages',
+      },
+      {
+        label: 'Cấp bậc',
+        icon: Award,
+        to: '/admin/tiers',
+      },
+      {
+        label: 'Cài đặt',
+        icon: Settings,
+        to: '/admin/settings',
+      },
+    ]
+  }
 ]
 
 export default function AdminLayout() {
@@ -125,20 +134,39 @@ export default function AdminLayout() {
         )}
 
         {/* Nav */}
-        <nav className="admin-sidebar__nav">
-          {NAV_ITEMS.map(({ label, icon: Icon, to }) => (
-            <NavLink
-              key={to}
-              to={to}
-              className={({ isActive }) =>
-                `admin-nav-item ${isActive ? 'admin-nav-item--active' : ''}`
-              }
-              title={!sidebarOpen ? label : undefined}
-            >
-              <Icon size={18} className="admin-nav-item__icon" />
-              {sidebarOpen && <span className="admin-nav-item__label">{label}</span>}
-              {sidebarOpen && <ChevronRight size={14} className="admin-nav-item__chevron" />}
-            </NavLink>
+        <nav className="admin-sidebar__nav" style={{ padding: '0.5rem', gap: '0.5rem', display: 'flex', flexDirection: 'column' }}>
+          {NAV_GROUPS.map((group, idx) => (
+            <div key={idx} style={{ marginBottom: idx !== NAV_GROUPS.length - 1 ? '1rem' : '0' }}>
+              {sidebarOpen && (
+                <div style={{
+                  padding: '0 0.75rem',
+                  marginBottom: '0.5rem',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  color: '#94a3b8'
+                }}>
+                  {group.title}
+                </div>
+              )}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                {group.items.map(({ label, icon: Icon, to }) => (
+                  <NavLink
+                    key={to}
+                    to={to}
+                    className={({ isActive }) =>
+                      `admin-nav-item ${isActive ? 'admin-nav-item--active' : ''}`
+                    }
+                    title={!sidebarOpen ? label : undefined}
+                  >
+                    <Icon size={18} className="admin-nav-item__icon" />
+                    {sidebarOpen && <span className="admin-nav-item__label">{label}</span>}
+                    {sidebarOpen && <ChevronRight size={14} className="admin-nav-item__chevron" />}
+                  </NavLink>
+                ))}
+              </div>
+            </div>
           ))}
         </nav>
 

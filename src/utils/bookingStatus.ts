@@ -1,13 +1,13 @@
 import type { BookingStatus } from '../types/booking'
 
 export const BOOKING_STATUS_LABELS: Record<BookingStatus, string> = {
-  pending: 'Chờ xác nhận',
-  confirmed: 'Đã xác nhận',
-  checked_in: 'Đã check-in',
-  in_progress: 'Đang rửa',
-  washed: 'Đã rửa xong',
-  completed: 'Hoàn thành',
-  cancelled: 'Đã hủy',
+  pending: 'pending',
+  confirmed: 'confirmed',
+  checked_in: 'checked_in',
+  in_progress: 'in_progress',
+  washed: 'washed',
+  completed: 'completed',
+  cancelled: 'cancelled',
 }
 
 export const BOOKING_STATUS_STYLES: Record<BookingStatus, string> = {
