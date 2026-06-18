@@ -8,6 +8,7 @@ export interface AuthUser {
   role: string
   avatar_url: string | null
   is_active: boolean
+  staff_type?: string
 }
 
 export interface RegisterInput {

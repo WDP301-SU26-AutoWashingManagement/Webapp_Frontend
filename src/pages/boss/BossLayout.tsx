@@ -14,37 +14,52 @@ import {
 import { useAuth } from '../../hooks/useAuth'
 import logo2 from '../../assets/logo2.png'
 
-const NAV_ITEMS = [
+const NAV_GROUPS = [
   {
-    label: 'Tổng quan',
-    icon: LayoutDashboard,
-    to: '/boss/dashboard',
+    title: 'Lịch hẹn & Doanh thu',
+    items: [
+      {
+        label: 'Tổng quan',
+        icon: LayoutDashboard,
+        to: '/boss/dashboard',
+      },
+    ]
   },
   {
-    label: 'Khách hàng',
-    icon: Users,
-    to: '/boss/customers',
-  },
-  {
-    label: 'Tài khoản nội bộ',
-    icon: Users,
-    to: '/boss/accounts',
-  },
-  {
-    label: 'Quản lý Chi nhánh',
-    icon: Building,
-    to: '/boss/branches',
-  },
-  {
-    label: 'Khuyến mãi',
-    icon: Tag,
-    to: '/boss/promotions',
-  },
-  {
-    label: 'Cài đặt',
-    icon: Settings,
-    to: '/boss/settings',
-  },
+    title: 'Nội bộ',
+    items: [
+      {
+        label: 'Khách hàng',
+        icon: Users,
+        to: '/boss/customers',
+      },
+      {
+        label: 'Tài khoản nội bộ',
+        icon: Users,
+        to: '/boss/accounts',
+      },
+      {
+        label: 'Danh sách nhân viên',
+        icon: Users,
+        to: '/boss/staffs',
+      },
+      {
+        label: 'Quản lý Chi nhánh',
+        icon: Building,
+        to: '/boss/branches',
+      },
+      {
+        label: 'Khuyến mãi',
+        icon: Tag,
+        to: '/boss/promotions',
+      },
+      {
+        label: 'Cài đặt',
+        icon: Settings,
+        to: '/boss/settings',
+      },
+    ]
+  }
 ]
 
 export default function BossLayout() {
@@ -99,20 +114,39 @@ export default function BossLayout() {
         )}
 
         {/* Nav */}
-        <nav className="admin-sidebar__nav">
-          {NAV_ITEMS.map(({ label, icon: Icon, to }) => (
-            <NavLink
-              key={to}
-              to={to}
-              className={({ isActive }) =>
-                `admin-nav-item ${isActive ? 'admin-nav-item--active' : ''}`
-              }
-              title={!sidebarOpen ? label : undefined}
-            >
-              <Icon size={18} className="admin-nav-item__icon" />
-              {sidebarOpen && <span className="admin-nav-item__label">{label}</span>}
-              {sidebarOpen && <ChevronRight size={14} className="admin-nav-item__chevron" />}
-            </NavLink>
+        <nav className="admin-sidebar__nav" style={{ padding: '0.5rem', gap: '0.5rem', display: 'flex', flexDirection: 'column' }}>
+          {NAV_GROUPS.map((group, idx) => (
+            <div key={idx} style={{ marginBottom: idx !== NAV_GROUPS.length - 1 ? '1rem' : '0' }}>
+              {sidebarOpen && (
+                <div style={{
+                  padding: '0 0.75rem',
+                  marginBottom: '0.5rem',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  color: '#94a3b8'
+                }}>
+                  {group.title}
+                </div>
+              )}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                {group.items.map(({ label, icon: Icon, to }) => (
+                  <NavLink
+                    key={to}
+                    to={to}
+                    className={({ isActive }) =>
+                      `admin-nav-item ${isActive ? 'admin-nav-item--active' : ''}`
+                    }
+                    title={!sidebarOpen ? label : undefined}
+                  >
+                    <Icon size={18} className="admin-nav-item__icon" />
+                    {sidebarOpen && <span className="admin-nav-item__label">{label}</span>}
+                    {sidebarOpen && <ChevronRight size={14} className="admin-nav-item__chevron" />}
+                  </NavLink>
+                ))}
+              </div>
+            </div>
           ))}
         </nav>
 

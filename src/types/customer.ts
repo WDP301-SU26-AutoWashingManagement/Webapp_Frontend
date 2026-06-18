@@ -22,6 +22,7 @@ export interface CustomerProfile {
   tier_id?: string | null
   created_at?: string
   updated_at?: string
+  staff_type?: string
 }
 
 /** Body for PUT /users/profile — JSON or multipart (field `avatar` for file upload). */

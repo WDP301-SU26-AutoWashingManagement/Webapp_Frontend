@@ -56,6 +56,7 @@ export function mapUserProfileToCustomerProfile(raw: Record<string, unknown>): C
     tier_id: roleData?.tier_id != null ? String(roleData.tier_id) : null,
     created_at: raw.created_at as string | undefined,
     updated_at: raw.updated_at as string | undefined,
+    staff_type: roleData?.staff_type as string | undefined,
   }
 }
 
@@ -87,6 +88,7 @@ export function mapProfileToAuthUser(profile: CustomerProfile, role = 'customer'
     role,
     avatar_url: profile.avatar_url ?? null,
     is_active: profile.is_active ?? true,
+    staff_type: profile.staff_type,
   }
 }
 

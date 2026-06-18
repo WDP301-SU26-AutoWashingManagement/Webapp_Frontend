@@ -61,6 +61,12 @@ const ADMIN_PATHS_PREFIX = '/admin'
 const BOSS_PATHS_PREFIX = '/boss'
 const STAFF_PATHS_PREFIX = '/staff'
 
+function StaffIndexRedirect() {
+  const { user } = useAuth();
+  const isManager = user?.role === 'admin' || user?.role === 'boss' || user?.staff_type === 'manager';
+  return <Navigate to={isManager ? "/staff/dashboard" : "/staff/bookings"} replace />;
+}
+
 function AppContent() {
   const { pathname } = useLocation()
   const { isAuthenticated, user, loading } = useAuth()
@@ -81,9 +87,9 @@ function AppContent() {
     return <Navigate to="/boss/dashboard" replace />
   }
 
-  // Nếu là Staff nhưng đang ở trang ngoài -> đá về dashboard
+  // Nếu là Staff nhưng đang ở trang ngoài -> đá về /staff
   if (!loading && isAuthenticated && user?.role === 'staff' && !isStaffPage) {
-    return <Navigate to="/staff/dashboard" replace />
+    return <Navigate to="/staff" replace />
   }
 
   return (
@@ -181,6 +187,7 @@ function AppContent() {
             path="accounts"
             element={<BossAccountsPage />}
           />
+          <Route path="staffs" element={<AdminStaffsPage />} />
           <Route
             path="branches"
             element={<BossBranchesPage />}
@@ -204,7 +211,8 @@ function AppContent() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<Navigate to="/staff/dashboard" replace />} />
+          <Route index element={<StaffIndexRedirect />} />
+          <Route path="revenue" element={<AdminDashboard />} />
           <Route path="dashboard" element={<StaffDashboard />} />
           <Route path="customers" element={<SharedCustomersPage />} />
 
@@ -214,6 +222,7 @@ function AppContent() {
           <Route path="payments" element={<StaffPaymentsPage />} />
           <Route path="leave-requests" element={<StaffLeaveRequestsPage />} />
           <Route path="schedules" element={<StaffSchedulePage />} />
+          <Route path="list" element={<AdminStaffsPage />} />
           <Route path="settings" element={<InternalProfilePage />} />
         </Route>
 
