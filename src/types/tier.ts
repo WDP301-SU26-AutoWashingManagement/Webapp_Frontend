@@ -5,6 +5,7 @@ export interface Tier {
   id?: string;
   tier_name: TierClass;
   min_membership_points: number;
+  max_membership_points?: number;
   booking_window_days: number;
   discount_percentage: number;
   free_features?: string[];
@@ -15,6 +16,7 @@ export interface Tier {
 export interface CreateTierInput {
   tier_name: TierClass;
   min_membership_points: number;
+  max_membership_points?: number;
   booking_window_days: number;
   discount_percentage: number;
   free_features?: string[];

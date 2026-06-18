@@ -165,6 +165,25 @@ function CustomerModal({
                 value={form.membership_points} 
                 onChange={e => setForm({...form, membership_points: Number(e.target.value)})} 
               />
+              {(() => {
+                if (!form.tier_id) return null;
+                const currentTier = tiers.find(t => (t._id === form.tier_id) || (t.id === form.tier_id));
+                if (!currentTier || !currentTier.max_membership_points || currentTier.max_membership_points >= 1000000) return <span className="text-xs text-slate-400 mt-1 block">Đã đạt hạng tối đa</span>;
+                const pts = form.membership_points || 0;
+                const max = currentTier.max_membership_points;
+                const percent = Math.min(100, Math.max(0, (pts / max) * 100));
+                return (
+                  <div className="w-full mt-2">
+                    <div className="flex justify-between text-[10px] text-slate-500 mb-1 font-medium">
+                      <span>Tiến độ lên hạng</span>
+                      <span>{pts}/{max}</span>
+                    </div>
+                    <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                      <div className="bg-gradient-to-r from-amber-400 to-amber-500 h-1.5 rounded-full transition-all duration-500" style={{ width: `${percent}%` }}></div>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
             {isEditing && (
               <div className="admin-form-group">
@@ -363,9 +382,30 @@ export default function SharedCustomersPage() {
                     )}
                   </td>
                   <td>
-                    <div className="flex items-center gap-1.5 text-sm font-semibold text-amber-500">
-                      <Star size={14} className="fill-amber-500" />
-                      {customer.membership_points || 0} điểm
+                    <div className="flex flex-col gap-1.5 w-32">
+                      <div className="flex items-center gap-1.5 text-sm font-semibold text-amber-500">
+                        <Star size={14} className="fill-amber-500" />
+                        {customer.membership_points || 0} điểm
+                      </div>
+                      {(() => {
+                        if (!customer.tier_id) return null;
+                        const currentTier = tiers.find(t => (t._id === customer.tier_id?._id) || (t.id === customer.tier_id?._id));
+                        if (!currentTier || !currentTier.max_membership_points || currentTier.max_membership_points >= 1000000) return <span className="text-xs text-slate-400">Đã đạt hạng tối đa</span>;
+                        const pts = customer.membership_points || 0;
+                        const max = currentTier.max_membership_points;
+                        const percent = Math.min(100, Math.max(0, (pts / max) * 100));
+                        return (
+                          <div className="w-full mt-0.5">
+                            <div className="flex justify-between text-[10px] text-slate-500 mb-1 font-medium">
+                              <span>Tiến độ</span>
+                              <span>{pts}/{max}</span>
+                            </div>
+                            <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                              <div className="bg-gradient-to-r from-amber-400 to-amber-500 h-1.5 rounded-full transition-all duration-500" style={{ width: `${percent}%` }}></div>
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </td>
                   <td>

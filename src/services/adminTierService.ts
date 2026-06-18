@@ -27,6 +27,7 @@ function normalizeTier(raw: Record<string, unknown>): Tier {
     id: id || undefined,
     tier_name: String(raw.tier_name ?? 'member') as Tier['tier_name'],
     min_membership_points: Number(raw.min_membership_points ?? 0),
+    max_membership_points: Number(raw.max_membership_points ?? 10000000),
     booking_window_days: Number(raw.booking_window_days ?? 0),
     discount_percentage: Number(raw.discount_percentage ?? 0),
     free_features: Array.isArray(raw.free_features) ? raw.free_features.map(String) : undefined,
