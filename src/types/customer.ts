@@ -19,7 +19,12 @@ export interface CustomerProfile {
   is_phone_verified?: boolean
   last_login_at?: string | null
   referral_code?: string
-  tier_id?: string | null
+  tier_id?: string | {
+    _id: string;
+    tier_name: string;
+    discount_percentage: number;
+    booking_window_days?: number;
+  } | null
   created_at?: string
   updated_at?: string
   staff_type?: string

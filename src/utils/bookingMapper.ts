@@ -75,9 +75,24 @@ export function normalizeWashBooking(raw: Record<string, unknown>): WashBooking 
       uPhone = u.phone != null ? String(u.phone) : u.phone_number != null ? String(u.phone_number) : undefined;
     }
     
+    let tier_id: { _id?: string; discount_percentage?: number; tier_name?: string } | undefined;
+    if (c.tier_id != null) {
+      if (typeof c.tier_id === 'object') {
+        const t = c.tier_id as Record<string, unknown>;
+        tier_id = {
+          _id: typeof t._id === 'string' ? t._id : undefined,
+          discount_percentage: typeof t.discount_percentage === 'number' ? t.discount_percentage : undefined,
+          tier_name: typeof t.tier_name === 'string' ? t.tier_name : undefined,
+        };
+      } else if (typeof c.tier_id === 'string') {
+        tier_id = { _id: c.tier_id };
+      }
+    }
+    
     customer = {
       full_name: uName ?? (c.full_name != null ? String(c.full_name) : c.fullname != null ? String(c.fullname) : undefined),
       phone_number: uPhone ?? (c.phone_number != null ? String(c.phone_number) : c.phone != null ? String(c.phone) : undefined),
+      tier_id,
     }
   } else {
     customer_id = normalizeMongoId(custRef)
