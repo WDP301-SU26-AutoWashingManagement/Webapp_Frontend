@@ -55,6 +55,7 @@ import StaffSchedulePage from './pages/staff/StaffSchedulePage'
 
 import { useAuth } from './hooks/useAuth'
 import './App.css'
+import StaffWashingStatus from './pages/staff/StaffWashingStatus'
 
 const AUTH_PATHS = ['/login', '/register', '/forgot-password']
 const ADMIN_PATHS_PREFIX = '/admin'
@@ -224,6 +225,7 @@ function AppContent() {
           <Route path="schedules" element={<StaffSchedulePage />} />
           <Route path="list" element={<AdminStaffsPage />} />
           <Route path="settings" element={<InternalProfilePage />} />
+          <Route path="washing-status" element={<StaffWashingStatus />} />
         </Route>
 
         {/* ── Staff technical protected ── */}
