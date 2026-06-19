@@ -117,7 +117,14 @@ export default function StaffPaymentsPage() {
                                                 <div className="text-xs text-slate-500">{new Date(b.scheduled_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</div>
                                             </td>
                                             <td><div className="text-sm font-bold text-slate-700">{b.vehicle?.plate_number || 'N/A'}</div></td>
-                                            <td><div className="text-sm font-bold text-emerald-600">{b.final_price?.toLocaleString('vi-VN')} đ</div></td>
+                                            <td><div className="text-sm font-bold text-emerald-600">
+                                                {(() => {
+                                                    const paidInvoices = JSON.parse(localStorage.getItem('paid_invoices') || '{}');
+                                                    const cachedTotal = paidInvoices[b._id || b.id!];
+                                                    const displayedTotal = cachedTotal !== undefined ? cachedTotal : ((b.discount_amount !== undefined) ? (b.final_price ?? 0) : Math.max(0, (b.final_price ?? b.base_price ?? 0) - Math.round((b.final_price ?? b.base_price ?? 0) * ((b.customer?.tier_id?.discount_percentage || 0) / 100))));
+                                                    return displayedTotal.toLocaleString('vi-VN');
+                                                })()} đ
+                                            </div></td>
                                             <td>{getStatusText(b.booking_status)}</td>
                                             <td>
                                                 <div className="flex gap-2 items-center" onClick={(e) => e.stopPropagation()}>

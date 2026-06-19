@@ -53,7 +53,7 @@ export function mapUserProfileToCustomerProfile(raw: Record<string, unknown>): C
     is_phone_verified: raw.is_phone_verified as boolean | undefined,
     last_login_at: (raw.last_login_at as string | null | undefined) ?? null,
     referral_code: roleData?.referral_code as string | undefined,
-    tier_id: roleData?.tier_id != null ? String(roleData.tier_id) : null,
+    tier_id: roleData?.tier_id != null ? (typeof roleData.tier_id === 'object' ? roleData.tier_id as any : String(roleData.tier_id)) : null,
     created_at: raw.created_at as string | undefined,
     updated_at: raw.updated_at as string | undefined,
     staff_type: roleData?.staff_type as string | undefined,

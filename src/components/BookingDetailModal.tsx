@@ -132,7 +132,7 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onPay }: 
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-slate-500">Tổng tiền:</span>
                     <span className="text-lg font-black text-rose-500">
-                      {booking.final_price?.toLocaleString('vi-VN')} đ
+                      {(Math.max(0, (booking.final_price ?? booking.base_price ?? 0) - Math.round((booking.final_price ?? booking.base_price ?? 0) * ((booking.customer?.tier_id?.discount_percentage || 0) / 100)))).toLocaleString('vi-VN')} đ
                     </span>
                   </div>
                 </div>

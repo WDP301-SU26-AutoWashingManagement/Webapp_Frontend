@@ -147,7 +147,14 @@ export default function StaffBookingsPage() {
                       <td>
                         <div className="text-sm text-slate-700 font-medium truncate max-w-[200px]">{b.service_package?.name || b.service_package?.service_name || 'Dịch vụ lẻ'}</div>
                       </td>
-                      <td><div className="text-sm font-semibold text-rose-500">{b.final_price?.toLocaleString('vi-VN')} đ</div></td>
+                      <td><div className="text-sm font-semibold text-rose-500">
+                        {(() => {
+                            const paidInvoices = JSON.parse(localStorage.getItem('paid_invoices') || '{}');
+                            const cachedTotal = paidInvoices[b._id || b.id!];
+                            const displayedTotal = cachedTotal !== undefined ? cachedTotal : ((b.discount_amount !== undefined) ? (b.final_price ?? 0) : Math.max(0, (b.final_price ?? b.base_price ?? 0) - Math.round((b.final_price ?? b.base_price ?? 0) * ((b.customer?.tier_id?.discount_percentage || 0) / 100))));
+                            return displayedTotal.toLocaleString('vi-VN');
+                        })()} đ
+                      </div></td>
                       <td>{getStatusText(b.booking_status)}</td>
                       <td>
                         <div className="flex justify-end gap-2 items-center" onClick={(e) => e.stopPropagation()}>

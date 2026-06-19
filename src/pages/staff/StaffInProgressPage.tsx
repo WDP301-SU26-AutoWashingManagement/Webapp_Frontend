@@ -12,7 +12,7 @@ export default function StaffInProgressPage() {
     const [loading, setLoading] = useState(true)
     const [expandedId, setExpandedId] = useState<string | null>(null)
     const [detailModal, setDetailModal] = useState<WashBooking | null>(null)
-    const [confirmModal, setConfirmModal] = useState<{isOpen: boolean, action: 'start'|'complete'|'', booking: WashBooking|null}>({isOpen: false, action: '', booking: null})
+    const [confirmModal, setConfirmModal] = useState<{isOpen: boolean, action: 'start'|'washed'|'', booking: WashBooking|null}>({isOpen: false, action: '', booking: null})
     const [paymentModal, setPaymentModal] = useState<{isOpen: boolean, booking: WashBooking | null}>({isOpen: false, booking: null})
 
     const fetchBookings = async () => {
@@ -43,10 +43,10 @@ export default function StaffInProgressPage() {
         }
     }
 
-    const handleCompleteWashing = async () => {
+    const handleWashedBooking = async () => {
         if (!confirmModal.booking) return;
         try {
-            await bookingService.complete(confirmModal.booking._id || confirmModal.booking.id!)
+            await bookingService.washed(confirmModal.booking._id || confirmModal.booking.id!)
             showSuccess('Đã hoàn thành rửa xe')
             setConfirmModal({isOpen: false, action: '', booking: null})
             fetchBookings()
@@ -121,7 +121,14 @@ export default function StaffInProgressPage() {
                                             <div className="text-xs text-slate-500">{new Date(b.scheduled_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</div>
                                         </td>
                                         <td><div className="text-sm font-bold text-slate-700">{b.vehicle?.plate_number || 'N/A'}</div></td>
-                                        <td><div className="text-sm font-bold text-emerald-600">{b.final_price?.toLocaleString('vi-VN')} đ</div></td>
+                                        <td><div className="text-sm font-bold text-emerald-600">
+                                            {(() => {
+                                                const paidInvoices = JSON.parse(localStorage.getItem('paid_invoices') || '{}');
+                                                const cachedTotal = paidInvoices[b._id || b.id!];
+                                                const displayedTotal = cachedTotal !== undefined ? cachedTotal : ((b.discount_amount !== undefined) ? (b.final_price ?? 0) : Math.max(0, (b.final_price ?? b.base_price ?? 0) - Math.round((b.final_price ?? b.base_price ?? 0) * ((b.customer?.tier_id?.discount_percentage || 0) / 100))));
+                                                return displayedTotal.toLocaleString('vi-VN');
+                                            })()} đ
+                                        </div></td>
                                         <td>{getStatusText(b.booking_status)}</td>
                                         <td>
                                             <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
@@ -134,10 +141,10 @@ export default function StaffInProgressPage() {
                                                     </button>
                                                 ) : b.booking_status === 'in_progress' ? (
                                                     <button
-                                                        onClick={() => setConfirmModal({isOpen: true, action: 'complete', booking: b})}
+                                                        onClick={() => setConfirmModal({isOpen: true, action: 'washed', booking: b})}
                                                         className="text-xs font-semibold px-3 py-1.5 rounded bg-teal-500 text-white hover:bg-teal-600 transition shadow-sm flex items-center gap-1"
                                                     >
-                                                        <Check size={14} /> Hoàn thành
+                                                        <Check size={14} /> Đã rửa xong
                                                     </button>
                                                 ) : b.booking_status === 'washed' ? (
                                                     <button
@@ -182,7 +189,7 @@ export default function StaffInProgressPage() {
                         <div className="flex justify-end gap-3">
                             <button onClick={() => setConfirmModal({isOpen: false, action: '', booking: null})} className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">Huỷ bỏ</button>
                             <button 
-                                onClick={confirmModal.action === 'start' ? handleStartWashing : handleCompleteWashing} 
+                                onClick={confirmModal.action === 'start' ? handleStartWashing : handleWashedBooking} 
                                 className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors flex items-center gap-1 ${
                                     confirmModal.action === 'start' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-teal-600 hover:bg-teal-700'
                                 }`}

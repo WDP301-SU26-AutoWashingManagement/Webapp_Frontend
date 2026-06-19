@@ -20,7 +20,7 @@ export interface WashBooking {
   final_price?: number
   vehicle?: { plate_number?: string; brand?: string; vehicle_model?: string }
   service_package?: { name?: string; service_name?: string }
-  customer?: { full_name?: string; phone_number?: string }
+  customer?: { full_name?: string; phone_number?: string; tier_id?: { _id?: string; discount_percentage?: number; tier_name?: string } }
   created_at?: string
 }
 

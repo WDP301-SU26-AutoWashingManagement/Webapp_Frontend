@@ -38,6 +38,7 @@ import {
 import { estimateBookingPrice, formatPromotionLabel } from '../utils/promotionPricing'
 import { getApiErrorMessage } from '../utils/errors'
 import { showError, showSuccess } from '../utils/toast'
+import { getStoredCustomerProfile } from '../lib/authSession'
 import { MapPin, Calendar, CheckCircle2, ChevronRight, ChevronLeft, Star, Plus } from 'lucide-react'
 
 const BOOKING_WINDOW_DAYS = DEFAULT_BOOKING_WINDOW_DAYS
@@ -186,6 +187,15 @@ export default function NewBookingPage() {
     [compatibleServices, form.service_ids, includedServiceIdsInCombo],
   )
 
+  const customerProfile = getStoredCustomerProfile();
+  const tierDiscountPercentage = useMemo(() => {
+    const tier = customerProfile?.tier_id;
+    if (tier && typeof tier === 'object' && tier.discount_percentage) {
+      return tier.discount_percentage;
+    }
+    return 0;
+  }, [customerProfile]);
+
   const priceEstimate = useMemo(() => {
     let totalBasePrice = 0
     if (selectedCombo) {
@@ -196,8 +206,8 @@ export default function NewBookingPage() {
     }
 
     if (totalBasePrice === 0) return null
-    return estimateBookingPrice(totalBasePrice, validatedPromotion)
-  }, [selectedServices, selectedCombo, validatedPromotion])
+    return estimateBookingPrice(totalBasePrice, validatedPromotion, tierDiscountPercentage)
+  }, [selectedServices, selectedCombo, validatedPromotion, tierDiscountPercentage])
 
   const handleApplyPromotion = async () => {
     const code = form.promotion_code.trim()
@@ -707,10 +717,16 @@ export default function NewBookingPage() {
                             <span>Tạm tính</span>
                             <span>{formatPrice(priceEstimate.basePrice)}</span>
                           </div>
-                          {priceEstimate.discount > 0 && (
+                          {tierDiscountPercentage > 0 && (
+                            <div className="flex justify-between items-center text-sm text-emerald-200 font-medium pt-1">
+                              <span>Ưu đãi hạng ({tierDiscountPercentage}%)</span>
+                              <span>− {formatPrice(Math.round(priceEstimate.basePrice * tierDiscountPercentage / 100))}</span>
+                            </div>
+                          )}
+                          {(priceEstimate.discount - Math.round(priceEstimate.basePrice * tierDiscountPercentage / 100)) > 0 && (
                             <div className="flex justify-between items-center text-sm text-rose-200 font-medium pt-1">
-                              <span>Giảm giá</span>
-                              <span>− {formatPrice(priceEstimate.discount)}</span>
+                              <span>Mã khuyến mãi</span>
+                              <span>− {formatPrice(priceEstimate.discount - Math.round(priceEstimate.basePrice * tierDiscountPercentage / 100))}</span>
                             </div>
                           )}
                           <div className="border-t border-cyan-400/50 my-4 pt-4"></div>
