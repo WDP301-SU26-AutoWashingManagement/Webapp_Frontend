@@ -128,11 +128,55 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onPay }: 
                       {booking.service_package?.name || booking.service_package?.service_name || 'Dịch vụ lẻ'}
                     </span>
                   </div>
+                  
                   <div className="h-px bg-slate-200 my-2"></div>
+                  
+                  {/* Hiển thị Giá gốc */}
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-slate-500">Tổng tiền:</span>
+                    <span className="text-sm text-slate-500">Giá dịch vụ:</span>
+                    <span className="text-sm font-medium text-slate-700">
+                      {(booking.base_price ?? 0).toLocaleString('vi-VN')} đ
+                    </span>
+                  </div>
+
+                  {/* Hiển thị Hạng thành viên (Tier) nếu có */}
+                  {booking.customer?.tier_id && booking.customer.tier_id.discount_percentage ? (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-slate-500">
+                        Hạng {booking.customer.tier_id.tier_name || 'thành viên'}:
+                      </span>
+                      <span className="text-sm font-medium text-emerald-600">
+                        -{booking.customer.tier_id.discount_percentage}%
+                      </span>
+                    </div>
+                  ) : null}
+
+                  {/* Hiển thị Khuyến mãi (Discount Amount) nếu có */}
+                  {booking.discount_amount ? (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-slate-500">Khuyến mãi khác:</span>
+                      <span className="text-sm font-medium text-emerald-600">
+                        -{booking.discount_amount.toLocaleString('vi-VN')} đ
+                      </span>
+                    </div>
+                  ) : null}
+
+                  <div className="h-px bg-slate-200 my-2"></div>
+                  
+                  {/* Hiển thị Tổng tiền thanh toán chính xác */}
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-slate-500">Tổng thanh toán:</span>
                     <span className="text-lg font-black text-rose-500">
-                      {(Math.max(0, (booking.final_price ?? booking.base_price ?? 0) - Math.round((booking.final_price ?? booking.base_price ?? 0) * ((booking.customer?.tier_id?.discount_percentage || 0) / 100)))).toLocaleString('vi-VN')} đ
+                      {(() => {
+                        const paidInvoices = JSON.parse(localStorage.getItem('paid_invoices') || '{}');
+                        const cachedTotal = paidInvoices[booking._id || booking.id!];
+                        const displayedTotal = cachedTotal !== undefined 
+                          ? cachedTotal 
+                          : ((booking.discount_amount !== undefined) 
+                              ? (booking.final_price ?? 0) 
+                              : Math.max(0, (booking.final_price ?? booking.base_price ?? 0) - Math.round((booking.final_price ?? booking.base_price ?? 0) * ((booking.customer?.tier_id?.discount_percentage || 0) / 100))));
+                        return displayedTotal.toLocaleString('vi-VN');
+                      })()} đ
                     </span>
                   </div>
                 </div>

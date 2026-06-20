@@ -231,16 +231,36 @@ export default function PaymentModal({ isOpen, onClose, booking, onSuccess }: Pa
                 <span className="font-bold text-slate-800">{(booking.base_price ?? booking.final_price ?? 0).toLocaleString('vi-VN')} đ</span>
               </div>
               {booking.customer?.tier_id?.discount_percentage ? (
-                <div className="flex justify-between items-center mb-4 text-emerald-600 text-sm">
+                <div className="flex justify-between items-center mb-2 text-emerald-600 text-sm">
                   <span className="font-medium">Ưu đãi hạng ({booking.customer.tier_id.discount_percentage}%):</span>
                   <span className="font-semibold">-{(Math.round((booking.base_price ?? booking.final_price ?? 0) * (booking.customer.tier_id.discount_percentage / 100))).toLocaleString('vi-VN')} đ</span>
                 </div>
               ) : null}
+              
+              {selectedPromotionId && promotions.find(p => (p._id || p.id) === selectedPromotionId)?.calculatedDiscount ? (
+                <div className="flex justify-between items-center mb-2 text-emerald-600 text-sm">
+                  <span className="font-medium">Sẽ được giảm (Khuyến mãi):</span>
+                  <span className="font-semibold">-{(promotions.find(p => (p._id || p.id) === selectedPromotionId)?.calculatedDiscount || 0).toLocaleString('vi-VN')} đ</span>
+                </div>
+              ) : <div className="mb-2"></div>}
+
+              <div className="border-t border-slate-200 border-dashed my-3"></div>
+              <div className="flex justify-between items-center mb-4">
+                <span className="text-slate-800 font-bold">Tổng thanh toán:</span>
+                <span className="text-2xl font-black text-rose-500">
+                  {(() => {
+                    const bPrice = booking.base_price ?? booking.final_price ?? 0;
+                    const tDiscount = Math.round(bPrice * ((booking.customer?.tier_id?.discount_percentage || 0) / 100));
+                    const pDiscount = selectedPromotionId ? (promotions.find(p => (p._id || p.id) === selectedPromotionId)?.calculatedDiscount || 0) : 0;
+                    return Math.max(0, bPrice - tDiscount - pDiscount).toLocaleString('vi-VN');
+                  })()} đ
+                </span>
+              </div>
 
               {/* Promo code selector */}
               <div>
                 <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-2">
-                  <Tag size={16} className="text-rose-500" /> Khuyến mãi áp dụng
+                  <Tag size={16} className="text-rose-500" /> Chọn mã khuyến mãi
                 </label>
                 {loadingPromotions ? (
                   <div className="text-sm text-slate-500 flex items-center gap-2"><RefreshCw size={14} className="animate-spin" /> Đang tải khuyến mãi...</div>
@@ -259,11 +279,6 @@ export default function PaymentModal({ isOpen, onClose, booking, onSuccess }: Pa
                     ))}
                   </select>
                 )}
-                {selectedPromotionId && promotions.find(p => (p._id || p.id) === selectedPromotionId)?.calculatedDiscount ? (
-                  <div className="mt-2 text-sm text-emerald-600 font-medium">
-                    Sẽ được giảm: -{promotions.find(p => (p._id || p.id) === selectedPromotionId)?.calculatedDiscount?.toLocaleString('vi-VN')} đ
-                  </div>
-                ) : null}
               </div>
             </div>
 
