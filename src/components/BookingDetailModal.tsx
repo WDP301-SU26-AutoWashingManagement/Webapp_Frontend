@@ -1,7 +1,10 @@
-import React from 'react'
-import { X, Calendar, Clock, User, Phone, Car, Tag, CreditCard, CheckCircle2 } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { X, Calendar, Clock, User, Phone, Car, Tag, CreditCard, CheckCircle2, FileText, Download, CheckSquare, Square, Image as ImageIcon, PenTool, Banknote } from 'lucide-react'
 import type { WashBooking } from '../types/booking'
-import { Banknote } from 'lucide-react'
+import { bookingChecklistService, type BookingChecklist } from '../services/bookingChecklistService'
+import CreateChecklistModal from './CreateChecklistModal'
+import ViewChecklistModal from './ViewChecklistModal'
+import { env } from '../config/env'
 
 interface BookingDetailModalProps {
   booking: WashBooking | null
@@ -11,6 +14,33 @@ interface BookingDetailModalProps {
 }
 
 export default function BookingDetailModal({ booking, isOpen, onClose, onPay }: BookingDetailModalProps) {
+  const [checklist, setChecklist] = useState<BookingChecklist | null>(null)
+  const [loadingChecklist, setLoadingChecklist] = useState(false)
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showViewModal, setShowViewModal] = useState(false)
+
+  const fetchChecklist = async () => {
+    if (!booking) return
+    setLoadingChecklist(true)
+    try {
+      const appointmentId = booking._id ?? booking.id!
+      const data = await bookingChecklistService.getByAppointmentId(appointmentId)
+      setChecklist(data)
+    } catch (error) {
+      console.error("Lỗi khi tải biên bản kiểm tra:", error)
+    } finally {
+      setLoadingChecklist(false)
+    }
+  }
+
+  useEffect(() => {
+    if (isOpen && booking) {
+      fetchChecklist()
+    } else {
+      setChecklist(null)
+    }
+  }, [isOpen, booking])
+
   if (!isOpen || !booking) return null
 
   const id = (booking._id ?? booking.id!)?.slice(-6).toUpperCase()
@@ -91,6 +121,54 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onPay }: 
                       {booking.customer?.phone_number || '---'}
                     </span>
                   </div>
+                </div>
+              </div>
+
+              {/* Biên bản kiểm tra xe */}
+              <div>
+                <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 flex items-center gap-2">
+                  <FileText size={16} className="text-cyan-500" /> Biên bản nhận xe
+                </h3>
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                  {loadingChecklist ? (
+                    <div className="text-sm text-slate-500">Đang tải dữ liệu...</div>
+                  ) : checklist ? (
+                    <div 
+                      onClick={() => setShowViewModal(true)}
+                      className="w-full flex items-center justify-between cursor-pointer hover:bg-slate-100 p-2 -m-2 rounded-lg transition-colors group"
+                    >
+                      <div>
+                        <span className="text-sm font-bold text-slate-800 block group-hover:text-cyan-600 transition-colors">Biên bản đồng kiểm xe</span>
+                        <span className="text-xs text-slate-500 block mt-1">
+                          Đã kiểm tra lúc {checklist.createdAt ? new Date(checklist.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '...'}
+                        </span>
+                      </div>
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation(); // Ngăn mở Modal xem chi tiết khi bấm nút tải
+                          const url = await bookingChecklistService.getPdfDownloadUrl(checklist._id)
+                          window.open(url, '_blank')
+                        }}
+                        className="px-3 py-1.5 bg-cyan-100 text-cyan-700 hover:bg-cyan-200 hover:text-cyan-800 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5"
+                      >
+                        <Download size={14} /> Tải PDF
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-2 w-full">
+                      <div className="text-sm text-slate-500 italic py-1">
+                        Chưa có biên bản kiểm tra xe cho lịch hẹn này.
+                      </div>
+                      <div className="flex justify-start">
+                        <button
+                          onClick={() => setShowCreateModal(true)}
+                          className="px-3 py-1.5 bg-cyan-600 text-white hover:bg-cyan-700 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5"
+                        >
+                          Tạo biên bản
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -210,6 +288,22 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onPay }: 
         </div>
 
       </div>
+
+      <CreateChecklistModal 
+        booking={booking} 
+        isOpen={showCreateModal} 
+        onClose={() => setShowCreateModal(false)} 
+        onSuccess={() => {
+          setShowCreateModal(false);
+          fetchChecklist();
+        }} 
+      />
+
+      <ViewChecklistModal
+        checklist={checklist}
+        isOpen={showViewModal}
+        onClose={() => setShowViewModal(false)}
+      />
     </div>
   )
 }

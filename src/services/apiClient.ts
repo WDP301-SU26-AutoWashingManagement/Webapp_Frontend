@@ -19,7 +19,11 @@ class ApiClient {
 
   async post<T = unknown>(endpoint: string, data?: unknown): Promise<T> {
     try {
-      const response = await axiosInstance.post<T>(endpoint, data)
+      const config =
+        data instanceof FormData
+          ? { headers: { 'Content-Type': 'multipart/form-data' } }
+          : undefined
+      const response = await axiosInstance.post<T>(endpoint, data, config)
       return response.data
     } catch (error) {
       this.handleError(error)
@@ -30,7 +34,7 @@ class ApiClient {
     try {
       const config =
         data instanceof FormData
-          ? { headers: { 'Content-Type': false as unknown as string } }
+          ? { headers: { 'Content-Type': 'multipart/form-data' } }
           : undefined
       const response = await axiosInstance.put<T>(endpoint, data, config)
       return response.data
