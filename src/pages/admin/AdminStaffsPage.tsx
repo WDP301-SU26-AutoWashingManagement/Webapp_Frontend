@@ -224,7 +224,7 @@ export default function AdminStaffsPage() {
   const [search, setSearch] = useState('')
   const [staffType, setStaffType] = useState(isAdminOrBoss ? '' : 'technical')
   const [page, setPage] = useState(1)
-  
+
   const [staffs, setStaffs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [totalPages, setTotalPages] = useState(1)
@@ -234,13 +234,13 @@ export default function AdminStaffsPage() {
     try {
       const params: any = { page, limit: 10 }
       if (search) params.search = search
-      
+
       if (!isAdminOrBoss) {
         params.staff_type = 'technical'
       } else if (staffType) {
         params.staff_type = staffType
       }
-      
+
       const res = await adminStaffService.getStaffList(params)
       if (res.success && res.data) {
         setStaffs(res.data.data || [])
@@ -288,9 +288,9 @@ export default function AdminStaffsPage() {
             <button className="admin-search-clear" onClick={() => setSearch('')}><X size={13} /></button>
           )}
         </div>
-        
+
         {isAdminOrBoss ? (
-          <select 
+          <select
             className="admin-form-input w-48"
             value={staffType}
             onChange={(e) => {
@@ -362,11 +362,10 @@ export default function AdminStaffsPage() {
             <button
               key={i}
               onClick={() => setPage(i + 1)}
-              className={`px-3 py-1 rounded text-sm font-medium ${
-                page === i + 1 
-                  ? 'bg-blue-600 text-white' 
+              className={`px-3 py-1 rounded text-sm font-medium ${page === i + 1
+                  ? 'bg-blue-600 text-white'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
+                }`}
             >
               {i + 1}
             </button>
