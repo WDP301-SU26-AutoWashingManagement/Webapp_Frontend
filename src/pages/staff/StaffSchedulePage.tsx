@@ -57,7 +57,15 @@ export default function StaffSchedulePage() {
     setIsAddStaffModalOpen(true);
     
     try {
-      const data = await staffManagerService.getAllStaff({ limit: 100 });
+      const params: any = { limit: 100 }
+      if (user?.role !== 'boss' && user?.branch_id) {
+        const userBranchId = typeof user.branch_id === 'object' ? (user.branch_id as any)._id : user.branch_id
+        if (userBranchId) {
+          params.branch_id = userBranchId
+        }
+      }
+
+      const data = await staffManagerService.getAllStaff(params);
       if (data && Array.isArray(data.items)) {
         // Filter out staff who are already in this schedule
         const currentStaffIds = schedule.assigned_staff.map((s: any) => s._id || s);
@@ -104,7 +112,14 @@ export default function StaffSchedulePage() {
       setLoading(true)
       try {
         const data = await scheduleService.getAllSchedules()
-        setSchedules(data)
+        const filtered = (user?.role !== 'boss' && user?.branch_id)
+          ? data.filter(s => {
+              const bId = typeof s.branch_id === 'object' ? (s.branch_id as any)._id : s.branch_id;
+              const uBId = typeof user.branch_id === 'object' ? (user.branch_id as any)._id : user.branch_id;
+              return bId === uBId;
+            })
+          : data;
+        setSchedules(filtered)
       } catch (error) {
         console.error("Failed to load schedules", error)
       } finally {

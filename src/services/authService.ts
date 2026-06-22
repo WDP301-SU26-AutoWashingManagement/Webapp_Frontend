@@ -27,6 +27,7 @@ interface RawUser {
   full_name?: string
   avatar_url?: string | null
   is_active?: boolean
+  branch_id?: string | null
 }
 
 interface LoginResponseData {
@@ -61,6 +62,7 @@ function mapUserFromAuthData(user: RawUser | undefined, jwt: JwtPayload): AuthUs
     role: jwt.role ?? 'customer',
     avatar_url: user?.avatar_url ?? null,
     is_active: user?.is_active ?? true,
+    branch_id: user?.branch_id ? normalizeId(user.branch_id) : null,
   }
 }
 

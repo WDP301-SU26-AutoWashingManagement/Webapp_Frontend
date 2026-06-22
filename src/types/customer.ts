@@ -28,6 +28,7 @@ export interface CustomerProfile {
   created_at?: string
   updated_at?: string
   staff_type?: string
+  branch_id?: string | null
 }
 
 /** Body for PUT /users/profile — JSON or multipart (field `avatar` for file upload). */
