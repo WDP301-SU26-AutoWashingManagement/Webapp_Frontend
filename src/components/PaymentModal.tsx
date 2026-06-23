@@ -303,16 +303,30 @@ export default function PaymentModal({ isOpen, onClose, booking, onSuccess }: Pa
                 <span className="text-slate-500">Dịch vụ:</span>
                 <span className="font-semibold text-slate-700">{booking.service_package?.name || booking.service_package?.service_name || 'Dịch vụ'}</span>
               </div>
+              <div className="border-t border-slate-200 my-3"></div>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-slate-600 font-medium">Tổng phí dịch vụ:</span>
+                <span className="font-bold text-slate-800">{(booking.base_price ?? booking.final_price ?? 0).toLocaleString('vi-VN')} đ</span>
+              </div>
+              
+              {booking.customer?.tier_id?.discount_percentage ? (
+                <div className="flex justify-between items-center mb-2 text-emerald-600 text-sm">
+                  <span className="font-medium">Ưu đãi hạng ({booking.customer.tier_id.discount_percentage}%):</span>
+                  <span className="font-semibold">-{(Math.round((booking.base_price ?? booking.final_price ?? 0) * (booking.customer.tier_id.discount_percentage / 100))).toLocaleString('vi-VN')} đ</span>
+                </div>
+              ) : null}
+
               {invoice.discount_amount > 0 && (
-                <div className="flex justify-between text-sm mb-2 text-emerald-600">
-                  <span>Giảm giá:</span>
+                <div className="flex justify-between items-center mb-2 text-emerald-600 text-sm">
+                  <span className="font-medium">Giảm giá (Khuyến mãi):</span>
                   <span className="font-semibold">-{invoice.discount_amount.toLocaleString('vi-VN')} đ</span>
                 </div>
               )}
-              <div className="border-t border-slate-200 my-3"></div>
+
+              <div className="border-t border-slate-200 border-dashed my-3"></div>
               <div className="flex justify-between items-center">
-                <span className="text-slate-600 font-medium">Tổng thanh toán:</span>
-                <span className="text-xl font-bold text-rose-500">{invoice.total.toLocaleString('vi-VN')} đ</span>
+                <span className="text-slate-800 font-bold">Tổng thanh toán:</span>
+                <span className="text-2xl font-black text-rose-500">{invoice.total.toLocaleString('vi-VN')} đ</span>
               </div>
             </div>
 

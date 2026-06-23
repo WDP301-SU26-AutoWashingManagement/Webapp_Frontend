@@ -70,21 +70,29 @@ export default function ViewChecklistModal({ checklist, isOpen, onClose }: ViewC
                 <ImageIcon size={16} className="text-emerald-500" /> Hình ảnh đính kèm
               </h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {checklist.images.map((img, idx) => (
-                  <a 
-                    key={idx} 
-                    href={`${env.apiBaseUrl.replace('/api/v1', '')}${img}`} 
-                    target="_blank" 
-                    rel="noreferrer"
-                    className="block aspect-square rounded-xl overflow-hidden border border-slate-200 hover:border-emerald-400 transition-colors"
-                  >
-                    <img 
-                      src={`${env.apiBaseUrl.replace('/api/v1', '')}${img}`} 
-                      alt={`Ảnh hiện trạng ${idx + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                  </a>
-                ))}
+                {checklist.images.map((img, idx) => {
+                  const getImageUrl = (imgStr: string) => {
+                    if (imgStr.startsWith('data:') || imgStr.startsWith('http')) return imgStr;
+                    return `${env.apiBaseUrl.replace('/api/v1', '')}${imgStr}`;
+                  };
+                  const imgSrc = getImageUrl(img);
+
+                  return (
+                    <a 
+                      key={idx} 
+                      href={imgSrc} 
+                      target="_blank" 
+                      rel="noreferrer"
+                      className="block aspect-square rounded-xl overflow-hidden border border-slate-200 hover:border-emerald-400 transition-colors"
+                    >
+                      <img 
+                        src={imgSrc} 
+                        alt={`Ảnh hiện trạng ${idx + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </a>
+                  );
+                })}
               </div>
             </div>
           )}

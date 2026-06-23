@@ -73,6 +73,8 @@ export default function NewBookingPage() {
   const [activeTab, setActiveTab] = useState<'combo' | 'single'>('combo')
   const [validatedPromotion, setValidatedPromotion] = useState<Promotion | null>(null)
   const [validatingPromotion, setValidatingPromotion] = useState(false)
+  const [recommendation, setRecommendation] = useState<import('../types/booking').IBookingRecommendation | null>(null)
+  const [loadingRecommendation, setLoadingRecommendation] = useState(false)
 
   const loadFormOptions = useCallback(async (force = false) => {
     if (formOptionsLoaded.current && !force) return
@@ -135,11 +137,13 @@ export default function NewBookingPage() {
 
   const [apiSlots, setApiSlots] = useState<{ timeStr: string; available_bays: number }[]>([])
   const [loadingSlots, setLoadingSlots] = useState(false)
+  const [lastFetchedDate, setLastFetchedDate] = useState<string>('')
 
   useEffect(() => {
     let active = true;
     if (!form.branch_id || !dateValue) {
       setApiSlots([]);
+      setLastFetchedDate('');
       return;
     }
     const fetchSlots = async () => {
@@ -154,6 +158,7 @@ export default function NewBookingPage() {
           return { timeStr, available_bays: slot.available_bays };
         });
         setApiSlots(mapped);
+        setLastFetchedDate(dateValue);
       } catch (err) {
         console.error("Lỗi khi lấy danh sách slot trống:", err);
       } finally {
@@ -165,15 +170,18 @@ export default function NewBookingPage() {
   }, [form.branch_id, dateValue]);
 
   useEffect(() => {
+    // Only validate the time when we have finished fetching slots for the current date
+    if (dateValue !== lastFetchedDate) return;
+
     if (apiSlots.length > 0 && dateValue) {
       const isValid = apiSlots.some(s => s.timeStr === timeValue);
       if (!isValid) {
         setForm(p => ({ ...p, scheduled_at: `${dateValue}T${apiSlots[0].timeStr}` }));
       }
-    } else if (apiSlots.length === 0 && !loadingSlots && dateValue) {
+    } else if (apiSlots.length === 0 && dateValue) {
       setForm(p => ({ ...p, scheduled_at: `${dateValue}T` }));
     }
-  }, [apiSlots, dateValue, timeValue, loadingSlots]);
+  }, [apiSlots, dateValue, timeValue, lastFetchedDate]);
 
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newDate = e.target.value
@@ -183,6 +191,97 @@ export default function NewBookingPage() {
     }
     setForm((p) => ({ ...p, scheduled_at: `${newDate}T` }))
   }
+
+  useEffect(() => {
+    let active = true;
+    if (!form.vehicle_id) {
+      setRecommendation(null);
+      return;
+    }
+    const fetchReco = async () => {
+      setLoadingRecommendation(true);
+      try {
+        const res = await bookingService.getRecommendation(form.vehicle_id, form.branch_id || undefined);
+        if (active) setRecommendation(res);
+      } catch (err) {
+        if (active) setRecommendation(null);
+      } finally {
+        if (active) setLoadingRecommendation(false);
+      }
+    };
+    void fetchReco();
+    return () => { active = false; };
+  }, [form.vehicle_id, form.branch_id]);
+
+  // Tự động điền Ngày/Giờ khi Auto-Pilot tải xong
+  useEffect(() => {
+    if (recommendation?.suggested_scheduled_at) {
+      const d = new Date(recommendation.suggested_scheduled_at);
+      const yyyy = d.getFullYear();
+      const MM = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      const hh = String(d.getHours()).padStart(2, '0');
+      const mm = String(d.getMinutes()).padStart(2, '0');
+      const newTime = `${yyyy}-${MM}-${dd}T${hh}:${mm}`;
+      
+      setForm(p => ({ ...p, scheduled_at: newTime }));
+    }
+  }, [recommendation]);
+
+  const handleApplyRecommendation = async () => {
+    if (!recommendation) return;
+    
+    // Auto-fill branch
+    let newBranchId = form.branch_id;
+    if (recommendation.branch_id) {
+      newBranchId = recommendation.branch_id;
+    }
+    
+    // Auto-fill time
+    let newTime = form.scheduled_at;
+    if (recommendation.suggested_scheduled_at) {
+      const d = new Date(recommendation.suggested_scheduled_at);
+      const yyyy = d.getFullYear();
+      const MM = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      const hh = String(d.getHours()).padStart(2, '0');
+      const mm = String(d.getMinutes()).padStart(2, '0');
+      newTime = `${yyyy}-${MM}-${dd}T${hh}:${mm}`;
+    }
+
+    // Auto-fill combo/services
+    let comboId = '';
+    const sIds: string[] = [];
+    recommendation.recommended_items.forEach(item => {
+      if (item.service_package_id) {
+        comboId = item.service_package_id;
+      } else {
+        sIds.push(item.service_id);
+      }
+    });
+
+    // Auto-fill promotion
+    let promoCode = form.promotion_code;
+    if (recommendation.applicable_promotion) {
+      promoCode = recommendation.applicable_promotion.code;
+      try {
+        const { promotion } = await promotionService.validateCode(promoCode)
+        setValidatedPromotion(promotion)
+      } catch (e) {}
+    }
+
+    setForm(p => ({
+      ...p,
+      branch_id: newBranchId,
+      scheduled_at: newTime,
+      combo_package_id: comboId,
+      service_ids: sIds,
+      promotion_code: promoCode,
+    }));
+    
+    showSuccess('Đã áp dụng cấu hình Gợi ý Thông minh!');
+    setStep(2);
+  };
 
   const selectedVehicle = useMemo(
     () => vehicles.find((v) => (v._id ?? v.id) === form.vehicle_id),
@@ -448,6 +547,64 @@ export default function NewBookingPage() {
                         <Plus size={14} /> Thêm xe mới
                       </Link>
                     </div>
+
+                    {/* Khối Gợi ý AI */}
+                    {loadingRecommendation && (
+                      <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4 shadow-sm animate-pulse flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-full bg-indigo-200 shrink-0"></div>
+                        <div className="flex-1 space-y-2">
+                          <div className="h-4 bg-indigo-200 rounded w-1/2"></div>
+                          <div className="h-3 bg-indigo-200 rounded w-3/4"></div>
+                        </div>
+                      </div>
+                    )}
+                    {!loadingRecommendation && recommendation && (
+                      <div className="relative rounded-xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-blue-50 p-5 shadow-sm overflow-hidden">
+                        <div className="absolute top-0 right-0 -mt-4 -mr-4 w-16 h-16 bg-indigo-500 rounded-full opacity-10 blur-xl"></div>
+                        <div className="flex items-start gap-3 relative z-10">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 shadow-inner">
+                            ✨
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="text-sm font-bold text-indigo-900 mb-1">Auto-Pilot Booking</h4>
+                            <p className="text-xs text-indigo-700 italic leading-relaxed mb-3">"{recommendation.reason}"</p>
+                            
+                            <div className="bg-white/60 rounded-lg p-3 border border-indigo-100 mb-3 space-y-2">
+                              <div className="flex justify-between items-center text-xs">
+                                <span className="font-semibold text-slate-700">Dịch vụ:</span>
+                                <span className="text-right text-indigo-900 font-bold max-w-[150px] truncate">
+                                  {recommendation.recommended_items.map(i => i.name).join(', ')}
+                                </span>
+                              </div>
+                              {recommendation.suggested_scheduled_at && (
+                                <div className="flex justify-between items-center text-xs">
+                                  <span className="font-semibold text-slate-700">Khung giờ sớm nhất:</span>
+                                  <span className="text-right text-indigo-900 font-bold">
+                                    {new Date(recommendation.suggested_scheduled_at).toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'})} ({new Date(recommendation.suggested_scheduled_at).toLocaleDateString('vi-VN')})
+                                  </span>
+                                </div>
+                              )}
+                              {recommendation.applicable_promotion && (
+                                <div className="flex justify-between items-center text-xs">
+                                  <span className="font-semibold text-slate-700">Khuyến mãi:</span>
+                                  <span className="text-right text-rose-600 font-bold">
+                                    {recommendation.applicable_promotion.code}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => void handleApplyRecommendation()}
+                              className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm shadow-indigo-200"
+                            >
+                              Áp dụng nhanh & Tiếp tục
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Hint text moved here to balance column heights */}
                     <p className="mt-2 flex gap-2 rounded-lg border border-amber-100 bg-amber-50 p-3 text-xs leading-relaxed text-amber-700">

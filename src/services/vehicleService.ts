@@ -95,6 +95,23 @@ export const vehicleService = {
     return normalizeVehicle(unwrapApiData<Record<string, unknown>>(body))
   },
 
+  async getById(id: string): Promise<Vehicle> {
+    const body = await apiClient.get<ApiResponse<Record<string, unknown>>>(`/vehicles/${id}`)
+    return normalizeVehicle(unwrapApiData<Record<string, unknown>>(body))
+  },
+
+  async lookupClass(vehicleId: string): Promise<VehicleClass | null> {
+    try {
+      const body = await apiClient.get<ApiResponse<Record<string, unknown>>>('/vehicles/lookup-class', {
+        params: { vehicle_id: vehicleId }
+      })
+      const data = unwrapApiData<Record<string, unknown>>(body)
+      return data ? normalizeClass(data) : null
+    } catch (err) {
+      return null
+    }
+  },
+
   async remove(id: string): Promise<void> {
     await apiClient.delete(`/vehicles/${id}`)
   },

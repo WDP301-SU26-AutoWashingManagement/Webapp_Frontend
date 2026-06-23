@@ -188,11 +188,21 @@ export default function BookingsPage() {
                           <span className="font-mono font-medium text-slate-800">{plate}</span>
                           {serviceName && <span>· {serviceName}</span>}
                         </div>
-                        {booking.final_price != null && (
-                          <p className="mt-2 text-sm font-semibold text-[#0ea5b7]">
-                            {formatPrice(booking.final_price)}
-                          </p>
-                        )}
+                        {(() => {
+                          const paidInvoices = JSON.parse(localStorage.getItem('paid_invoices') || '{}');
+                          const cachedTotal = paidInvoices[booking._id || booking.id!];
+                          const displayedTotal = cachedTotal !== undefined 
+                            ? cachedTotal 
+                            : ((booking.discount_amount !== undefined) 
+                                ? (booking.final_price ?? 0) 
+                                : Math.max(0, (booking.final_price ?? booking.base_price ?? 0) - Math.round((booking.final_price ?? booking.base_price ?? 0) * ((booking.customer?.tier_id?.discount_percentage || 0) / 100))));
+                          
+                          return (
+                            <p className="mt-2 text-sm font-semibold text-[#0ea5b7]">
+                              {displayedTotal.toLocaleString('vi-VN')} đ
+                            </p>
+                          );
+                        })()}
                       </div>
                       {canCancel && (
                         <button
