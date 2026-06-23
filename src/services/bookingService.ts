@@ -115,6 +115,14 @@ export const bookingService = {
     return (body.data ?? body) as AvailableSlot[];
   },
 
+  async getRecommendation(vehicleId: string, branchId?: string): Promise<import('../types/booking').IBookingRecommendation> {
+    const params: Record<string, string> = { vehicle_id: vehicleId }
+    if (branchId) params.branch_id = branchId
+    
+    const body = await apiClient.get<ApiResponse<import('../types/booking').IBookingRecommendation>>('/bookings/recommendation', { params })
+    return unwrapApiData<import('../types/booking').IBookingRecommendation>(body)
+  },
+
   async getById(id: string): Promise<WashBooking> {
     const body = await apiClient.get<ApiResponse<Record<string, unknown>>>(`/bookings/${id}`)
     const booking = normalizeWashBooking(unwrapApiData<Record<string, unknown>>(body))
