@@ -137,11 +137,13 @@ export default function NewBookingPage() {
 
   const [apiSlots, setApiSlots] = useState<{ timeStr: string; available_bays: number }[]>([])
   const [loadingSlots, setLoadingSlots] = useState(false)
+  const [lastFetchedDate, setLastFetchedDate] = useState<string>('')
 
   useEffect(() => {
     let active = true;
     if (!form.branch_id || !dateValue) {
       setApiSlots([]);
+      setLastFetchedDate('');
       return;
     }
     const fetchSlots = async () => {
@@ -156,6 +158,7 @@ export default function NewBookingPage() {
           return { timeStr, available_bays: slot.available_bays };
         });
         setApiSlots(mapped);
+        setLastFetchedDate(dateValue);
       } catch (err) {
         console.error("Lỗi khi lấy danh sách slot trống:", err);
       } finally {
@@ -167,15 +170,18 @@ export default function NewBookingPage() {
   }, [form.branch_id, dateValue]);
 
   useEffect(() => {
+    // Only validate the time when we have finished fetching slots for the current date
+    if (dateValue !== lastFetchedDate) return;
+
     if (apiSlots.length > 0 && dateValue) {
       const isValid = apiSlots.some(s => s.timeStr === timeValue);
       if (!isValid) {
         setForm(p => ({ ...p, scheduled_at: `${dateValue}T${apiSlots[0].timeStr}` }));
       }
-    } else if (apiSlots.length === 0 && !loadingSlots && dateValue) {
+    } else if (apiSlots.length === 0 && dateValue) {
       setForm(p => ({ ...p, scheduled_at: `${dateValue}T` }));
     }
-  }, [apiSlots, dateValue, timeValue, loadingSlots]);
+  }, [apiSlots, dateValue, timeValue, lastFetchedDate]);
 
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newDate = e.target.value
@@ -207,6 +213,21 @@ export default function NewBookingPage() {
     return () => { active = false; };
   }, [form.vehicle_id, form.branch_id]);
 
+  // Tự động điền Ngày/Giờ khi Auto-Pilot tải xong
+  useEffect(() => {
+    if (recommendation?.suggested_scheduled_at) {
+      const d = new Date(recommendation.suggested_scheduled_at);
+      const yyyy = d.getFullYear();
+      const MM = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      const hh = String(d.getHours()).padStart(2, '0');
+      const mm = String(d.getMinutes()).padStart(2, '0');
+      const newTime = `${yyyy}-${MM}-${dd}T${hh}:${mm}`;
+      
+      setForm(p => ({ ...p, scheduled_at: newTime }));
+    }
+  }, [recommendation]);
+
   const handleApplyRecommendation = async () => {
     if (!recommendation) return;
     
@@ -219,7 +240,13 @@ export default function NewBookingPage() {
     // Auto-fill time
     let newTime = form.scheduled_at;
     if (recommendation.suggested_scheduled_at) {
-      newTime = recommendation.suggested_scheduled_at;
+      const d = new Date(recommendation.suggested_scheduled_at);
+      const yyyy = d.getFullYear();
+      const MM = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      const hh = String(d.getHours()).padStart(2, '0');
+      const mm = String(d.getMinutes()).padStart(2, '0');
+      newTime = `${yyyy}-${MM}-${dd}T${hh}:${mm}`;
     }
 
     // Auto-fill combo/services
