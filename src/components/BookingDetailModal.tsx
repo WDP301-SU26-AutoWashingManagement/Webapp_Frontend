@@ -11,9 +11,10 @@ interface BookingDetailModalProps {
   isOpen: boolean
   onClose: () => void
   onPay?: (booking: WashBooking) => void
+  hideStaffActions?: boolean
 }
 
-export default function BookingDetailModal({ booking, isOpen, onClose, onPay }: BookingDetailModalProps) {
+export default function BookingDetailModal({ booking, isOpen, onClose, onPay, hideStaffActions = false }: BookingDetailModalProps) {
   const [checklist, setChecklist] = useState<BookingChecklist | null>(null)
   const [loadingChecklist, setLoadingChecklist] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -159,14 +160,16 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onPay }: 
                       <div className="text-sm text-slate-500 italic py-1">
                         Chưa có biên bản kiểm tra xe cho lịch hẹn này.
                       </div>
-                      <div className="flex justify-start">
-                        <button
-                          onClick={() => setShowCreateModal(true)}
-                          className="px-3 py-1.5 bg-cyan-600 text-white hover:bg-cyan-700 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5"
-                        >
-                          Tạo biên bản
-                        </button>
-                      </div>
+                      {!hideStaffActions && (
+                        <div className="flex justify-start">
+                          <button
+                            onClick={() => setShowCreateModal(true)}
+                            className="px-3 py-1.5 bg-cyan-600 text-white hover:bg-cyan-700 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5"
+                          >
+                            Tạo biên bản
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

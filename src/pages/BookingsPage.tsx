@@ -4,6 +4,7 @@ import { Link, Navigate, useSearchParams } from 'react-router-dom'
 import AccountPageShell from '../components/account/AccountPageShell'
 import { bookingService } from '../services/bookingService'
 import type { BookingStatus, WashBooking } from '../types/booking'
+import BookingDetailModal from '../components/BookingDetailModal'
 import {
   BOOKING_STATUS_LABELS,
   BOOKING_STATUS_STYLES,
@@ -41,6 +42,8 @@ export default function BookingsPage() {
   const [bookings, setBookings] = useState<WashBooking[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<BookingTab>('upcoming')
+
+  const [detailModal, setDetailModal] = useState<WashBooking | null>(null)
 
   const [cancelModal, setCancelModal] = useState<{isOpen: boolean, booking: WashBooking | null}>({ isOpen: false, booking: null })
   const [cancelReason, setCancelReason] = useState('')
@@ -165,7 +168,8 @@ export default function BookingsPage() {
                 return (
                   <li
                     key={id || booking.scheduled_at}
-                    className="rounded-xl border border-slate-100 bg-slate-50/50 p-4 transition hover:border-cyan-500/20"
+                    onClick={() => setDetailModal(booking)}
+                    className="rounded-xl border border-slate-100 bg-slate-50/50 p-4 transition hover:border-cyan-500/20 cursor-pointer"
                   >
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div className="min-w-0 flex-1">
@@ -193,7 +197,10 @@ export default function BookingsPage() {
                       {canCancel && (
                         <button
                           type="button"
-                          onClick={() => handleCancelClick(booking)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCancelClick(booking);
+                          }}
                           className="shrink-0 rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50"
                         >
                           Hủy lịch
@@ -262,6 +269,14 @@ export default function BookingsPage() {
           </div>
         </div>
       )}
+
+      {/* Detail Modal */}
+      <BookingDetailModal 
+        booking={detailModal} 
+        isOpen={!!detailModal} 
+        onClose={() => setDetailModal(null)}
+        hideStaffActions={true}
+      />
     </AccountPageShell>
   )
 }
