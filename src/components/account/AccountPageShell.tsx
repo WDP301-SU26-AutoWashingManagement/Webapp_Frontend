@@ -6,6 +6,7 @@ interface AccountPageShellProps {
   description: string
   action?: ReactNode
   children: ReactNode
+  maxWidthClass?: string
 }
 
 export default function AccountPageShell({
@@ -13,9 +14,10 @@ export default function AccountPageShell({
   description,
   action,
   children,
+  maxWidthClass = "max-w-3xl",
 }: AccountPageShellProps) {
   return (
-    <main className="mx-auto max-w-3xl px-6 py-16">
+    <main className={`mx-auto ${maxWidthClass} px-6 py-16`}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="font-sans text-3xl font-bold text-slate-900">{title}</h1>

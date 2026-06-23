@@ -20,7 +20,9 @@ export interface ShiftSession {
 }
 
 export interface StaffLeaveRecord {
+  mongoId: string;
   staffId: string;
+  staffCode: string;
   staffName: string;
   totalLeaveDays: number;
   usedLeaveDays: number;

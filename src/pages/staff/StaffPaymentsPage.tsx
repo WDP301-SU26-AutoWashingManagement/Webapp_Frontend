@@ -11,7 +11,7 @@ export default function StaffPaymentsPage() {
     const [detailModal, setDetailModal] = useState<WashBooking | null>(null)
     const [page, setPage] = useState(1)
     const [selectedDate, setSelectedDate] = useState<string>('')
-    const limit = 10
+    const limit = 8
 
     const fetchBookings = async (currentPage: number, dateStr: string) => {
         setLoading(true)
@@ -49,87 +49,109 @@ export default function StaffPaymentsPage() {
     const totalPages = Math.ceil((data.total || 0) / limit);
 
     return (
-        <div className="admin-page">
+        <div className="admin-page max-w-full px-4 lg:px-8">
             <div className="admin-page__header flex justify-between items-end">
                 <div>
-                    <h1 className="admin-page__title">Lịch hẹn hoàn thành</h1>
+                    <h1 className="admin-page__title text-2xl">Lịch hẹn hoàn thành</h1>
                     <p className="admin-page__subtitle">Danh sách các lịch hẹn đã hoàn thành và thanh toán.</p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <input 
-                        type="date" 
+                    <input
+                        type="date"
                         value={selectedDate}
                         onChange={(e) => {
                             setSelectedDate(e.target.value);
                             setPage(1);
                         }}
-                        className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:border-blue-500 bg-white"
+                        className="px-4 py-2 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 outline-none focus:border-blue-500 bg-white shadow-sm"
                     />
                     <button
                         onClick={() => fetchBookings(page, selectedDate)}
-                        className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 transition-all text-sm font-medium"
+                        className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-all text-sm font-semibold shadow-sm"
                     >
-                        <RefreshCw size={14} className={loading ? 'animate-spin text-blue-500' : ''} />
+                        <RefreshCw size={16} className={loading ? 'animate-spin text-blue-500' : ''} />
                         Làm mới
                     </button>
                 </div>
             </div>
 
-            <div className="admin-card flex flex-col min-h-[500px]">
-                <div className="admin-card__header pb-2">
-                    <h2 className="admin-card__title">Đã thanh toán</h2>
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col min-h-[500px] overflow-hidden">
+                <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-slate-50/50">
+                    <h2 className="font-bold text-slate-800 text-lg">Danh sách giao dịch</h2>
+                    <span className="text-xs font-semibold px-3 py-1 bg-blue-50 text-blue-600 rounded-full border border-blue-100">
+                        {data.total} giao dịch
+                    </span>
                 </div>
-                
-                <div className="admin-table-wrap mt-2 flex-1">
-                    <table className="admin-table">
+
+                <div className="flex-1 overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
                         <thead>
-                            <tr>
-                                <th>Mã</th>
-                                <th>Thời gian</th>
-                                <th>Biển số xe</th>
-                                <th>Tổng tiền</th>
-                                <th>Trạng thái</th>
-                                <th>Hành động</th>
+                            <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider">
+                                <th className="px-5 py-4 font-bold">Mã HĐ</th>
+                                <th className="px-5 py-4 font-bold">Thời gian</th>
+                                <th className="px-5 py-4 font-bold">Khách hàng / Xe</th>
+                                <th className="px-5 py-4 font-bold">Dịch vụ</th>
+                                <th className="px-5 py-4 font-bold">Tổng thanh toán</th>
+                                <th className="px-5 py-4 font-bold">Trạng thái</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody className="divide-y divide-slate-100">
                             {loading ? (
-                                <tr className="admin-table__row">
-                                    <td colSpan={6} className="admin-empty-text py-10"><RefreshCw className="animate-spin text-[#0ea5b7] mx-auto" /></td>
+                                <tr>
+                                    <td colSpan={6} className="py-16 text-center"><RefreshCw className="animate-spin text-blue-500 mx-auto" /></td>
                                 </tr>
                             ) : filteredItems.length === 0 ? (
-                                <tr className="admin-table__row">
-                                    <td colSpan={6} className="admin-empty-text">Chưa có lịch hẹn nào hoàn thành.</td>
+                                <tr>
+                                    <td colSpan={6} className="py-16 text-center text-slate-400 font-medium">Chưa có giao dịch nào hoàn thành.</td>
                                 </tr>
                             ) : (
                                 filteredItems.map((b: WashBooking) => {
                                     const id = (b._id ?? b.id!).slice(-6).toUpperCase()
 
                                     return (
-                                        <tr 
-                                            key={b._id || b.id} 
+                                        <tr
+                                            key={b._id || b.id}
                                             onClick={() => setDetailModal(b)}
-                                            className="admin-table__row group hover:bg-slate-50 cursor-pointer transition-colors"
+                                            className="hover:bg-slate-50 cursor-pointer transition-colors group"
                                         >
-                                            <td><div className="text-sm font-bold text-slate-700 group-hover:text-blue-600 transition-colors">#{id}</div></td>
-                                            <td>
-                                                <div className="text-sm text-slate-900">{new Date(b.scheduled_at).toLocaleDateString('vi-VN')}</div>
-                                                <div className="text-xs text-slate-500">{new Date(b.scheduled_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</div>
+                                            <td className="px-5 py-4">
+                                                <div className="font-bold text-slate-700 group-hover:text-blue-600 transition-colors">#{id}</div>
                                             </td>
-                                            <td><div className="text-sm font-bold text-slate-700">{b.vehicle?.plate_number || 'N/A'}</div></td>
-                                            <td><div className="text-sm font-bold text-emerald-600">
-                                                {(() => {
-                                                    const paidInvoices = JSON.parse(localStorage.getItem('paid_invoices') || '{}');
-                                                    const cachedTotal = paidInvoices[b._id || b.id!];
-                                                    const displayedTotal = cachedTotal !== undefined ? cachedTotal : ((b.discount_amount !== undefined) ? (b.final_price ?? 0) : Math.max(0, (b.final_price ?? b.base_price ?? 0) - Math.round((b.final_price ?? b.base_price ?? 0) * ((b.customer?.tier_id?.discount_percentage || 0) / 100))));
-                                                    return displayedTotal.toLocaleString('vi-VN');
-                                                })()} đ
-                                            </div></td>
-                                            <td>{getStatusText(b.booking_status)}</td>
-                                            <td>
-                                                <div className="flex gap-2 items-center" onClick={(e) => e.stopPropagation()}>
-                                                    <span className="text-xs font-semibold px-3 py-1.5 rounded bg-emerald-50 text-emerald-600 border border-emerald-100">
-                                                        Đã thanh toán
+                                            <td className="px-5 py-4">
+                                                <div className="font-medium text-slate-900">{new Date(b.scheduled_at).toLocaleDateString('vi-VN')}</div>
+                                                <div className="text-xs font-medium text-slate-500">{new Date(b.scheduled_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</div>
+                                            </td>
+                                            <td className="px-5 py-4">
+                                                <div className="font-bold text-slate-800">{b.vehicle?.plate_number || 'N/A'}</div>
+                                                {b.customer?.full_name && (
+                                                    <div className="text-xs font-medium text-slate-500 mt-0.5">{b.customer.full_name}</div>
+                                                )}
+                                            </td>
+                                            <td className="px-5 py-4">
+                                                <div className="font-semibold text-slate-700 max-w-[200px] truncate">
+                                                    {b.service_package?.name || b.service_package?.service_name || 'Dịch vụ'}
+                                                </div>
+                                                {b.customer?.tier_id && (
+                                                    <div className="text-[11px] font-bold text-emerald-600 mt-1 uppercase tracking-wide">
+                                                        Hạng: {b.customer.tier_id.tier_name}
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td className="px-5 py-4">
+                                                <div className="font-black text-rose-500 text-base">
+                                                    {(() => {
+                                                        const paidInvoices = JSON.parse(localStorage.getItem('paid_invoices') || '{}');
+                                                        const cachedTotal = paidInvoices[b._id || b.id!];
+                                                        const displayedTotal = cachedTotal !== undefined ? cachedTotal : ((b.discount_amount !== undefined) ? (b.final_price ?? 0) : Math.max(0, (b.final_price ?? b.base_price ?? 0) - Math.round((b.final_price ?? b.base_price ?? 0) * ((b.customer?.tier_id?.discount_percentage || 0) / 100))));
+                                                        return displayedTotal.toLocaleString('vi-VN');
+                                                    })()} đ
+                                                </div>
+                                            </td>
+                                            <td className="px-5 py-4">
+                                                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                                                    <span className="text-xs font-bold text-emerald-700 tracking-wide uppercase">
+                                                        Đã thu tiền
                                                     </span>
                                                 </div>
                                             </td>
@@ -167,10 +189,10 @@ export default function StaffPaymentsPage() {
                 )}
             </div>
 
-            <BookingDetailModal 
-                booking={detailModal} 
-                isOpen={!!detailModal} 
-                onClose={() => setDetailModal(null)} 
+            <BookingDetailModal
+                booking={detailModal}
+                isOpen={!!detailModal}
+                onClose={() => setDetailModal(null)}
             />
         </div>
     )

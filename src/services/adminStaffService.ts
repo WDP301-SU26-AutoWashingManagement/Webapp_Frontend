@@ -18,5 +18,17 @@ export const adminStaffService = {
   
   getStaffList: async (params?: any): Promise<ApiResponse<any>> => {
     return apiClient.get('/staff', { params })
+  },
+
+  getStaffDetail: async (id: string): Promise<ApiResponse<any>> => {
+    return apiClient.get(`/staff/${id}`)
+  },
+
+  updateStaff: async (id: string, payload: any): Promise<ApiResponse<any>> => {
+    return apiClient.put(`/staff/${id}`, payload)
+  },
+
+  deleteStaff: async (id: string): Promise<ApiResponse<any>> => {
+    return apiClient.delete(`/staff/${id}`)
   }
 }

@@ -3,6 +3,7 @@ import { Check, X, Plus, RefreshCw, AlertCircle, CalendarOff, Clock, CheckCircle
 import { staffManagerService, type StaffAbsentRequest } from '../../services/staffManagerService'
 import { showError, showSuccess } from '../../utils/toast'
 import { getErrorMessage } from '../../utils/errors'
+import { useAuth } from '../../hooks/useAuth'
 
 import { LeaveDaysTable } from '../../components/manager/LeaveDaysTable'
 
@@ -12,6 +13,36 @@ export default function StaffLeaveRequestsPage() {
 
   const [myRequests, setMyRequests] = useState<StaffAbsentRequest[]>([])
   const [loadingMy, setLoadingMy] = useState(true)
+
+  const { user } = useAuth()
+  const [allowedStaffIds, setAllowedStaffIds] = useState<string[] | null>(null)
+
+  // Fetch allowed staff IDs for the current manager's branch
+  useEffect(() => {
+    if (user?.role !== 'boss' && user?.branch_id) {
+      const fetchAllowedStaff = async () => {
+        try {
+          const userBranchId = typeof user.branch_id === 'object' ? (user.branch_id as any)._id : user.branch_id;
+          const data = await staffManagerService.getAllStaff({ limit: 1000, branch_id: userBranchId } as any);
+          if (data && Array.isArray(data.data)) {
+            const ids = data.data
+              .filter((s: any) => {
+                const uId = typeof s.user_id === 'object' ? s.user_id._id : s.user_id;
+                return String(uId) !== String(user.user_id);
+              })
+              .map((s: any) => {
+                const uId = typeof s.user_id === 'object' ? s.user_id._id : s.user_id;
+                return String(uId);
+              });
+            setAllowedStaffIds(ids);
+          }
+        } catch (error) {
+          console.error("Failed to load allowed staff", error);
+        }
+      };
+      fetchAllowedStaff();
+    }
+  }, [user]);
 
   const [pendingRequests, setPendingRequests] = useState<StaffAbsentRequest[]>([])
   const [loadingPending, setLoadingPending] = useState(false)
@@ -50,7 +81,10 @@ export default function StaffLeaveRequestsPage() {
       setLoadingPending(true)
       setPendingError(null)
       const data = await staffManagerService.getPendingRequests()
-      setPendingRequests(data)
+      const filtered = (user?.role !== 'boss' && user?.branch_id && allowedStaffIds)
+        ? data.filter(req => allowedStaffIds.includes(String(req.staff_id)))
+        : data;
+      setPendingRequests(filtered)
     } catch (err: any) {
       if (err?.status === 403 || err?.response?.status === 403) {
         setPendingError('Bạn không có quyền quản lý để duyệt đơn.')
@@ -67,7 +101,10 @@ export default function StaffLeaveRequestsPage() {
       setLoadingApproved(true)
       setApprovedError(null)
       const data = await staffManagerService.getStaffOff()
-      setApprovedRequests(data)
+      const filtered = (user?.role !== 'boss' && user?.branch_id && allowedStaffIds)
+        ? data.filter(req => allowedStaffIds.includes(String(req.staff_id)))
+        : data;
+      setApprovedRequests(filtered)
     } catch (err: any) {
       if (err?.status === 403 || err?.response?.status === 403) {
         setApprovedError('Bạn không có quyền quản lý để xem danh sách này.')
@@ -84,7 +121,10 @@ export default function StaffLeaveRequestsPage() {
       setLoadingRejected(true)
       setRejectedError(null)
       const data = await staffManagerService.getRejectedRequests()
-      setRejectedRequests(data)
+      const filtered = (user?.role !== 'boss' && user?.branch_id && allowedStaffIds)
+        ? data.filter(req => allowedStaffIds.includes(String(req.staff_id)))
+        : data;
+      setRejectedRequests(filtered)
     } catch (err: any) {
       if (err?.status === 403 || err?.response?.status === 403) {
         setRejectedError('Bạn không có quyền quản lý để xem danh sách này.')
@@ -106,7 +146,7 @@ export default function StaffLeaveRequestsPage() {
     } else if (activeTab === 'rejected') {
       loadRejectedRequests()
     }
-  }, [activeTab])
+  }, [activeTab, allowedStaffIds])
 
   // Check if user is a manager
   useEffect(() => {

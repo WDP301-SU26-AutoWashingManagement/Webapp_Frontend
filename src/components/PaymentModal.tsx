@@ -69,18 +69,18 @@ export default function PaymentModal({ isOpen, onClose, booking, onSuccess }: Pa
           const basePrice = booking.base_price ?? booking.final_price ?? 0;
           const tierDiscountAmount = Math.round(basePrice * (tierDiscountPct / 100));
           const priceAfterTier = Math.max(0, basePrice - tierDiscountAmount);
-          
+
           // Tính toán discount cho từng promotion và lọc các mã hợp lệ
           const withDiscounts = list.map((p: any) => {
             const discount = computePromotionDiscount(priceAfterTier, p);
             return { ...p, calculatedDiscount: discount };
           }).filter((p: any) => p.calculatedDiscount > 0 || p.type === 'bonus_service'); // Chỉ giữ lại mã có tác dụng
-          
+
           // Sắp xếp theo số tiền giảm giảm dần
           withDiscounts.sort((a, b) => b.calculatedDiscount - a.calculatedDiscount);
-          
+
           setPromotions(withDiscounts);
-          
+
           // Auto-select mã giảm nhiều nhất
           if (withDiscounts.length > 0) {
             setSelectedPromotionId(withDiscounts[0]._id || withDiscounts[0].id!);
@@ -93,7 +93,7 @@ export default function PaymentModal({ isOpen, onClose, booking, onSuccess }: Pa
           setLoadingPromotions(false)
         })
     }
-    
+
     if (!isOpen) {
       // Reset all states khi đóng modal
       stopPolling()
@@ -137,7 +137,7 @@ export default function PaymentModal({ isOpen, onClose, booking, onSuccess }: Pa
     try {
       await invoiceService.confirmCash(invoice._id, (user as any).id || (user as any)._id)
       showSuccess('Thanh toán tiền mặt thành công!')
-      
+
       // LƯU CACHE TẠM CHO FRONTEND DO BACKEND KHÔNG TRẢ VỀ DỮ LIỆU INVOICE TRONG BOOKING
       const paidInvoices = JSON.parse(localStorage.getItem('paid_invoices') || '{}');
       paidInvoices[booking._id || booking.id!] = invoice.total;
@@ -236,7 +236,7 @@ export default function PaymentModal({ isOpen, onClose, booking, onSuccess }: Pa
                   <span className="font-semibold">-{(Math.round((booking.base_price ?? booking.final_price ?? 0) * (booking.customer.tier_id.discount_percentage / 100))).toLocaleString('vi-VN')} đ</span>
                 </div>
               ) : null}
-              
+
               {selectedPromotionId && promotions.find(p => (p._id || p.id) === selectedPromotionId)?.calculatedDiscount ? (
                 <div className="flex justify-between items-center mb-2 text-emerald-600 text-sm">
                   <span className="font-medium">Sẽ được giảm (Khuyến mãi):</span>
@@ -265,7 +265,7 @@ export default function PaymentModal({ isOpen, onClose, booking, onSuccess }: Pa
                 {loadingPromotions ? (
                   <div className="text-sm text-slate-500 flex items-center gap-2"><RefreshCw size={14} className="animate-spin" /> Đang tải khuyến mãi...</div>
                 ) : (
-                  <select 
+                  <select
                     className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none"
                     value={selectedPromotionId || ''}
                     onChange={e => setSelectedPromotionId(e.target.value || null)}
@@ -282,7 +282,7 @@ export default function PaymentModal({ isOpen, onClose, booking, onSuccess }: Pa
               </div>
             </div>
 
-            <button 
+            <button
               onClick={handleCreateInvoice}
               disabled={isCreatingInvoice}
               className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-medium transition disabled:opacity-50"
@@ -319,7 +319,7 @@ export default function PaymentModal({ isOpen, onClose, booking, onSuccess }: Pa
             {/* Chế độ chọn phương thức */}
             {!paymentMode && (
               <div className="grid grid-cols-2 gap-3">
-                <button 
+                <button
                   onClick={handleConfirmCash}
                   disabled={loading}
                   className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 border-slate-100 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-slate-600 hover:text-emerald-600 font-semibold disabled:opacity-50"
@@ -327,7 +327,7 @@ export default function PaymentModal({ isOpen, onClose, booking, onSuccess }: Pa
                   <Banknote size={28} />
                   <span>Tiền mặt</span>
                 </button>
-                <button 
+                <button
                   onClick={handleCreateQR}
                   disabled={loading}
                   className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 border-slate-100 hover:border-blue-500 hover:bg-blue-50 transition-all text-slate-600 hover:text-blue-600 font-semibold disabled:opacity-50"
@@ -342,7 +342,7 @@ export default function PaymentModal({ isOpen, onClose, booking, onSuccess }: Pa
             {paymentMode === 'qr' && (
               <div className="animate-in fade-in zoom-in duration-300">
                 <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-                  
+
                   {/* Header Hướng dẫn */}
                   <div className="flex items-center gap-3 p-4 bg-slate-50 border-b border-slate-200">
                     <div className="text-slate-600"><Lightbulb size={24} /></div>
@@ -352,7 +352,7 @@ export default function PaymentModal({ isOpen, onClose, booking, onSuccess }: Pa
                   </div>
 
                   <div className="p-6 flex flex-col md:flex-row gap-8">
-                    
+
                     {/* Cột Left: QR Code */}
                     <div className="flex-shrink-0 flex flex-col items-center gap-3">
                       <div className="flex items-center gap-1.5 mb-1">
@@ -360,7 +360,7 @@ export default function PaymentModal({ isOpen, onClose, booking, onSuccess }: Pa
                         <span className="text-blue-800 font-black text-xl tracking-tight">QR</span>
                         <span className="bg-yellow-400 text-slate-900 font-bold text-sm px-1.5 rounded ml-1">PRO</span>
                       </div>
-                      
+
                       <div className="p-2 border border-slate-200 rounded-xl bg-white shadow-sm">
                         {invoice.qr_code && invoice.qr_code.startsWith('data:image') ? (
                           <img src={invoice.qr_code} alt="QR Code" className="w-52 h-52 object-contain" />
@@ -370,7 +370,7 @@ export default function PaymentModal({ isOpen, onClose, booking, onSuccess }: Pa
                           <div className="w-52 h-52 flex items-center justify-center bg-slate-50 text-slate-400 text-sm">Đang tải QR...</div>
                         )}
                       </div>
-                      
+
                       <div className="flex items-center gap-3 text-slate-400 text-sm font-semibold mt-1">
                         <span className="text-blue-800 italic">napas 247</span>
                         <span className="w-px h-4 bg-slate-300"></span>
@@ -382,11 +382,11 @@ export default function PaymentModal({ isOpen, onClose, booking, onSuccess }: Pa
                     <div className="flex-1 w-full flex flex-col justify-center">
                       {bankInfo ? (
                         <div className="space-y-4">
-                          
+
                           {/* Ngân hàng */}
                           <div className="flex items-center gap-3 mb-2">
                             <div className="w-10 h-10 bg-blue-50 text-blue-700 rounded-full flex items-center justify-center font-bold text-xs border border-blue-100">
-                               {bankInfo.bankName.substring(0, 3)}
+                              {bankInfo.bankName.substring(0, 3)}
                             </div>
                             <div>
                               <p className="text-xs text-slate-500 mb-0.5">Ngân hàng</p>
@@ -406,7 +406,7 @@ export default function PaymentModal({ isOpen, onClose, booking, onSuccess }: Pa
                               <p className="text-xs text-slate-500 mb-0.5">Số tài khoản:</p>
                               <p className="font-bold text-slate-800 text-base">{bankInfo.accountNumber}</p>
                             </div>
-                            <button 
+                            <button
                               onClick={() => { navigator.clipboard.writeText(bankInfo.accountNumber); showSuccess('Đã copy số tài khoản') }}
                               className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-md transition-colors"
                             >
@@ -420,7 +420,7 @@ export default function PaymentModal({ isOpen, onClose, booking, onSuccess }: Pa
                               <p className="text-xs text-slate-500 mb-0.5">Số tiền:</p>
                               <p className="font-bold text-slate-800 text-base">{invoice.total.toLocaleString('vi-VN')} vnd</p>
                             </div>
-                            <button 
+                            <button
                               onClick={() => { navigator.clipboard.writeText(invoice.total.toString()); showSuccess('Đã copy số tiền') }}
                               className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-md transition-colors"
                             >
@@ -434,7 +434,7 @@ export default function PaymentModal({ isOpen, onClose, booking, onSuccess }: Pa
                               <p className="text-xs text-slate-500 mb-0.5">Nội dung:</p>
                               <p className="font-bold text-slate-800 text-base">{invoice.order_code}</p>
                             </div>
-                            <button 
+                            <button
                               onClick={() => { navigator.clipboard.writeText(invoice.order_code!.toString()); showSuccess('Đã copy nội dung') }}
                               className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-md transition-colors"
                             >
@@ -445,8 +445,8 @@ export default function PaymentModal({ isOpen, onClose, booking, onSuccess }: Pa
                         </div>
                       ) : (
                         <div className="h-full flex flex-col items-center justify-center text-sm text-slate-500 gap-2">
-                           <RefreshCw size={24} className="animate-spin text-slate-300" />
-                           {invoice.qr_code ? 'Đang giải mã thông tin VietQR...' : 'Đang tải thông tin...'}
+                          <RefreshCw size={24} className="animate-spin text-slate-300" />
+                          {invoice.qr_code ? 'Đang giải mã thông tin VietQR...' : 'Đang tải thông tin...'}
                         </div>
                       )}
                     </div>
@@ -459,23 +459,16 @@ export default function PaymentModal({ isOpen, onClose, booking, onSuccess }: Pa
                     </p>
                   </div>
                 </div>
-                
+
                 {/* Hành động dưới cùng */}
                 <div className="flex justify-center gap-3 mt-5">
-                  <button 
+                  <button
                     onClick={handleCancelQR}
                     className="text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 px-6 py-2.5 rounded-lg text-sm font-semibold transition shadow-sm"
                   >
                     Huỷ mã QR
                   </button>
-                  {invoice.checkout_url && (
-                    <button 
-                      onClick={() => window.open(invoice.checkout_url, '_blank')}
-                      className="text-white bg-blue-600 hover:bg-blue-700 px-4 py-2.5 rounded-lg text-sm font-semibold transition shadow-sm"
-                    >
-                      Mở link PayOS (Để Test)
-                    </button>
-                  )}
+
                 </div>
               </div>
             )}

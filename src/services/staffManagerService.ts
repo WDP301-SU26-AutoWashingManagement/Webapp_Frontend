@@ -60,8 +60,20 @@ export const staffManagerService = {
   },
 
   // Lấy danh sách tất cả nhân viên (kèm ngày phép)
-  async getAllStaff(params?: { limit?: number, page?: number, search?: string }): Promise<any> {
+  async getAllStaff(params?: any): Promise<any> {
     const response = await apiClient.get<ApiResponse<any>>('/staff', { params })
+    return response.data
+  },
+
+  // Lấy thống kê ngày nghỉ của một nhân viên
+  async getLeaveSummary(staffId: string): Promise<any> {
+    const response = await apiClient.get<ApiResponse<any>>(`/staff/${staffId}/leave-summary`)
+    return response.data
+  },
+
+  // Quản lý cộng/trừ thêm ngày đã nghỉ phép (used_leave_days)
+  async addUsedLeaveDays(staffId: string, days: number): Promise<any> {
+    const response = await apiClient.post<ApiResponse<any>>(`/staff/${staffId}/leave`, { days })
     return response.data
   }
 }

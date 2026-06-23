@@ -25,6 +25,11 @@ type PaginatedEnvelope = ApiResponse<unknown[]> & {
   }
 }
 
+export interface AvailableSlot {
+  scheduled_at: string
+  available_bays: number
+}
+
 /** Customer bookings — GET/POST /bookings (authenticate) */
 export const bookingService = {
   async list(params?: BookingListParams): Promise<BookingListResult> {
@@ -100,6 +105,14 @@ export const bookingService = {
         limit: body.pagination?.limit,
       }
     })
+  },
+
+  async getAvailableSlots(branchId: string, date: string): Promise<AvailableSlot[]> {
+    const body = await apiClient.get<ApiResponse<AvailableSlot[]>>(`/bookings/branches/${branchId}/available-slots`, {
+      params: { date }
+    });
+    // @ts-ignore
+    return (body.data ?? body) as AvailableSlot[];
   },
 
   async getById(id: string): Promise<WashBooking> {

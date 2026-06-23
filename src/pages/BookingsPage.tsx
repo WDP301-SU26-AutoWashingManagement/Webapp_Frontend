@@ -4,6 +4,7 @@ import { Link, Navigate, useSearchParams } from 'react-router-dom'
 import AccountPageShell from '../components/account/AccountPageShell'
 import { bookingService } from '../services/bookingService'
 import type { BookingStatus, WashBooking } from '../types/booking'
+import BookingDetailModal from '../components/BookingDetailModal'
 import {
   BOOKING_STATUS_LABELS,
   BOOKING_STATUS_STYLES,
@@ -42,6 +43,12 @@ export default function BookingsPage() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<BookingTab>('upcoming')
 
+  const [detailModal, setDetailModal] = useState<WashBooking | null>(null)
+
+  const [cancelModal, setCancelModal] = useState<{isOpen: boolean, booking: WashBooking | null}>({ isOpen: false, booking: null })
+  const [cancelReason, setCancelReason] = useState('')
+  const [isCancelling, setIsCancelling] = useState(false)
+
   const loadBookings = useCallback(async () => {
     setLoading(true)
     try {
@@ -68,18 +75,31 @@ export default function BookingsPage() {
     return <Navigate to="/bookings/new" replace />
   }
 
-  const handleCancel = async (booking: WashBooking) => {
-    const id = bookingId(booking)
-    if (!id) return
-    const reason = window.prompt('Lý do hủy lịch hẹn:')
-    if (!reason?.trim()) return
+  const handleCancelClick = (booking: WashBooking) => {
+    setCancelModal({ isOpen: true, booking })
+    setCancelReason('')
+  }
 
+  const performCancel = async () => {
+    if (!cancelModal.booking) return
+    const id = bookingId(cancelModal.booking)
+    if (!id) return
+    
+    if (!cancelReason.trim()) {
+      showError('Vui lòng nhập lý do hủy lịch')
+      return
+    }
+
+    setIsCancelling(true)
     try {
-      await bookingService.cancel(id, reason.trim())
+      await bookingService.cancel(id, cancelReason.trim())
       showSuccess('Đã hủy lịch hẹn')
+      setCancelModal({ isOpen: false, booking: null })
       await loadBookings()
     } catch (err) {
       showError(getApiErrorMessage(err, 'Hủy lịch thất bại'))
+    } finally {
+      setIsCancelling(false)
     }
   }
 
@@ -148,7 +168,8 @@ export default function BookingsPage() {
                 return (
                   <li
                     key={id || booking.scheduled_at}
-                    className="rounded-xl border border-slate-100 bg-slate-50/50 p-4 transition hover:border-cyan-500/20"
+                    onClick={() => setDetailModal(booking)}
+                    className="rounded-xl border border-slate-100 bg-slate-50/50 p-4 transition hover:border-cyan-500/20 cursor-pointer"
                   >
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div className="min-w-0 flex-1">
@@ -176,7 +197,10 @@ export default function BookingsPage() {
                       {canCancel && (
                         <button
                           type="button"
-                          onClick={() => void handleCancel(booking)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCancelClick(booking);
+                          }}
                           className="shrink-0 rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50"
                         >
                           Hủy lịch
@@ -190,6 +214,69 @@ export default function BookingsPage() {
           )}
         </div>
       </section>
+
+      {/* Cancel Booking Modal */}
+      {cancelModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col">
+            <div className="p-6 border-b border-slate-100 bg-white">
+              <h3 className="text-xl font-bold text-slate-800">Xác nhận hủy lịch</h3>
+              <p className="mt-2 text-sm text-slate-500 leading-relaxed">
+                Bạn có chắc chắn muốn hủy lịch hẹn lúc{' '}
+                <span className="font-semibold text-slate-700">
+                  {cancelModal.booking ? formatScheduledAt(cancelModal.booking.scheduled_at) : ''}
+                </span>{' '}
+                không? Hành động này không thể hoàn tác.
+              </p>
+            </div>
+            <div className="p-6 bg-slate-50 flex-1">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Lý do hủy <span className="text-rose-500">*</span>
+              </label>
+              <textarea
+                autoFocus
+                className="w-full rounded-xl border border-slate-200 p-3 text-sm outline-none transition focus:border-rose-400 focus:ring-1 focus:ring-rose-400 resize-none min-h-[120px] shadow-sm"
+                placeholder="Vui lòng cho chúng tôi biết lý do bạn muốn hủy lịch hẹn này..."
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+              />
+            </div>
+            <div className="p-5 border-t border-slate-100 flex justify-end gap-3 bg-white">
+              <button
+                type="button"
+                onClick={() => setCancelModal({ isOpen: false, booking: null })}
+                disabled={isCancelling}
+                className="px-5 py-2.5 rounded-xl font-medium text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 hover:text-slate-900 transition disabled:opacity-50"
+              >
+                Trở lại
+              </button>
+              <button
+                type="button"
+                onClick={() => void performCancel()}
+                disabled={isCancelling || !cancelReason.trim()}
+                className="px-5 py-2.5 rounded-xl font-bold text-white bg-rose-500 hover:bg-rose-600 shadow-sm shadow-rose-200 transition disabled:opacity-50 flex items-center gap-2"
+              >
+                {isCancelling ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    Đang xử lý...
+                  </>
+                ) : (
+                  'Xác nhận hủy'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Detail Modal */}
+      <BookingDetailModal 
+        booking={detailModal} 
+        isOpen={!!detailModal} 
+        onClose={() => setDetailModal(null)}
+        hideStaffActions={true}
+      />
     </AccountPageShell>
   )
 }
