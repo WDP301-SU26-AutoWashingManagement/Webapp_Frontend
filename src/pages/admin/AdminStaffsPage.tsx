@@ -360,10 +360,10 @@ function DetailStaffModal({ staffId, onClose }: { staffId: string, onClose: () =
             <div className="space-y-4 text-sm">
               <div className="flex gap-4 border-b border-slate-100 pb-4">
                 <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold text-xl shrink-0">
-                  {detail.user_id?.full_name?.charAt(0)?.toUpperCase() || 'S'}
+                  {detail.full_name?.charAt(0)?.toUpperCase() || 'S'}
                 </div>
                 <div>
-                  <h3 className="font-bold text-lg text-slate-800">{detail.user_id?.full_name || 'Không xác định'}</h3>
+                  <h3 className="font-bold text-lg text-slate-800">{detail.full_name || 'Không xác định'}</h3>
                   <p className="text-slate-500">{detail.staff_code} &bull; <span className="capitalize">{detail.staff_type}</span></p>
                 </div>
               </div>
@@ -371,11 +371,11 @@ function DetailStaffModal({ staffId, onClose }: { staffId: string, onClose: () =
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-slate-400 mb-1">Email</p>
-                  <p className="font-medium">{detail.user_id?.email || '---'}</p>
+                  <p className="font-medium">{detail.email || '---'}</p>
                 </div>
                 <div>
                   <p className="text-slate-400 mb-1">Số điện thoại</p>
-                  <p className="font-medium">{detail.user_id?.phone || '---'}</p>
+                  <p className="font-medium">{detail.phone || '---'}</p>
                 </div>
                 <div>
                   <p className="text-slate-400 mb-1">Ngày vào làm</p>
@@ -391,7 +391,7 @@ function DetailStaffModal({ staffId, onClose }: { staffId: string, onClose: () =
                 </div>
                 <div>
                   <p className="text-slate-400 mb-1">Trạng thái tài khoản</p>
-                  <p className="font-medium">{detail.user_id?.is_active ? <span className="text-green-600">Hoạt động</span> : <span className="text-red-600">Đã khóa</span>}</p>
+                  <p className="font-medium">{detail.is_active !== false ? <span className="text-green-600">Hoạt động</span> : <span className="text-red-600">Đã khóa</span>}</p>
                 </div>
               </div>
 
@@ -578,6 +578,7 @@ export default function AdminStaffsPage() {
           <table className="admin-table">
             <thead>
               <tr>
+                <th>Nhân viên</th>
                 <th>Mã NV</th>
                 <th>Loại NV</th>
                 <th>Hệ số lương</th>
@@ -590,6 +591,17 @@ export default function AdminStaffsPage() {
             <tbody>
               {staffs.map(staff => (
                 <tr key={staff._id}>
+                  <td>
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm shrink-0">
+                        {staff.full_name?.charAt(0)?.toUpperCase() || 'S'}
+                      </div>
+                      <div>
+                        <div className="font-semibold text-slate-800">{staff.full_name || 'Không xác định'}</div>
+                        <div className="text-xs text-slate-500">{staff.email || 'Không có email'}</div>
+                      </div>
+                    </div>
+                  </td>
                   <td className="font-medium text-slate-900">{staff.staff_code}</td>
                   <td>
                     <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-slate-100 text-slate-700 capitalize">

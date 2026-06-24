@@ -1,4 +1,3 @@
-import React from 'react';
 import { X, CheckSquare, Square, Image as ImageIcon, FileText, PenTool } from 'lucide-react';
 import type { BookingChecklist } from '../services/bookingChecklistService';
 import { env } from '../config/env';
@@ -15,7 +14,7 @@ export default function ViewChecklistModal({ checklist, isOpen, onClose }: ViewC
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-2xl w-full max-w-xl shadow-2xl flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
-        
+
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50 rounded-t-2xl">
           <div>
             <h2 className="text-lg font-bold text-slate-800">Chi tiết Biên bản xe</h2>
@@ -23,7 +22,7 @@ export default function ViewChecklistModal({ checklist, isOpen, onClose }: ViewC
               Ngày lập: {checklist.createdAt ? new Date(checklist.createdAt).toLocaleString('vi-VN') : 'N/A'}
             </p>
           </div>
-          <button 
+          <button
             onClick={onClose}
             className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-full transition-colors"
           >
@@ -78,15 +77,15 @@ export default function ViewChecklistModal({ checklist, isOpen, onClose }: ViewC
                   const imgSrc = getImageUrl(img);
 
                   return (
-                    <a 
-                      key={idx} 
-                      href={imgSrc} 
-                      target="_blank" 
+                    <a
+                      key={idx}
+                      href={imgSrc}
+                      target="_blank"
                       rel="noreferrer"
                       className="block aspect-square rounded-xl overflow-hidden border border-slate-200 hover:border-emerald-400 transition-colors"
                     >
-                      <img 
-                        src={imgSrc} 
+                      <img
+                        src={imgSrc}
                         alt={`Ảnh hiện trạng ${idx + 1}`}
                         className="w-full h-full object-cover"
                       />
@@ -104,9 +103,9 @@ export default function ViewChecklistModal({ checklist, isOpen, onClose }: ViewC
                 <PenTool size={16} className="text-indigo-500" /> Chữ ký xác nhận
               </h3>
               <div className="border border-slate-200 rounded-xl p-4 bg-white flex justify-center items-center h-32">
-                <img 
-                  src={checklist.customer_signature} 
-                  alt="Chữ ký khách hàng" 
+                <img
+                  src={checklist.customer_signature}
+                  alt="Chữ ký khách hàng"
                   className="max-w-full max-h-full object-contain"
                 />
               </div>
@@ -115,7 +114,7 @@ export default function ViewChecklistModal({ checklist, isOpen, onClose }: ViewC
         </div>
 
         <div className="p-4 border-t border-slate-100 bg-slate-50/50 rounded-b-2xl flex justify-end">
-          <button 
+          <button
             onClick={onClose}
             className="px-6 py-2 bg-slate-800 text-white font-medium rounded-xl hover:bg-slate-900 transition-colors"
           >
