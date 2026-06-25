@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { MapPin, Phone, Clock, Car } from 'lucide-react'
 import { branchService } from '../services/branchService'
 import type { Branch } from '../services/branchService'
+import { CursorCardsContainer, CursorCard } from './ui/cursor-cards'
 
 export default function Branches() {
   const [branches, setBranches] = useState<Branch[]>([])
@@ -35,7 +36,7 @@ export default function Branches() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <CursorCardsContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {branches.map(branch => {
             const id = branch._id || branch.id
             const address = branch.branch_address
@@ -45,7 +46,15 @@ export default function Branches() {
               : ''
 
             return (
-              <div key={id} className="rounded-3xl border border-cyan-500/15 bg-white shadow-sm overflow-hidden flex flex-col transition-transform hover:-translate-y-1 hover:shadow-md">
+              <CursorCard
+                key={id}
+                borderColor="rgba(120, 4, 240, 0.15)"
+                primaryHue="#50017a"
+                secondaryHue="#7506e3"
+                illuminationColor="rgba(117, 6, 227, 0.15)"
+                illuminationOpacity={0.6}
+                className="h-full w-full rounded-3xl overflow-hidden flex flex-col transition-transform hover:-translate-y-1 hover:shadow-md"
+              >
                 {/* Map embed */}
                 <div className="h-48 w-full bg-slate-100 relative">
                   {hasGeo ? (
@@ -53,6 +62,7 @@ export default function Branches() {
                       src={mapSrc}
                       width="100%"
                       height="100%"
+                      className="pointer-events-none"
                       style={{ border: 0 }}
                       allowFullScreen
                       loading="lazy"
@@ -104,10 +114,10 @@ export default function Branches() {
                     </a>
                   )}
                 </div>
-              </div>
+              </CursorCard>
             )
           })}
-        </div>
+        </CursorCardsContainer>
       </div>
     </section>
   )
