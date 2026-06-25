@@ -113,8 +113,8 @@ export default function StaffLayout() {
         return {
             ...group,
             items: group.items.filter(item => {
-                // Giấu Hệ thống Auto-Cron đối với Technical
-                if (!isManager && item.to === '/staff/dashboard') return false
+                // Giấu Hệ thống Auto-Cron và Doanh thu đối với Technical
+                if (!isManager && (item.to === '/staff/dashboard' || item.to === '/staff/revenue')) return false
                 return true
             })
         }

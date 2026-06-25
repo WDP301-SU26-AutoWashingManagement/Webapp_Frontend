@@ -166,10 +166,35 @@ export function validateScheduledAt(
   return { valid: true }
 }
 
-export function getScheduleFieldHints(windowDays = DEFAULT_BOOKING_WINDOW_DAYS): string {
+export function getScheduleFieldHints(
+  windowDays = DEFAULT_BOOKING_WINDOW_DAYS,
+  branchOpenTime?: string,
+  branchCloseTime?: string
+): string {
+  let openStr = `${BUSINESS_HOURS.open}:00`
+  let closeStr = `${BUSINESS_HOURS.close - 1}:30`
+
+  if (branchOpenTime && branchCloseTime) {
+    openStr = branchOpenTime
+    const closeParts = branchCloseTime.split(':')
+    if (closeParts.length === 2) {
+      let h = parseInt(closeParts[0], 10)
+      let m = parseInt(closeParts[1], 10)
+      if (m >= 30) {
+        m -= 30
+      } else {
+        h -= 1
+        m += 30
+      }
+      closeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+    } else {
+      closeStr = branchCloseTime
+    }
+  }
+
   return [
     `Chỉ đặt được thời gian trong tương lai (trước ít nhất ${MIN_ADVANCE_MINUTES} phút)`,
-    `Khung giờ ${BUSINESS_HOURS.open}:00–${BUSINESS_HOURS.close - 1}:30, bước ${SLOT_DURATION_MINUTES} phút`,
+    `Khung giờ ${openStr}–${closeStr}, bước ${SLOT_DURATION_MINUTES} phút`,
     `Tối đa ${windowDays} ngày kể từ hiện tại`,
   ].join(' · ')
 }
