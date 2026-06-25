@@ -12,6 +12,7 @@ import { branchService } from '../services/branchService'
 import type { Branch } from '../services/branchService'
 import type { Promotion } from '../types/promotion'
 import type { Vehicle } from '../types/vehicle'
+import ReactAriaDatePicker from '../components/ReactAriaDatePicker'
 
 // Định nghĩa lại Type này vì type ServicePackage mặc định đang bị thiếu các trường này
 interface BookingServiceType {
@@ -183,14 +184,6 @@ export default function NewBookingPage() {
     }
   }, [apiSlots, dateValue, timeValue, lastFetchedDate]);
 
-  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newDate = e.target.value
-    if (!newDate) {
-      setForm((p) => ({ ...p, scheduled_at: '' }))
-      return
-    }
-    setForm((p) => ({ ...p, scheduled_at: `${newDate}T` }))
-  }
 
   useEffect(() => {
     let active = true;
@@ -223,20 +216,20 @@ export default function NewBookingPage() {
       const hh = String(d.getHours()).padStart(2, '0');
       const mm = String(d.getMinutes()).padStart(2, '0');
       const newTime = `${yyyy}-${MM}-${dd}T${hh}:${mm}`;
-      
+
       setForm(p => ({ ...p, scheduled_at: newTime }));
     }
   }, [recommendation]);
 
   const handleApplyRecommendation = async () => {
     if (!recommendation) return;
-    
+
     // Auto-fill branch
     let newBranchId = form.branch_id;
     if (recommendation.branch_id) {
       newBranchId = recommendation.branch_id;
     }
-    
+
     // Auto-fill time
     let newTime = form.scheduled_at;
     if (recommendation.suggested_scheduled_at) {
@@ -267,7 +260,7 @@ export default function NewBookingPage() {
       try {
         const { promotion } = await promotionService.validateCode(promoCode)
         setValidatedPromotion(promotion)
-      } catch (e) {}
+      } catch (e) { }
     }
 
     setForm(p => ({
@@ -278,7 +271,7 @@ export default function NewBookingPage() {
       service_ids: sIds,
       promotion_code: promoCode,
     }));
-    
+
     showSuccess('Đã áp dụng cấu hình Gợi ý Thông minh!');
     setStep(2);
   };
@@ -568,7 +561,7 @@ export default function NewBookingPage() {
                           <div className="flex-1">
                             <h4 className="text-sm font-bold text-indigo-900 mb-1">Auto-Pilot Booking</h4>
                             <p className="text-xs text-indigo-700 italic leading-relaxed mb-3">"{recommendation.reason}"</p>
-                            
+
                             <div className="bg-white/60 rounded-lg p-3 border border-indigo-100 mb-3 space-y-2">
                               <div className="flex justify-between items-center text-xs">
                                 <span className="font-semibold text-slate-700">Dịch vụ:</span>
@@ -580,7 +573,7 @@ export default function NewBookingPage() {
                                 <div className="flex justify-between items-center text-xs">
                                   <span className="font-semibold text-slate-700">Khung giờ sớm nhất:</span>
                                   <span className="text-right text-indigo-900 font-bold">
-                                    {new Date(recommendation.suggested_scheduled_at).toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'})} ({new Date(recommendation.suggested_scheduled_at).toLocaleDateString('vi-VN')})
+                                    {new Date(recommendation.suggested_scheduled_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} ({new Date(recommendation.suggested_scheduled_at).toLocaleDateString('vi-VN')})
                                   </span>
                                 </div>
                               )}
@@ -620,15 +613,20 @@ export default function NewBookingPage() {
                     </span>
 
                     {/* Chọn ngày */}
-                    <input
-                      type="date"
-                      required
-                      value={dateValue}
-                      min={scheduleBounds.min.split('T')[0]}
-                      max={scheduleBounds.max.split('T')[0]}
-                      onChange={handleDateChange}
-                      className={`${AUTH_INPUT_CLASS} mt-2 w-full`}
-                    />
+                    <div className="mt-2">
+                      <ReactAriaDatePicker
+                        value={dateValue}
+                        minDate={scheduleBounds.min.split('T')[0]}
+                        maxDate={scheduleBounds.max.split('T')[0]}
+                        onChange={(newDate) => {
+                          if (!newDate) {
+                            setForm((p) => ({ ...p, scheduled_at: '' }))
+                            return
+                          }
+                          setForm((p) => ({ ...p, scheduled_at: `${newDate}T` }))
+                        }}
+                      />
+                    </div>
 
                     {/* Lưới khung giờ */}
                     <div className="mt-4">
@@ -664,8 +662,8 @@ export default function NewBookingPage() {
                                 type="button"
                                 onClick={() => setForm(p => ({ ...p, scheduled_at: `${dateValue}T${s.timeStr}` }))}
                                 className={`flex flex-col items-center justify-center rounded-lg border px-1 py-2.5 transition-all ${isSelected
-                                    ? 'border-cyan-600 bg-cyan-600 text-white shadow-md'
-                                    : 'border-slate-200 bg-white text-slate-700 hover:border-cyan-400 hover:bg-cyan-50'
+                                  ? 'border-cyan-600 bg-cyan-600 text-white shadow-md'
+                                  : 'border-slate-200 bg-white text-slate-700 hover:border-cyan-400 hover:bg-cyan-50'
                                   }`}
                               >
                                 <span className="text-[15px] font-bold leading-tight">{s.timeStr}</span>
