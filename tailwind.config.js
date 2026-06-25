@@ -42,6 +42,11 @@ export default {
                         transform: 'translateX(-50%) translateY(8px)',
                     },
                 },
+                'border-beam': {
+                    '100%': {
+                        'offset-distance': '100%',
+                    },
+                },
             },
             animation: {
                 float1: 'float1 8s ease-in-out infinite',
@@ -49,6 +54,7 @@ export default {
                 float3: 'float3 12s ease-in-out infinite',
                 fadeUp: 'fadeUp 0.8s ease both',
                 bounce: 'bounce 2s infinite',
+                'border-beam': 'border-beam calc(var(--duration)*1s) infinite linear',
             },
         },
     },

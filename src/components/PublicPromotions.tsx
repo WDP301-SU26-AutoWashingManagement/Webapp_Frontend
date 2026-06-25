@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { Tag, Calendar, Scissors, Sparkles } from 'lucide-react'
 import { adminPromotionService } from '../services/adminPromotionService'
 import type { Promotion } from '../types/promotion'
+import { BorderBeam } from './ui/BorderBeam'
 
 export default function PublicPromotions() {
     const [promotions, setPromotions] = useState<Promotion[]>([])
@@ -35,6 +36,12 @@ export default function PublicPromotions() {
                         <div key={promo._id || promo.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col hover:shadow-md transition-shadow relative overflow-hidden group">
                             {/* Trang trí góc */}
                             <div className="absolute -right-6 -top-6 w-24 h-24 bg-cyan-50 rounded-full opacity-50 group-hover:scale-150 transition-transform duration-500" />
+
+                            {promo.type === 'bonus_service' ? (
+                                <BorderBeam size={240} duration={8} colorFrom="#3b82f6" colorTo="#0ea5b7" borderWidth={1.5} />
+                            ) : (
+                                <BorderBeam size={240} duration={8} colorFrom="#a855f7" colorTo="#ec4899" borderWidth={1.5} />
+                            )}
 
                             <div className="relative z-10 flex-1">
                                 <div className="flex items-start justify-between mb-4">
