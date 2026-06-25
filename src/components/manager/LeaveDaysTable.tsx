@@ -32,7 +32,8 @@ export const LeaveDaysTable: React.FC = () => {
             mongoId: staff._id,
             staffId: staff._id,
             staffCode: staff.staff_code || staff._id,
-            staffName: staff.user_id?.full_name || staff.user_id?.email || 'Chưa cập nhật',
+            staffName: staff.full_name || staff.user_id?.full_name || staff.email || staff.user_id?.email || 'Chưa cập nhật',
+            staffEmail: staff.email || staff.user_id?.email || '',
             totalLeaveDays: staff.annual_leave_days ?? 12,
             usedLeaveDays: staff.used_leave_days ?? 0,
             remainingLeaveDays: (staff.annual_leave_days ?? 12) - (staff.used_leave_days ?? 0),
@@ -164,12 +165,12 @@ export const LeaveDaysTable: React.FC = () => {
                   <div className="flex items-center">
                     <div className="flex-shrink-0 h-10 w-10">
                       <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold">
-                        {record.staffName.charAt(0)}
+                        {record.staffName.charAt(0).toUpperCase()}
                       </div>
                     </div>
                     <div className="ml-4">
                       <div className="text-sm font-medium text-slate-900">{record.staffName}</div>
-                      <div className="text-sm text-slate-500">Mã: {record.staffCode}</div>
+                      <div className="text-sm text-slate-500">{(record as any).staffEmail || `Mã: ${record.staffCode}`}</div>
                     </div>
                   </div>
                 </td>
@@ -221,12 +222,12 @@ export const LeaveDaysTable: React.FC = () => {
             
             <div className="p-6">
               <div className="flex items-center gap-4 mb-6">
-                <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-lg">
-                  {selectedRecord.staffName.charAt(0)}
+                <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-lg shrink-0">
+                  {selectedRecord.staffName.charAt(0).toUpperCase()}
                 </div>
                 <div>
                   <h4 className="font-bold text-slate-900">{selectedRecord.staffName}</h4>
-                  <p className="text-sm text-slate-500">Mã: {selectedRecord.staffCode}</p>
+                  <p className="text-sm text-slate-500">{(selectedRecord as any).staffEmail || `Mã: ${selectedRecord.staffCode}`}</p>
                 </div>
               </div>
 

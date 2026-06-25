@@ -15,6 +15,8 @@ import {
 } from 'lucide-react'
 import apiClient from '../../services/apiClient'
 import { showError } from '../../utils/toast'
+import { useAuth } from '../../hooks/useAuth'
+import { branchService, type Branch } from '../../services/branchService'
 
 interface DashboardStats {
   totalCustomers: number
@@ -181,8 +183,13 @@ const getDateDaysAgo = (days: number) => {
 }
 
 export default function AdminDashboard() {
+  const { user } = useAuth()
+  const isBoss = user?.role === 'boss'
+
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
+  const [branches, setBranches] = useState<Branch[]>([])
+  const [selectedBranch, setSelectedBranch] = useState<string>('all')
 
   const [dateRange, setDateRange] = useState({
     startDate: fmt(getDateDaysAgo(7)),
@@ -201,17 +208,32 @@ export default function AdminDashboard() {
   const fetchStats = async () => {
     setLoading(true)
     try {
+      const branchQuery = selectedBranch !== 'all' ? `?branch_id=${selectedBranch}` : ''
+      const branchBody = selectedBranch !== 'all' ? { branch_id: selectedBranch } : {}
+
+      if (isBoss && branches.length === 0) {
+        try {
+          const branchesData = await branchService.list()
+          const bList = Array.isArray(branchesData) ? branchesData : ((branchesData as any).data || [])
+          setBranches(bList)
+        } catch (e) {
+          console.warn('Could not fetch branches', e)
+        }
+      }
+
       const [customersRes, bookingsRes, profitRes, topRes] = await Promise.all([
-        apiClient.get<{ data: { totalCustomers: number } }>('/admin/customers/count'),
+        apiClient.get<{ data: { totalCustomers: number } }>(`/admin/customers/count${branchQuery}`),
         apiClient.post<{ data: { totalBookings: number } }>('/admin/bookings/count', {
           startDate: dateRange.startDate,
           endDate: dateRange.endDate,
+          ...branchBody
         }),
         apiClient.post<{ data: { date: string; profit: number }[] }>('/admin/profit', {
           startDate: dateRange.startDate,
           endDate: dateRange.endDate,
+          ...branchBody
         }),
-        apiClient.get<{ data: { serviceName: string; count: number }[] }>('/admin/top-services'),
+        apiClient.get<{ data: { serviceName: string; count: number }[] }>(`/admin/top-services${branchQuery}`),
       ])
 
       const dailyProfit: { date: string; profit: number }[] = Array.isArray(profitRes.data)
@@ -245,7 +267,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     void fetchStats()
-  }, [dateRange])
+  }, [dateRange, selectedBranch])
 
   const totalRevenue = stats?.dailyProfit.reduce((s, d) => s + d.profit, 0) ?? 0
   const averageRevenue = stats?.dailyProfit.length ? Math.round(totalRevenue / stats?.dailyProfit.length) : 0;
@@ -270,6 +292,22 @@ export default function AdminDashboard() {
         </div>
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-white p-2 rounded-xl shadow-sm border border-slate-200">
+          {isBoss && branches.length > 0 && (
+            <div className="flex items-center bg-slate-100 rounded-lg p-1 mr-2">
+              <select
+                value={selectedBranch}
+                onChange={(e) => setSelectedBranch(e.target.value)}
+                className="px-3 py-1.5 text-sm bg-transparent border-none outline-none text-slate-700 font-semibold focus:ring-0 cursor-pointer"
+              >
+                <option value="all">Tất cả chi nhánh</option>
+                {branches.map(b => (
+                  <option key={b._id || b.id} value={b._id || b.id}>
+                    {b.branch_address?.street ? `${b.branch_address.street}, ${b.branch_address.district}` : (b._id || b.id)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="flex items-center bg-slate-100 rounded-lg p-1">
             {(['7', '14', '21', '30'] as const).map((p) => (
               <button

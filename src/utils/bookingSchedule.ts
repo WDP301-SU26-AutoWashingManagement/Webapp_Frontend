@@ -41,32 +41,50 @@ export function snapMinutesToSlot(date: Date): Date {
   return d
 }
 
-function isWithinBusinessHours(date: Date): boolean {
+function parseTimeString(timeStr?: string, defaultHour = 0): { h: number, m: number } {
+  if (!timeStr) return { h: defaultHour, m: 0 }
+  const [h, m] = timeStr.split(':')
+  return { h: parseInt(h, 10) || 0, m: parseInt(m, 10) || 0 }
+}
+
+function isWithinBusinessHours(date: Date, openStr?: string, closeStr?: string): boolean {
+  const { h: openH, m: openM } = parseTimeString(openStr, BUSINESS_HOURS.open)
+  const { h: closeH, m: closeM } = parseTimeString(closeStr, BUSINESS_HOURS.close)
+
   const hour = date.getHours()
   const minutes = date.getMinutes()
-  if (hour < BUSINESS_HOURS.open) return false
-  if (hour > BUSINESS_HOURS.close - 1) return false
-  if (hour === BUSINESS_HOURS.close - 1 && minutes > 30) return false
+  
+  const timeInMinutes = hour * 60 + minutes
+  const openInMinutes = openH * 60 + openM
+  const closeInMinutes = closeH * 60 + closeM
+  
+  if (timeInMinutes < openInMinutes) return false
+  if (timeInMinutes > closeInMinutes - 30) return false
+  
   return minutes === 0 || minutes === 30
 }
 
-/** Move forward to the next bookable slot (07:00–18:30, step 30 phút). */
-export function advanceToNextBookableSlot(date: Date): Date {
+/** Move forward to the next bookable slot (step 30 phút). */
+export function advanceToNextBookableSlot(date: Date, openStr?: string, closeStr?: string): Date {
   let d = snapMinutesToSlot(roundUpToSlot(date))
+  const { h: openH, m: openM } = parseTimeString(openStr, BUSINESS_HOURS.open)
+  const { h: closeH, m: closeM } = parseTimeString(closeStr, BUSINESS_HOURS.close)
 
   for (let i = 0; i < 96; i += 1) {
-    if (isWithinBusinessHours(d)) return d
+    if (isWithinBusinessHours(d, openStr, closeStr)) return d
     const hour = d.getHours()
     const minutes = d.getMinutes()
+    const timeInMinutes = hour * 60 + minutes
+    const closeInMinutes = closeH * 60 + closeM
 
-    if (hour < BUSINESS_HOURS.open) {
-      d.setHours(BUSINESS_HOURS.open, 0, 0, 0)
+    if (timeInMinutes < openH * 60 + openM) {
+      d.setHours(openH, openM, 0, 0)
       continue
     }
 
-    if (hour >= BUSINESS_HOURS.close - 1 && (hour > BUSINESS_HOURS.close - 1 || minutes >= 30)) {
+    if (timeInMinutes > closeInMinutes - 30) {
       d.setDate(d.getDate() + 1)
-      d.setHours(BUSINESS_HOURS.open, 0, 0, 0)
+      d.setHours(openH, openM, 0, 0)
       continue
     }
 
@@ -77,11 +95,11 @@ export function advanceToNextBookableSlot(date: Date): Date {
 }
 
 /** Move backward to the latest bookable slot at or before `date`. */
-export function retreatToLatestBookableSlot(date: Date): Date {
+export function retreatToLatestBookableSlot(date: Date, openStr?: string, closeStr?: string): Date {
   let d = snapMinutesToSlot(new Date(date))
 
   for (let i = 0; i < 96; i += 1) {
-    if (isWithinBusinessHours(d)) return d
+    if (isWithinBusinessHours(d, openStr, closeStr)) return d
     d = new Date(d.getTime() - SLOT_DURATION_MINUTES * MS_PER_MINUTE)
   }
 
@@ -89,24 +107,26 @@ export function retreatToLatestBookableSlot(date: Date): Date {
 }
 
 /** Earliest allowed time: now + 60 phút, làm tròn slot, trong giờ mở cửa. */
-export function getEarliestBookableTime(now = new Date()): Date {
+export function getEarliestBookableTime(now = new Date(), openStr?: string, closeStr?: string): Date {
   const afterAdvance = new Date(now.getTime() + MIN_ADVANCE_MINUTES * MS_PER_MINUTE)
-  return advanceToNextBookableSlot(afterAdvance)
+  return advanceToNextBookableSlot(afterAdvance, openStr, closeStr)
 }
 
 /** Latest allowed time: tối đa `windowDays` × 24h từ hiện tại (giống BE). */
 export function getLatestBookableTime(
   windowDays = DEFAULT_BOOKING_WINDOW_DAYS,
   now = new Date(),
+  openStr?: string,
+  closeStr?: string
 ): Date {
   const cap = new Date(now.getTime() + windowDays * 24 * 60 * MS_PER_MINUTE)
-  return retreatToLatestBookableSlot(cap)
+  return retreatToLatestBookableSlot(cap, openStr, closeStr)
 }
 
-export function snapDatetimeLocalValue(value: string): string {
+export function snapDatetimeLocalValue(value: string, openStr?: string, closeStr?: string): string {
   const parsed = parseDatetimeLocalValue(value)
   if (!parsed) return value
-  return toDatetimeLocalValue(advanceToNextBookableSlot(parsed))
+  return toDatetimeLocalValue(advanceToNextBookableSlot(parsed, openStr, closeStr))
 }
 
 export interface ScheduledAtValidationResult {
@@ -119,6 +139,8 @@ export function validateScheduledAt(
   scheduledAt: Date,
   windowDays = DEFAULT_BOOKING_WINDOW_DAYS,
   now = new Date(),
+  openStr?: string,
+  closeStr?: string
 ): ScheduledAtValidationResult {
   if (scheduledAt <= now) {
     return { valid: false, message: 'Thời gian đặt lịch phải là thời điểm trong tương lai' }
@@ -148,28 +170,53 @@ export function validateScheduledAt(
     }
   }
 
+  const { h: openH, m: openM } = parseTimeString(openStr, BUSINESS_HOURS.open)
+  const { h: closeH, m: closeM } = parseTimeString(closeStr, BUSINESS_HOURS.close)
+  
   const hour = scheduledAt.getHours()
-  if (hour < BUSINESS_HOURS.open || hour >= BUSINESS_HOURS.close) {
-    return {
-      valid: false,
-      message: `Giờ hoạt động từ ${BUSINESS_HOURS.open}:00 đến ${BUSINESS_HOURS.close}:00`,
-    }
-  }
+  const timeInMinutes = hour * 60 + minutes
+  const openInMinutes = openH * 60 + openM
+  const closeInMinutes = closeH * 60 + closeM
 
-  if (hour === BUSINESS_HOURS.close - 1 && minutes > 30) {
+  if (timeInMinutes < openInMinutes || timeInMinutes > closeInMinutes - 30) {
     return {
       valid: false,
-      message: `Giờ hoạt động từ ${BUSINESS_HOURS.open}:00 đến ${BUSINESS_HOURS.close}:00`,
+      message: `Giờ hoạt động từ ${String(openH).padStart(2, '0')}:${String(openM).padStart(2, '0')} đến ${String(closeH).padStart(2, '0')}:${String(closeM).padStart(2, '0')}`,
     }
   }
 
   return { valid: true }
 }
 
-export function getScheduleFieldHints(windowDays = DEFAULT_BOOKING_WINDOW_DAYS): string {
+export function getScheduleFieldHints(
+  windowDays = DEFAULT_BOOKING_WINDOW_DAYS,
+  branchOpenTime?: string,
+  branchCloseTime?: string
+): string {
+  let openStr = `${BUSINESS_HOURS.open}:00`
+  let closeStr = `${BUSINESS_HOURS.close - 1}:30`
+
+  if (branchOpenTime && branchCloseTime) {
+    openStr = branchOpenTime
+    const closeParts = branchCloseTime.split(':')
+    if (closeParts.length === 2) {
+      let h = parseInt(closeParts[0], 10)
+      let m = parseInt(closeParts[1], 10)
+      if (m >= 30) {
+        m -= 30
+      } else {
+        h -= 1
+        m += 30
+      }
+      closeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+    } else {
+      closeStr = branchCloseTime
+    }
+  }
+
   return [
     `Chỉ đặt được thời gian trong tương lai (trước ít nhất ${MIN_ADVANCE_MINUTES} phút)`,
-    `Khung giờ ${BUSINESS_HOURS.open}:00–${BUSINESS_HOURS.close - 1}:30, bước ${SLOT_DURATION_MINUTES} phút`,
+    `Khung giờ ${openStr}–${closeStr}, bước ${SLOT_DURATION_MINUTES} phút`,
     `Tối đa ${windowDays} ngày kể từ hiện tại`,
   ].join(' · ')
 }

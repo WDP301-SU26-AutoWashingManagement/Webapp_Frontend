@@ -16,6 +16,7 @@ export default function StaffLeaveRequestsPage() {
 
   const { user } = useAuth()
   const [allowedStaffIds, setAllowedStaffIds] = useState<string[] | null>(null)
+  const [staffList, setStaffList] = useState<any[]>([])
 
   // Fetch allowed staff IDs for the current manager's branch
   useEffect(() => {
@@ -35,6 +36,7 @@ export default function StaffLeaveRequestsPage() {
                 return String(uId);
               });
             setAllowedStaffIds(ids);
+            setStaffList(data.data);
           }
         } catch (error) {
           console.error("Failed to load allowed staff", error);
@@ -382,7 +384,7 @@ export default function StaffLeaveRequestsPage() {
             <table className="admin-table" style={{ tableLayout: 'fixed', width: '100%' }}>
               <thead>
                 <tr>
-                  <th style={{ textAlign: 'center' }}>Nhân viên ID</th>
+                  <th style={{ textAlign: 'left' }}>Nhân viên</th>
                   <th style={{ textAlign: 'center' }}>Từ ngày</th>
                   <th style={{ textAlign: 'center' }}>Đến ngày</th>
                   <th style={{ textAlign: 'center' }}>Lý do</th>
@@ -392,7 +394,28 @@ export default function StaffLeaveRequestsPage() {
               <tbody>
                 {pendingRequests.map((req) => (
                   <tr key={req._id || req.id}>
-                    <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}><span style={{ fontSize: '0.875rem', fontFamily: 'monospace' }}>{req.staff_id}</span></td>
+                    <td style={{ textAlign: 'left' }}>
+                      {(() => {
+                        let staff = typeof req.staff_id === 'object' && req.staff_id !== null ? req.staff_id as any : null;
+                        if (!staff) {
+                          staff = staffList.find(s => String(s._id) === String(req.staff_id) || String(s.user_id?._id || s.user_id) === String(req.staff_id)) || null;
+                        }
+                        const staffName = staff?.full_name || staff?.user_id?.full_name || staff?.email || 'Chưa cập nhật';
+                        const staffInitial = staffName.charAt(0).toUpperCase();
+                        const staffContact = staff?.email || staff?.user_id?.email || String(req.staff_id);
+                        return (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <div style={{ width: '2.5rem', height: '2.5rem', borderRadius: '50%', backgroundColor: '#e0e7ff', color: '#4338ca', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', flexShrink: 0 }}>
+                              {staffInitial}
+                            </div>
+                            <div>
+                              <div style={{ fontWeight: 600, color: '#334155' }}>{staffName}</div>
+                              <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{staffContact}</div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </td>
                     <td style={{ textAlign: 'center' }}>{new Date(req.from_date).toLocaleDateString('vi-VN')}</td>
                     <td style={{ textAlign: 'center' }}>{new Date(req.to_date).toLocaleDateString('vi-VN')}</td>
                     <td style={{ textAlign: 'center', wordBreak: 'break-word' }}>{req.reason}</td>
@@ -440,7 +463,7 @@ export default function StaffLeaveRequestsPage() {
             <table className="admin-table" style={{ tableLayout: 'fixed', width: '100%' }}>
               <thead>
                 <tr>
-                  <th style={{ textAlign: 'center' }}>Nhân viên ID</th>
+                  <th style={{ textAlign: 'left' }}>Nhân viên</th>
                   <th style={{ textAlign: 'center' }}>Từ ngày</th>
                   <th style={{ textAlign: 'center' }}>Đến ngày</th>
                   <th style={{ textAlign: 'center' }}>Lý do</th>
@@ -451,7 +474,28 @@ export default function StaffLeaveRequestsPage() {
               <tbody>
                 {approvedRequests.map((req) => (
                   <tr key={req._id || req.id}>
-                    <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}><span style={{ fontSize: '0.875rem', fontFamily: 'monospace' }}>{req.staff_id}</span></td>
+                    <td style={{ textAlign: 'left' }}>
+                      {(() => {
+                        let staff = typeof req.staff_id === 'object' && req.staff_id !== null ? req.staff_id as any : null;
+                        if (!staff) {
+                          staff = staffList.find(s => String(s._id) === String(req.staff_id) || String(s.user_id?._id || s.user_id) === String(req.staff_id)) || null;
+                        }
+                        const staffName = staff?.full_name || staff?.user_id?.full_name || staff?.email || 'Chưa cập nhật';
+                        const staffInitial = staffName.charAt(0).toUpperCase();
+                        const staffContact = staff?.email || staff?.user_id?.email || String(req.staff_id);
+                        return (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <div style={{ width: '2.5rem', height: '2.5rem', borderRadius: '50%', backgroundColor: '#e0e7ff', color: '#4338ca', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', flexShrink: 0 }}>
+                              {staffInitial}
+                            </div>
+                            <div>
+                              <div style={{ fontWeight: 600, color: '#334155' }}>{staffName}</div>
+                              <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{staffContact}</div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </td>
                     <td style={{ textAlign: 'center' }}>{new Date(req.from_date).toLocaleDateString('vi-VN')}</td>
                     <td style={{ textAlign: 'center' }}>{new Date(req.to_date).toLocaleDateString('vi-VN')}</td>
                     <td style={{ textAlign: 'center', wordBreak: 'break-word' }}>{req.reason}</td>
@@ -496,7 +540,7 @@ export default function StaffLeaveRequestsPage() {
             <table className="admin-table" style={{ tableLayout: 'fixed', width: '100%' }}>
               <thead>
                 <tr>
-                  <th style={{ textAlign: 'center' }}>Nhân viên ID</th>
+                  <th style={{ textAlign: 'left' }}>Nhân viên</th>
                   <th style={{ textAlign: 'center' }}>Từ ngày</th>
                   <th style={{ textAlign: 'center' }}>Đến ngày</th>
                   <th style={{ textAlign: 'center' }}>Lý do</th>
@@ -507,7 +551,28 @@ export default function StaffLeaveRequestsPage() {
               <tbody>
                 {rejectedRequests.map((req) => (
                   <tr key={req._id || req.id}>
-                    <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}><span style={{ fontSize: '0.875rem', fontFamily: 'monospace' }}>{req.staff_id}</span></td>
+                    <td style={{ textAlign: 'left' }}>
+                      {(() => {
+                        let staff = typeof req.staff_id === 'object' && req.staff_id !== null ? req.staff_id as any : null;
+                        if (!staff) {
+                          staff = staffList.find(s => String(s._id) === String(req.staff_id) || String(s.user_id?._id || s.user_id) === String(req.staff_id)) || null;
+                        }
+                        const staffName = staff?.full_name || staff?.user_id?.full_name || staff?.email || 'Chưa cập nhật';
+                        const staffInitial = staffName.charAt(0).toUpperCase();
+                        const staffContact = staff?.email || staff?.user_id?.email || String(req.staff_id);
+                        return (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <div style={{ width: '2.5rem', height: '2.5rem', borderRadius: '50%', backgroundColor: '#e0e7ff', color: '#4338ca', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', flexShrink: 0 }}>
+                              {staffInitial}
+                            </div>
+                            <div>
+                              <div style={{ fontWeight: 600, color: '#334155' }}>{staffName}</div>
+                              <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{staffContact}</div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </td>
                     <td style={{ textAlign: 'center' }}>{new Date(req.from_date).toLocaleDateString('vi-VN')}</td>
                     <td style={{ textAlign: 'center' }}>{new Date(req.to_date).toLocaleDateString('vi-VN')}</td>
                     <td style={{ textAlign: 'center', wordBreak: 'break-word' }}>{req.reason}</td>

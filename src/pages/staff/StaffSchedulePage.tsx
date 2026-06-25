@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Users, Clock, Calendar as CalendarIcon, Refr
 import { useAuth } from '../../hooks/useAuth'
 import { scheduleService, type Schedule } from '../../services/scheduleService'
 import { staffManagerService } from '../../services/staffManagerService'
+import { showSuccess, showError } from '../../utils/toast'
 
 // Hàm lấy ngày đầu tuần (Thứ 2)
 function getStartOfWeek(date: Date) {
@@ -14,7 +15,7 @@ function getStartOfWeek(date: Date) {
 
 export default function StaffSchedulePage() {
   const { user } = useAuth()
-  const isManager = true // TODO: replace with actual role check like `user?.role === 'manager'`
+  const isManager = user?.role === 'admin' || user?.role === 'boss' || user?.staff_type === 'manager'
 
   const [isSwapModalOpen, setIsSwapModalOpen] = useState(false);
   const [selectedStaffA, setSelectedStaffA] = useState<string>('');
@@ -30,16 +31,15 @@ export default function StaffSchedulePage() {
     setIsSwapping(true);
     try {
       await scheduleService.switchStaff(schedule_id_1, staff_id_1, schedule_id_2, staff_id_2);
-      alert('Đã hoán đổi thành công! Email thông báo đã được gửi.');
+      showSuccess('Đã hoán đổi thành công! Email thông báo đã được gửi.');
       setIsSwapModalOpen(false);
       setSelectedStaffA('');
       setSelectedStaffB('');
       
       // Reload schedules
-      const data = await scheduleService.getAllSchedules();
-      setSchedules(data);
+      await fetchSchedules();
     } catch (error: any) {
-      alert(error?.response?.data?.message || 'Có lỗi xảy ra khi hoán đổi ca');
+      showError(error?.response?.data?.message || 'Có lỗi xảy ra khi hoán đổi ca');
     } finally {
       setIsSwapping(false);
     }
@@ -83,16 +83,15 @@ export default function StaffSchedulePage() {
     setIsAddingStaff(true);
     try {
       await scheduleService.addStaffToSchedule(selectedScheduleForAdd._id, selectedStaffToAdd);
-      alert('Đã thêm nhân viên vào ca thành công!');
+      showSuccess('Đã thêm nhân viên vào ca thành công!');
       setIsAddStaffModalOpen(false);
       setSelectedScheduleForAdd(null);
       setSelectedStaffToAdd('');
       
       // Reload schedules
-      const data = await scheduleService.getAllSchedules();
-      setSchedules(data);
+      await fetchSchedules();
     } catch (error: any) {
-      alert(error?.response?.data?.message || 'Có lỗi xảy ra khi thêm nhân viên');
+      showError(error?.response?.data?.message || 'Có lỗi xảy ra khi thêm nhân viên');
     } finally {
       setIsAddingStaff(false);
     }
@@ -107,25 +106,26 @@ export default function StaffSchedulePage() {
   const [schedules, setSchedules] = useState<Schedule[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    const fetchSchedules = async () => {
-      setLoading(true)
-      try {
-        const data = await scheduleService.getAllSchedules()
-        const filtered = (user?.role !== 'boss' && user?.branch_id)
-          ? data.filter(s => {
-              const bId = typeof s.branch_id === 'object' ? (s.branch_id as any)._id : s.branch_id;
-              const uBId = typeof user.branch_id === 'object' ? (user.branch_id as any)._id : user.branch_id;
-              return bId === uBId;
-            })
-          : data;
-        setSchedules(filtered)
-      } catch (error) {
-        console.error("Failed to load schedules", error)
-      } finally {
-        setLoading(false)
-      }
+  const fetchSchedules = async () => {
+    setLoading(true)
+    try {
+      const data = await scheduleService.getAllSchedules()
+      const filtered = (user?.role !== 'boss' && user?.branch_id)
+        ? data.filter(s => {
+            const bId = typeof s.branch_id === 'object' ? (s.branch_id as any)._id : s.branch_id;
+            const uBId = typeof user.branch_id === 'object' ? (user.branch_id as any)._id : user.branch_id;
+            return bId === uBId;
+          })
+        : data;
+      setSchedules(filtered)
+    } catch (error) {
+      console.error("Failed to load schedules", error)
+    } finally {
+      setLoading(false)
     }
+  }
+
+  useEffect(() => {
     fetchSchedules()
   }, [])
 

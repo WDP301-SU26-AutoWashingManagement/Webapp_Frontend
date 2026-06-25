@@ -73,24 +73,28 @@ export const vehicleService = {
   async create(
     payload: Omit<CreateVehicleInput, 'customer_id'> & { customer_id?: string },
   ): Promise<Vehicle> {
-    const body = await apiClient.post<ApiResponse<Record<string, unknown>>>('/vehicles', {
+    const requestPayload: any = {
       customer_id: payload.customer_id ?? (await resolveCustomerRoleId()),
       vehicle_class_id: payload.vehicle_class_id,
-      model_id: payload.model_id,
-      make_name: payload.make_name,
-      model_name: payload.model_name,
       license_plate: payload.license_plate,
       fuel_type: payload.fuel_type,
       color: payload.color,
+      model_id: payload.model_id,
       vehicle_model: payload.vehicle_model,
-    })
+      make_name: payload.make_name,
+      model_name: payload.model_name,
+    }
+
+    const body = await apiClient.post<ApiResponse<Record<string, unknown>>>('/vehicles', requestPayload)
     return normalizeVehicle(unwrapApiData<Record<string, unknown>>(body))
   },
 
   async update(id: string, payload: UpdateVehicleInput): Promise<Vehicle> {
+    const requestPayload: any = { ...payload };
+
     const body = await apiClient.put<ApiResponse<Record<string, unknown>>>(
       `/vehicles/${id}`,
-      payload,
+      requestPayload,
     )
     return normalizeVehicle(unwrapApiData<Record<string, unknown>>(body))
   },

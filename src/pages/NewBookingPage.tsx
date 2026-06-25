@@ -364,7 +364,12 @@ export default function NewBookingPage() {
         showError('Thời gian hẹn không hợp lệ')
         return
       }
-      const timeCheck = validateScheduledAt(scheduledAt, BOOKING_WINDOW_DAYS)
+      
+      const selectedBranch = branches.find((b) => b._id === form.branch_id)
+      const openTime = selectedBranch?.operating_time?.default_open
+      const closeTime = selectedBranch?.operating_time?.default_close
+      
+      const timeCheck = validateScheduledAt(scheduledAt, BOOKING_WINDOW_DAYS, new Date(), openTime, closeTime)
       if (!timeCheck.valid) {
         showError(timeCheck.message ?? 'Thời gian hẹn không hợp lệ')
         return
@@ -602,7 +607,14 @@ export default function NewBookingPage() {
                     {/* Hint text moved here to balance column heights */}
                     <p className="mt-2 flex gap-2 rounded-lg border border-amber-100 bg-amber-50 p-3 text-xs leading-relaxed text-amber-700">
                       <span className="shrink-0">💡</span>
-                      <span>{getScheduleFieldHints(BOOKING_WINDOW_DAYS)}</span>
+                      <span>
+                        {(() => {
+                          const selectedBranch = branches.find((b) => b._id === form.branch_id);
+                          const openTime = selectedBranch?.operating_time?.default_open;
+                          const closeTime = selectedBranch?.operating_time?.default_close;
+                          return getScheduleFieldHints(BOOKING_WINDOW_DAYS, openTime, closeTime);
+                        })()}
+                      </span>
                     </p>
                   </div>
 
