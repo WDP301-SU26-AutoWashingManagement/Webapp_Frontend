@@ -371,7 +371,12 @@ export default function NewBookingPage() {
         showError('Thời gian hẹn không hợp lệ')
         return
       }
-      const timeCheck = validateScheduledAt(scheduledAt, BOOKING_WINDOW_DAYS)
+      
+      const selectedBranch = branches.find((b) => b._id === form.branch_id)
+      const openTime = selectedBranch?.operating_time?.default_open
+      const closeTime = selectedBranch?.operating_time?.default_close
+      
+      const timeCheck = validateScheduledAt(scheduledAt, BOOKING_WINDOW_DAYS, new Date(), openTime, closeTime)
       if (!timeCheck.valid) {
         showError(timeCheck.message ?? 'Thời gian hẹn không hợp lệ')
         return
