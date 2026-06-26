@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { CalendarDays, CalendarPlus, Car } from 'lucide-react'
+import { CalendarDays, CalendarPlus, Car, MapPin, Eye } from 'lucide-react'
 import { Link, Navigate, useSearchParams } from 'react-router-dom'
 import AccountPageShell from '../components/account/AccountPageShell'
 import { bookingService } from '../services/bookingService'
@@ -45,7 +45,7 @@ export default function BookingsPage() {
 
   const [detailModal, setDetailModal] = useState<WashBooking | null>(null)
 
-  const [cancelModal, setCancelModal] = useState<{isOpen: boolean, booking: WashBooking | null}>({ isOpen: false, booking: null })
+  const [cancelModal, setCancelModal] = useState<{ isOpen: boolean, booking: WashBooking | null }>({ isOpen: false, booking: null })
   const [cancelReason, setCancelReason] = useState('')
   const [isCancelling, setIsCancelling] = useState(false)
 
@@ -84,7 +84,7 @@ export default function BookingsPage() {
     if (!cancelModal.booking) return
     const id = bookingId(cancelModal.booking)
     if (!id) return
-    
+
     if (!cancelReason.trim()) {
       showError('Vui lòng nhập lý do hủy lịch')
       return
@@ -124,11 +124,10 @@ export default function BookingsPage() {
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id)}
-              className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
-                activeTab === tab.id
+              className={`rounded-lg px-4 py-2 text-sm font-medium transition ${activeTab === tab.id
                   ? 'bg-cyan-50 text-[#0ea5b7]'
                   : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-              }`}
+                }`}
             >
               {tab.label}
             </button>
@@ -165,11 +164,20 @@ export default function BookingsPage() {
                 const serviceName = getBookingServiceName(booking)
                 const canCancel = ['pending', 'confirmed'].includes(booking.booking_status)
 
+                const formatBranchAddress = (branch: any) => {
+                  if (!branch || typeof branch === 'string') return null;
+                  const addr = branch.branch_address;
+                  if (!addr) return null;
+                  if (typeof addr === 'string') return addr;
+                  const parts = [addr.street, addr.ward, addr.district, addr.city].filter(Boolean);
+                  return parts.length > 0 ? parts.join(', ') : null;
+                }
+                const branchAddressStr = formatBranchAddress(booking.branch_id);
+
                 return (
                   <li
                     key={id || booking.scheduled_at}
-                    onClick={() => setDetailModal(booking)}
-                    className="rounded-xl border border-slate-100 bg-slate-50/50 p-4 transition hover:border-cyan-500/20 cursor-pointer"
+                    className="rounded-xl border border-slate-100 bg-slate-50/50 p-4 transition hover:border-cyan-500/20"
                   >
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div className="min-w-0 flex-1">
@@ -188,15 +196,21 @@ export default function BookingsPage() {
                           <span className="font-mono font-medium text-slate-800">{plate}</span>
                           {serviceName && <span>· {serviceName}</span>}
                         </div>
+                        {branchAddressStr && (
+                          <div className="mt-1 flex items-center gap-2 text-sm text-slate-600">
+                            <MapPin className="h-4 w-4 shrink-0 text-rose-500" aria-hidden />
+                            <span>{branchAddressStr}</span>
+                          </div>
+                        )}
                         {(() => {
                           const paidInvoices = JSON.parse(localStorage.getItem('paid_invoices') || '{}');
                           const cachedTotal = paidInvoices[booking._id || booking.id!];
-                          const displayedTotal = cachedTotal !== undefined 
-                            ? cachedTotal 
-                            : ((booking.discount_amount !== undefined) 
-                                ? (booking.final_price ?? 0) 
-                                : Math.max(0, (booking.final_price ?? booking.base_price ?? 0) - Math.round((booking.final_price ?? booking.base_price ?? 0) * ((booking.customer?.tier_id?.discount_percentage || 0) / 100))));
-                          
+                          const displayedTotal = cachedTotal !== undefined
+                            ? cachedTotal
+                            : ((booking.discount_amount !== undefined)
+                              ? (booking.final_price ?? 0)
+                              : Math.max(0, (booking.final_price ?? booking.base_price ?? 0) - Math.round((booking.final_price ?? booking.base_price ?? 0) * ((booking.customer?.tier_id?.discount_percentage || 0) / 100))));
+
                           return (
                             <p className="mt-2 text-sm font-semibold text-[#0ea5b7]">
                               {displayedTotal.toLocaleString('vi-VN')} đ
@@ -204,18 +218,24 @@ export default function BookingsPage() {
                           );
                         })()}
                       </div>
-                      {canCancel && (
+                      <div className="flex flex-col gap-2 mt-4 sm:mt-0 sm:items-end shrink-0">
                         <button
                           type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleCancelClick(booking);
-                          }}
-                          className="shrink-0 rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50"
+                          onClick={() => setDetailModal(booking)}
+                          className="rounded-lg border border-cyan-200 px-3 py-2 text-sm font-medium text-cyan-600 transition hover:bg-cyan-50 flex items-center justify-center gap-1.5"
                         >
-                          Hủy lịch
+                          <Eye className="h-4 w-4" /> Chi tiết
                         </button>
-                      )}
+                        {canCancel && (
+                          <button
+                            type="button"
+                            onClick={() => handleCancelClick(booking)}
+                            className="rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50 flex items-center justify-center"
+                          >
+                            Hủy lịch
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </li>
                 )
@@ -281,9 +301,9 @@ export default function BookingsPage() {
       )}
 
       {/* Detail Modal */}
-      <BookingDetailModal 
-        booking={detailModal} 
-        isOpen={!!detailModal} 
+      <BookingDetailModal
+        booking={detailModal}
+        isOpen={!!detailModal}
         onClose={() => setDetailModal(null)}
         hideStaffActions={true}
       />

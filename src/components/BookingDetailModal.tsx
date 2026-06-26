@@ -61,6 +61,16 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onPay, hi
 
   const schedDate = new Date(booking.scheduled_at)
 
+  const formatBranchAddress = (branch: any) => {
+    if (!branch || typeof branch === 'string') return null;
+    const addr = branch.branch_address;
+    if (!addr) return null;
+    if (typeof addr === 'string') return addr;
+    const parts = [addr.street, addr.ward, addr.district, addr.city].filter(Boolean);
+    return parts.length > 0 ? parts.join(', ') : null;
+  }
+  const branchAddressStr = formatBranchAddress(booking.branch_id);
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
@@ -87,7 +97,7 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onPay, hi
             <div className="space-y-6">
               <div>
                 <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 flex items-center gap-2">
-                  <Calendar size={16} className="text-blue-500" /> Thời gian
+                  <Calendar size={16} className="text-blue-500" /> Thời gian & Địa điểm
                 </h3>
                 <div className="bg-slate-50 rounded-xl p-4 space-y-3 border border-slate-100">
                   <div className="flex justify-between items-center">
@@ -102,6 +112,17 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onPay, hi
                       {schedDate.toLocaleDateString('vi-VN')}
                     </span>
                   </div>
+                  {(branchAddressStr || booking.branch_id) && (
+                    <>
+                      <div className="h-px bg-slate-200 my-2"></div>
+                      <div>
+                        <span className="text-sm text-slate-500 block mb-1">Chi nhánh:</span>
+                        <span className="text-sm font-bold text-slate-800 block">
+                          {branchAddressStr || (typeof booking.branch_id === 'string' ? `ID: ${booking.branch_id}` : `RAW: ${JSON.stringify(booking.branch_id)}`)}
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 
