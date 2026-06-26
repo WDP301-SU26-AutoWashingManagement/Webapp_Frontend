@@ -13,6 +13,7 @@ export default function StaffBookingsPage() {
   const [activeTab, setActiveTab] = useState<'pending' | 'in_progress' | 'completed' | 'cancelled' | 'all'>('pending')
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [selectedDate, setSelectedDate] = useState<string>('')
   const [page, setPage] = useState(1)
   const limit = 10
 
@@ -23,7 +24,7 @@ export default function StaffBookingsPage() {
   const [paymentModal, setPaymentModal] = useState<{ isOpen: boolean, booking: WashBooking | null }>({ isOpen: false, booking: null })
   const [detailModal, setDetailModal] = useState<WashBooking | null>(null)
 
-  const fetchBookings = async (currentPage: number, currentTab: string, currentFilter: string) => {
+  const fetchBookings = async (currentPage: number, currentTab: string, currentFilter: string, dateStr: string) => {
     setLoading(true)
     try {
       let statusParam = '';
@@ -35,6 +36,14 @@ export default function StaffBookingsPage() {
       
       const params: any = { page: currentPage, limit };
       if (statusParam) params.booking_status = statusParam;
+      if (dateStr) {
+        const start = new Date(dateStr);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(dateStr);
+        end.setHours(23, 59, 59, 999);
+        params.from_date = start.toISOString();
+        params.to_date = end.toISOString();
+      }
 
       const res = await bookingService.list(params)
       setData(res)
@@ -45,7 +54,7 @@ export default function StaffBookingsPage() {
     }
   }
 
-  useEffect(() => { fetchBookings(page, activeTab, statusFilter) }, [page, activeTab, statusFilter])
+  useEffect(() => { fetchBookings(page, activeTab, statusFilter, selectedDate) }, [page, activeTab, statusFilter, selectedDate])
 
   // Xử lý khi xác nhận modal đổi trạng thái
   const handleProceedAction = async () => {
@@ -58,7 +67,7 @@ export default function StaffBookingsPage() {
       // Note: complete sẽ được tự động gọi khi thanh toán (PaymentModal)
 
       showSuccess('Cập nhật trạng thái thành công')
-      fetchBookings(page, activeTab, statusFilter)
+      fetchBookings(page, activeTab, statusFilter, selectedDate)
       setConfirmModal({ isOpen: false, action: '', booking: null })
     } catch (error: any) {
       showError(error?.response?.data?.message || 'Lỗi khi cập nhật trạng thái')
@@ -182,8 +191,17 @@ export default function StaffBookingsPage() {
               <ChevronDown size={14} />
             </div>
           </div>
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => {
+              setSelectedDate(e.target.value);
+              setPage(1);
+            }}
+            className="px-4 py-1.5 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:border-cyan-500 bg-white cursor-pointer"
+          />
           <button
-            onClick={() => fetchBookings(page, activeTab, statusFilter)}
+            onClick={() => fetchBookings(page, activeTab, statusFilter, selectedDate)}
             className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 transition-all text-sm font-medium"
           >
             <RefreshCw size={14} className={loading ? 'animate-spin text-cyan-500' : ''} />
@@ -341,7 +359,7 @@ export default function StaffBookingsPage() {
         booking={paymentModal.booking!}
         onSuccess={() => {
           setPaymentModal({ isOpen: false, booking: null })
-          fetchBookings(page, activeTab, statusFilter)
+          fetchBookings(page, activeTab, statusFilter, selectedDate)
         }}
       />
 

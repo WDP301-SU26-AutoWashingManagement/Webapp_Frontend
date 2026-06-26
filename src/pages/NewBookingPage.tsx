@@ -41,10 +41,19 @@ import { showError, showSuccess } from '../utils/toast'
 import { getStoredCustomerProfile } from '../lib/authSession'
 import { MapPin, Calendar, CheckCircle2, ChevronRight, ChevronLeft, Star, Plus } from 'lucide-react'
 
-const BOOKING_WINDOW_DAYS = DEFAULT_BOOKING_WINDOW_DAYS
 
 export default function NewBookingPage() {
   const navigate = useNavigate()
+
+  const customerProfile = getStoredCustomerProfile();
+
+  const bookingWindowDays = useMemo(() => {
+    const tier = customerProfile?.tier_id;
+    if (tier && typeof tier === 'object' && typeof tier.booking_window_days === 'number') {
+      return tier.booking_window_days;
+    }
+    return DEFAULT_BOOKING_WINDOW_DAYS;
+  }, [customerProfile]);
 
   // -- UI State --
   const [step, setStep] = useState(1)
@@ -128,9 +137,9 @@ export default function NewBookingPage() {
   const scheduleBounds = useMemo(
     () => ({
       min: toDatetimeLocalValue(getEarliestBookableTime()),
-      max: toDatetimeLocalValue(getLatestBookableTime(BOOKING_WINDOW_DAYS)),
+      max: toDatetimeLocalValue(getLatestBookableTime(bookingWindowDays)),
     }),
-    [],
+    [bookingWindowDays],
   )
 
   const dateValue = form.scheduled_at ? form.scheduled_at.split('T')[0] : ''
@@ -307,7 +316,8 @@ export default function NewBookingPage() {
     [compatibleServices, form.service_ids, includedServiceIdsInCombo],
   )
 
-  const customerProfile = getStoredCustomerProfile();
+
+
   const tierDiscountPercentage = useMemo(() => {
     const tier = customerProfile?.tier_id;
     if (tier && typeof tier === 'object' && tier.discount_percentage) {
@@ -369,7 +379,7 @@ export default function NewBookingPage() {
       const openTime = selectedBranch?.operating_time?.default_open
       const closeTime = selectedBranch?.operating_time?.default_close
       
-      const timeCheck = validateScheduledAt(scheduledAt, BOOKING_WINDOW_DAYS, new Date(), openTime, closeTime)
+      const timeCheck = validateScheduledAt(scheduledAt, bookingWindowDays, new Date(), openTime, closeTime)
       if (!timeCheck.valid) {
         showError(timeCheck.message ?? 'Thời gian hẹn không hợp lệ')
         return
@@ -612,7 +622,7 @@ export default function NewBookingPage() {
                           const selectedBranch = branches.find((b) => b._id === form.branch_id);
                           const openTime = selectedBranch?.operating_time?.default_open;
                           const closeTime = selectedBranch?.operating_time?.default_close;
-                          return getScheduleFieldHints(BOOKING_WINDOW_DAYS, openTime, closeTime);
+                          return getScheduleFieldHints(bookingWindowDays, openTime, closeTime);
                         })()}
                       </span>
                     </p>
