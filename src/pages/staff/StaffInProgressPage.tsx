@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Banknote, PlayCircle, Check, RefreshCw, Eye, Search } from 'lucide-react'
 import { bookingService } from '../../services/bookingService'
 import type { BookingListResult } from '../../services/bookingService'
@@ -10,7 +10,7 @@ import PaymentModal from '../../components/PaymentModal'
 export default function StaffInProgressPage() {
     const [data, setData] = useState<BookingListResult>({ items: [], total: 0 })
     const [loading, setLoading] = useState(true)
-    const [expandedId, setExpandedId] = useState<string | null>(null)
+    // const [expandedId, setExpandedId] = useState<string | null>(null)
     const [detailModal, setDetailModal] = useState<WashBooking | null>(null)
     const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean, action: 'start' | 'washed' | '', booking: WashBooking | null }>({ isOpen: false, action: '', booking: null })
     const [paymentModal, setPaymentModal] = useState<{ isOpen: boolean, booking: WashBooking | null }>({ isOpen: false, booking: null })

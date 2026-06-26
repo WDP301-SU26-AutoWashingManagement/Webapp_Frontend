@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { RefreshCw, ChevronLeft, ChevronRight, Eye, Search } from 'lucide-react'
-import { bookingService, type BookingListResult } from '../../services/bookingService'
+import { bookingService } from '../../services/bookingService'
+import type { BookingListResult } from '../../services/bookingService'
 import type { WashBooking } from '../../types/booking'
 import { showError } from '../../utils/toast'
 import BookingDetailModal from '../../components/BookingDetailModal'
@@ -39,12 +40,7 @@ export default function StaffPaymentsPage() {
         fetchBookings(page, selectedDate)
     }, [page, selectedDate])
 
-    const getStatusText = (status: string) => {
-        switch (status) {
-            case 'completed': return <span className="text-emerald-500 font-medium">Hoàn thành</span>
-            default: return status
-        }
-    }
+
 
     const filteredItems = data.items.filter((b: WashBooking) => {
         if (searchQuery) {
@@ -230,19 +226,18 @@ export default function StaffPaymentsPage() {
                             >
                                 <ChevronLeft size={18} />
                             </button>
-                            
+
                             {getPageNumbers().map((p, i) => (
                                 <button
                                     key={i}
                                     onClick={() => typeof p === 'number' && setPage(p)}
                                     disabled={p === '...'}
-                                    className={`min-w-[32px] h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-colors ${
-                                        page === p 
-                                        ? 'bg-blue-500 text-white shadow-sm' 
-                                        : p === '...' 
-                                            ? 'text-slate-400 cursor-default' 
-                                            : 'text-slate-600 hover:bg-slate-100'
-                                    }`}
+                                    className={`min-w-[32px] h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-colors ${page === p
+                                            ? 'bg-blue-500 text-white shadow-sm'
+                                            : p === '...'
+                                                ? 'text-slate-400 cursor-default'
+                                                : 'text-slate-600 hover:bg-slate-100'
+                                        }`}
                                 >
                                     {p}
                                 </button>

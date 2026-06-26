@@ -8,7 +8,6 @@ import BookingDetailModal from '../components/BookingDetailModal'
 import {
   BOOKING_STATUS_LABELS,
   BOOKING_STATUS_STYLES,
-  formatPrice,
   formatScheduledAt,
   getBookingPlate,
   getBookingServiceName,
@@ -125,8 +124,8 @@ export default function BookingsPage() {
               type="button"
               onClick={() => setActiveTab(tab.id)}
               className={`rounded-lg px-4 py-2 text-sm font-medium transition ${activeTab === tab.id
-                  ? 'bg-cyan-50 text-[#0ea5b7]'
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                ? 'bg-cyan-50 text-[#0ea5b7]'
+                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                 }`}
             >
               {tab.label}

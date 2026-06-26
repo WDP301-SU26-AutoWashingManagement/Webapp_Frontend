@@ -1,6 +1,7 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { Check, RefreshCw, Eye, Search, Filter, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
-import { bookingService, type BookingListResult } from '../../services/bookingService'
+import { bookingService } from '../../services/bookingService'
+import type { BookingListResult } from '../../services/bookingService'
 import type { WashBooking } from '../../types/booking'
 import { showError, showSuccess } from '../../utils/toast'
 import BookingDetailModal from '../../components/BookingDetailModal'
@@ -33,7 +34,7 @@ export default function StaffBookingsPage() {
       } else if (currentFilter !== 'all') {
         statusParam = currentFilter;
       }
-      
+
       const params: any = { page: currentPage, limit };
       if (statusParam) params.booking_status = statusParam;
       if (dateStr) {
@@ -294,45 +295,44 @@ export default function StaffBookingsPage() {
 
         {/* Phân trang */}
         {!loading && totalPages > 1 && (
-            <div className="flex items-center justify-between px-6 py-4 border-t border-slate-200 mt-auto">
-                <div className="text-sm text-slate-500">
-                    Hiển thị trang <span className="font-semibold text-slate-900">{page}</span> / <span className="font-semibold text-slate-900">{totalPages}</span> (Tổng số {data.total} đơn)
-                </div>
-                <div className="flex items-center gap-1">
-                    <button
-                        onClick={() => setPage(p => Math.max(1, p - 1))}
-                        disabled={page === 1}
-                        className="p-1.5 mr-2 rounded border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:hover:bg-transparent"
-                    >
-                        <ChevronLeft size={18} />
-                    </button>
-                    
-                    {getPageNumbers().map((p, i) => (
-                        <button
-                            key={i}
-                            onClick={() => typeof p === 'number' && setPage(p)}
-                            disabled={p === '...'}
-                            className={`min-w-[32px] h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-colors ${
-                                page === p 
-                                ? 'bg-cyan-500 text-white shadow-sm' 
-                                : p === '...' 
-                                    ? 'text-slate-400 cursor-default' 
-                                    : 'text-slate-600 hover:bg-slate-100'
-                            }`}
-                        >
-                            {p}
-                        </button>
-                    ))}
-
-                    <button
-                        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                        disabled={page === totalPages}
-                        className="p-1.5 ml-2 rounded border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:hover:bg-transparent"
-                    >
-                        <ChevronRight size={18} />
-                    </button>
-                </div>
+          <div className="flex items-center justify-between px-6 py-4 border-t border-slate-200 mt-auto">
+            <div className="text-sm text-slate-500">
+              Hiển thị trang <span className="font-semibold text-slate-900">{page}</span> / <span className="font-semibold text-slate-900">{totalPages}</span> (Tổng số {data.total} đơn)
             </div>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="p-1.5 mr-2 rounded border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:hover:bg-transparent"
+              >
+                <ChevronLeft size={18} />
+              </button>
+
+              {getPageNumbers().map((p, i) => (
+                <button
+                  key={i}
+                  onClick={() => typeof p === 'number' && setPage(p)}
+                  disabled={p === '...'}
+                  className={`min-w-[32px] h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-colors ${page === p
+                      ? 'bg-cyan-500 text-white shadow-sm'
+                      : p === '...'
+                        ? 'text-slate-400 cursor-default'
+                        : 'text-slate-600 hover:bg-slate-100'
+                    }`}
+                >
+                  {p}
+                </button>
+              ))}
+
+              <button
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="p-1.5 ml-2 rounded border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:hover:bg-transparent"
+              >
+                <ChevronRight size={18} />
+              </button>
+            </div>
+          </div>
         )}
       </div>
 
