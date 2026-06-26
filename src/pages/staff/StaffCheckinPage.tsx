@@ -46,7 +46,7 @@ export default function StaffCheckinPage() {
 
     const getStatusText = (status: string) => {
         switch (status) {
-            case 'confirmed': return <span className="text-blue-500 font-medium">confirmed</span>
+            case 'confirmed': return <span className="text-blue-500 font-medium">Đã xác nhận</span>
             default: return status
         }
     }
@@ -104,7 +104,7 @@ export default function StaffCheckinPage() {
                                 <th>Biển số xe</th>
                                 <th>Dịch vụ</th>
                                 <th>Trạng thái</th>
-                                <th className="text-right">Hành động</th>
+                                <th className="text-center">Hành động</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -133,7 +133,7 @@ export default function StaffCheckinPage() {
                                             <td><div className="text-sm text-slate-600 truncate max-w-[200px]">{b.service_package?.name || b.service_package?.service_name || 'Dịch vụ lẻ'}</div></td>
                                             <td>{getStatusText(b.booking_status)}</td>
                                             <td>
-                                                <div className="flex justify-end gap-2 items-center">
+                                                <div className="flex justify-center gap-2 items-center">
                                                     {b.booking_status === 'confirmed' && (
                                                         <button
                                                             onClick={() => setConfirmModal({ isOpen: true, action: 'checkin', booking: b })}

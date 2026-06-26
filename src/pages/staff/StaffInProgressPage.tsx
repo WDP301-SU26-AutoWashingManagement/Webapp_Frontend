@@ -62,9 +62,9 @@ export default function StaffInProgressPage() {
 
     const getStatusText = (status: string) => {
         switch (status) {
-            case 'checked_in': return <span className="px-2 py-1 bg-indigo-50 text-indigo-600 rounded text-xs font-semibold">checked_in</span>
-            case 'in_progress': return <span className="px-2 py-1 bg-purple-50 text-purple-600 rounded text-xs font-semibold">in_progress</span>
-            case 'washed': return <span className="px-2 py-1 bg-teal-50 text-teal-600 rounded text-xs font-semibold">washed</span>
+            case 'checked_in': return <span className="px-2 py-1 bg-indigo-50 text-indigo-600 rounded text-xs font-semibold">Đã nhận xe</span>
+            case 'in_progress': return <span className="px-2 py-1 bg-purple-50 text-purple-600 rounded text-xs font-semibold">Đang rửa</span>
+            case 'washed': return <span className="px-2 py-1 bg-teal-50 text-teal-600 rounded text-xs font-semibold">Rửa xong</span>
             default: return status
         }
     }
@@ -159,7 +159,7 @@ export default function StaffInProgressPage() {
                                             </div></td>
                                             <td>{getStatusText(b.booking_status)}</td>
                                             <td>
-                                                <div className="flex justify-end gap-2 items-center">
+                                                <div className="flex justify-center gap-2 items-center">
                                                     {b.booking_status === 'checked_in' ? (
                                                         <button
                                                             onClick={() => setConfirmModal({ isOpen: true, action: 'start', booking: b })}

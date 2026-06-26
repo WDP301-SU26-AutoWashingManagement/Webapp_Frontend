@@ -41,7 +41,7 @@ export default function StaffPaymentsPage() {
 
     const getStatusText = (status: string) => {
         switch (status) {
-            case 'completed': return <span className="text-emerald-500 font-medium">completed</span>
+            case 'completed': return <span className="text-emerald-500 font-medium">Hoàn thành</span>
             default: return status
         }
     }
@@ -136,7 +136,7 @@ export default function StaffPaymentsPage() {
                                 <th className="px-5 py-4 font-bold">Dịch vụ</th>
                                 <th className="px-5 py-4 font-bold">Tổng thanh toán</th>
                                 <th className="px-5 py-4 font-bold">Trạng thái</th>
-                                <th className="px-5 py-4 font-bold text-right">Thao tác</th>
+                                <th className="px-5 py-4 font-bold text-center">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
@@ -199,7 +199,7 @@ export default function StaffPaymentsPage() {
                                                 </div>
                                             </td>
                                             <td className="px-5 py-4">
-                                                <div className="flex justify-end items-center">
+                                                <div className="flex justify-center items-center">
                                                     <button
                                                         onClick={() => setDetailModal(b)}
                                                         className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition shadow-sm flex items-center gap-1.5"
