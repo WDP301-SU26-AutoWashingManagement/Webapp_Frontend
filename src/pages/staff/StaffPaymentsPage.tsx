@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react'
+import { RefreshCw, ChevronLeft, ChevronRight, Eye, Search } from 'lucide-react'
 import { bookingService, type BookingListResult } from '../../services/bookingService'
 import type { WashBooking } from '../../types/booking'
 import { showError } from '../../utils/toast'
@@ -11,6 +11,7 @@ export default function StaffPaymentsPage() {
     const [detailModal, setDetailModal] = useState<WashBooking | null>(null)
     const [page, setPage] = useState(1)
     const [selectedDate, setSelectedDate] = useState<string>('')
+    const [searchQuery, setSearchQuery] = useState('')
     const limit = 8
 
     const fetchBookings = async (currentPage: number, dateStr: string) => {
@@ -40,13 +41,42 @@ export default function StaffPaymentsPage() {
 
     const getStatusText = (status: string) => {
         switch (status) {
-            case 'completed': return <span className="text-emerald-500 font-medium">completed</span>
+            case 'completed': return <span className="text-emerald-500 font-medium">Hoàn thành</span>
             default: return status
         }
     }
 
-    const filteredItems = data.items;
+    const filteredItems = data.items.filter((b: WashBooking) => {
+        if (searchQuery) {
+            const q = searchQuery.toLowerCase().trim()
+            const plate = b.vehicle?.plate_number?.toLowerCase() || ''
+            const id = (b._id ?? b.id!)?.toLowerCase() || ''
+            const shortId = id.slice(-6)
+            if (!plate.includes(q) && !shortId.includes(q) && !id.includes(q)) return false
+        }
+        return true
+    });
     const totalPages = Math.ceil((data.total || 0) / limit);
+
+    const getPageNumbers = () => {
+        const pages = [];
+        const maxVisiblePages = 5;
+
+        if (totalPages <= maxVisiblePages) {
+            for (let i = 1; i <= totalPages; i++) {
+                pages.push(i);
+            }
+        } else {
+            if (page <= 3) {
+                pages.push(1, 2, 3, 4, '...', totalPages);
+            } else if (page >= totalPages - 2) {
+                pages.push(1, '...', totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+            } else {
+                pages.push(1, '...', page - 1, page, page + 1, '...', totalPages);
+            }
+        }
+        return pages;
+    }
 
     return (
         <div className="admin-page max-w-full px-4 lg:px-8">
@@ -56,6 +86,19 @@ export default function StaffPaymentsPage() {
                     <p className="admin-page__subtitle">Danh sách các lịch hẹn đã hoàn thành và thanh toán.</p>
                 </div>
                 <div className="flex items-center gap-3">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                        <input
+                            type="text"
+                            placeholder="Tìm mã đơn, biển số xe..."
+                            value={searchQuery}
+                            onChange={(e) => {
+                                setSearchQuery(e.target.value);
+                                setPage(1);
+                            }}
+                            className="pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 outline-none focus:border-blue-500 bg-white shadow-sm min-w-[220px]"
+                        />
+                    </div>
                     <input
                         type="date"
                         value={selectedDate}
@@ -93,16 +136,17 @@ export default function StaffPaymentsPage() {
                                 <th className="px-5 py-4 font-bold">Dịch vụ</th>
                                 <th className="px-5 py-4 font-bold">Tổng thanh toán</th>
                                 <th className="px-5 py-4 font-bold">Trạng thái</th>
+                                <th className="px-5 py-4 font-bold text-center">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={6} className="py-16 text-center"><RefreshCw className="animate-spin text-blue-500 mx-auto" /></td>
+                                    <td colSpan={7} className="py-16 text-center"><RefreshCw className="animate-spin text-blue-500 mx-auto" /></td>
                                 </tr>
                             ) : filteredItems.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="py-16 text-center text-slate-400 font-medium">Chưa có giao dịch nào hoàn thành.</td>
+                                    <td colSpan={7} className="py-16 text-center text-slate-400 font-medium">Chưa có giao dịch nào hoàn thành.</td>
                                 </tr>
                             ) : (
                                 filteredItems.map((b: WashBooking) => {
@@ -111,8 +155,7 @@ export default function StaffPaymentsPage() {
                                     return (
                                         <tr
                                             key={b._id || b.id}
-                                            onClick={() => setDetailModal(b)}
-                                            className="hover:bg-slate-50 cursor-pointer transition-colors group"
+                                            className="hover:bg-slate-50 transition-colors group"
                                         >
                                             <td className="px-5 py-4">
                                                 <div className="font-bold text-slate-700 group-hover:text-blue-600 transition-colors">#{id}</div>
@@ -155,6 +198,16 @@ export default function StaffPaymentsPage() {
                                                     </span>
                                                 </div>
                                             </td>
+                                            <td className="px-5 py-4">
+                                                <div className="flex justify-center items-center">
+                                                    <button
+                                                        onClick={() => setDetailModal(b)}
+                                                        className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition shadow-sm flex items-center gap-1.5"
+                                                    >
+                                                        <Eye size={14} /> Chi tiết
+                                                    </button>
+                                                </div>
+                                            </td>
                                         </tr>
                                     )
                                 })
@@ -169,18 +222,36 @@ export default function StaffPaymentsPage() {
                         <div className="text-sm text-slate-500">
                             Hiển thị trang <span className="font-semibold text-slate-900">{page}</span> / <span className="font-semibold text-slate-900">{totalPages}</span> (Tổng số {data.total} đơn)
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1">
                             <button
                                 onClick={() => setPage(p => Math.max(1, p - 1))}
                                 disabled={page === 1}
-                                className="p-1.5 rounded border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:hover:bg-transparent"
+                                className="p-1.5 mr-2 rounded border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:hover:bg-transparent"
                             >
                                 <ChevronLeft size={18} />
                             </button>
+                            
+                            {getPageNumbers().map((p, i) => (
+                                <button
+                                    key={i}
+                                    onClick={() => typeof p === 'number' && setPage(p)}
+                                    disabled={p === '...'}
+                                    className={`min-w-[32px] h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-colors ${
+                                        page === p 
+                                        ? 'bg-blue-500 text-white shadow-sm' 
+                                        : p === '...' 
+                                            ? 'text-slate-400 cursor-default' 
+                                            : 'text-slate-600 hover:bg-slate-100'
+                                    }`}
+                                >
+                                    {p}
+                                </button>
+                            ))}
+
                             <button
                                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                                 disabled={page === totalPages}
-                                className="p-1.5 rounded border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:hover:bg-transparent"
+                                className="p-1.5 ml-2 rounded border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:hover:bg-transparent"
                             >
                                 <ChevronRight size={18} />
                             </button>

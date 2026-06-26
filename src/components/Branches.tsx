@@ -12,8 +12,7 @@ export default function Branches() {
     async function loadBranches() {
       try {
         const data = await branchService.list()
-        // Chỉ lấy các chi nhánh đang hoạt động
-        setBranches(data.filter(b => b.is_active !== false))
+        setBranches(data)
       } catch (error) {
         console.error('Lỗi khi tải danh sách chi nhánh', error)
       } finally {
@@ -57,6 +56,15 @@ export default function Branches() {
               >
                 {/* Map embed */}
                 <div className="h-48 w-full bg-slate-100 relative">
+                  {/* Trạng thái Mở/Đóng cửa */}
+                  <div className="absolute top-4 right-4 z-10 pointer-events-none">
+                    {branch.is_active !== false ? (
+                      <span className="px-3 py-1 bg-emerald-500 text-white text-xs font-bold rounded-full shadow-md">Mở cửa</span>
+                    ) : (
+                      <span className="px-3 py-1 bg-rose-500 text-white text-xs font-bold rounded-full shadow-md">Đã đóng cửa</span>
+                    )}
+                  </div>
+                  
                   {hasGeo ? (
                     <iframe
                       src={mapSrc}

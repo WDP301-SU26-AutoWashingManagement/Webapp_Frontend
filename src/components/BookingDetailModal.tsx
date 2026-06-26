@@ -48,18 +48,28 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onPay, hi
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'pending': return <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-bold">pending</span>
-      case 'confirmed': return <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold">confirmed</span>
-      case 'checked_in': return <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-bold">checked_in</span>
-      case 'in_progress': return <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-bold">in_progress</span>
-      case 'washed': return <span className="px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-xs font-bold">washed</span>
-      case 'completed': return <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold">completed</span>
-      case 'cancelled': return <span className="px-3 py-1 bg-rose-100 text-rose-700 rounded-full text-xs font-bold">cancelled</span>
+      case 'pending': return <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-bold">Chờ xác nhận</span>
+      case 'confirmed': return <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold">Đã xác nhận</span>
+      case 'checked_in': return <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-bold">Đã nhận xe</span>
+      case 'in_progress': return <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-bold">Đang rửa</span>
+      case 'washed': return <span className="px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-xs font-bold">Rửa xong</span>
+      case 'completed': return <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold">Hoàn thành</span>
+      case 'cancelled': return <span className="px-3 py-1 bg-rose-100 text-rose-700 rounded-full text-xs font-bold">Đã hủy</span>
       default: return <span className="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-bold">{status}</span>
     }
   }
 
   const schedDate = new Date(booking.scheduled_at)
+
+  const formatBranchAddress = (branch: any) => {
+    if (!branch || typeof branch === 'string') return null;
+    const addr = branch.branch_address;
+    if (!addr) return null;
+    if (typeof addr === 'string') return addr;
+    const parts = [addr.street, addr.ward, addr.district, addr.city].filter(Boolean);
+    return parts.length > 0 ? parts.join(', ') : null;
+  }
+  const branchAddressStr = formatBranchAddress(booking.branch_id);
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
@@ -87,7 +97,7 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onPay, hi
             <div className="space-y-6">
               <div>
                 <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 flex items-center gap-2">
-                  <Calendar size={16} className="text-blue-500" /> Thời gian
+                  <Calendar size={16} className="text-blue-500" /> Thời gian & Địa điểm
                 </h3>
                 <div className="bg-slate-50 rounded-xl p-4 space-y-3 border border-slate-100">
                   <div className="flex justify-between items-center">
@@ -102,6 +112,17 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onPay, hi
                       {schedDate.toLocaleDateString('vi-VN')}
                     </span>
                   </div>
+                  {(branchAddressStr || booking.branch_id) && (
+                    <>
+                      <div className="h-px bg-slate-200 my-2"></div>
+                      <div>
+                        <span className="text-sm text-slate-500 block mb-1">Chi nhánh:</span>
+                        <span className="text-sm font-bold text-slate-800 block">
+                          {branchAddressStr || (typeof booking.branch_id === 'string' ? `ID: ${booking.branch_id}` : `RAW: ${JSON.stringify(booking.branch_id)}`)}
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 
