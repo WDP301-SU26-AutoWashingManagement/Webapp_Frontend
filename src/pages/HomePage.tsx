@@ -4,7 +4,7 @@ import How from '../components/How'
 import Tiers from '../components/Tiers'
 import Branches from '../components/Branches'
 import ComboPackages from '../components/ComboPackages'
-import PublicPromotions from '../components/PublicPromotions'
+import IndividualServices from '../components/IndividualServices'
 
 
 export default function HomePage() {
@@ -15,7 +15,7 @@ export default function HomePage() {
             <How />
             <Features />
             <ComboPackages />
-            <PublicPromotions />
+            <IndividualServices />
             <Branches />
             <Tiers />
         </main>

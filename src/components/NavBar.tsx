@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import logo2 from '../assets/logo2.png'
 import ProfileMenu from './ProfileMenu'
+import PromotionNotifications from './PromotionNotifications'
 import { useAuth } from '../hooks/useAuth'
 
 export default function NavBar() {
@@ -46,7 +47,8 @@ export default function NavBar() {
 
     const authActionsDesktop = isAuthenticated && user ? (
         <>
-            <div className="hidden md:block">
+            <div className="hidden md:flex items-center gap-3">
+                <PromotionNotifications />
                 <ProfileMenu user={user} />
             </div>
             <button
@@ -161,7 +163,8 @@ export default function NavBar() {
 
             <div className="flex items-center gap-3 md:gap-4">
                 {isAuthenticated && user && (
-                    <div className="md:hidden">
+                    <div className="flex items-center gap-2 md:hidden">
+                        <PromotionNotifications />
                         <ProfileMenu user={user} />
                     </div>
                 )}

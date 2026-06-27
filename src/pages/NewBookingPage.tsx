@@ -339,6 +339,25 @@ export default function NewBookingPage() {
     return estimateBookingPrice(totalBasePrice, validatedPromotion, tierDiscountPercentage)
   }, [selectedServices, selectedCombo, validatedPromotion, tierDiscountPercentage])
 
+  useEffect(() => {
+    if (validatedPromotion) {
+      let totalBasePrice = 0
+      if (selectedCombo) {
+        totalBasePrice += selectedCombo.finalPrice
+      }
+      if (selectedServices.length > 0) {
+        totalBasePrice += selectedServices.reduce((sum, pkg) => sum + (pkg.service_price || 0), 0)
+      }
+      const tierDiscount = Math.round(totalBasePrice * (tierDiscountPercentage / 100));
+      const priceAfterTier = Math.max(0, totalBasePrice - tierDiscount);
+
+      if (priceAfterTier < (validatedPromotion.min_order_amount || 0)) {
+        setValidatedPromotion(null)
+        showError(`Mã khuyến mãi ${validatedPromotion.code} đã bị gỡ bỏ do đơn hàng không đủ giá trị tối thiểu (${validatedPromotion.min_order_amount.toLocaleString('vi-VN')}đ)`)
+      }
+    }
+  }, [selectedCombo, selectedServices, tierDiscountPercentage, validatedPromotion])
+
   const handleApplyPromotion = async () => {
     const code = form.promotion_code.trim()
     if (!code) {
@@ -349,6 +368,23 @@ export default function NewBookingPage() {
     setValidatingPromotion(true)
     try {
       const { promotion, message } = await promotionService.validateCode(code)
+      
+      let totalBasePrice = 0
+      if (selectedCombo) {
+        totalBasePrice += selectedCombo.finalPrice
+      }
+      if (selectedServices.length > 0) {
+        totalBasePrice += selectedServices.reduce((sum, pkg) => sum + (pkg.service_price || 0), 0)
+      }
+      const tierDiscount = Math.round(totalBasePrice * (tierDiscountPercentage / 100));
+      const priceAfterTier = Math.max(0, totalBasePrice - tierDiscount);
+
+      if (priceAfterTier < (promotion.min_order_amount || 0)) {
+        showError(`Đơn hàng chưa đạt giá trị tối thiểu để áp dụng mã này (Yêu cầu tối thiểu từ ${promotion.min_order_amount.toLocaleString('vi-VN')}đ)`)
+        setValidatedPromotion(null)
+        return
+      }
+
       setValidatedPromotion(promotion)
       setForm((prev) => ({
         ...prev,
