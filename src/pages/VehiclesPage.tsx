@@ -131,7 +131,7 @@ export default function VehiclesPage() {
       } else {
         payload.model_id = 'other'
         const selectedMake = makes.find(m => m._id === form.make_id)
-        payload.make_name = form.make_id === 'other' 
+        payload.make_name = form.make_id === 'other'
           ? (form.custom_make_name.trim() || 'Khác')
           : (selectedMake ? selectedMake.make_name : 'Khác')
         payload.model_name = form.custom_model_name.trim() || 'Khác'
@@ -216,10 +216,13 @@ export default function VehiclesPage() {
                     disabled={saving}
                   >
                     <option value="">Chọn hãng xe</option>
-                    {makes.map((opt) => (
+                    {makes.filter(opt => opt.make_name !== 'Khác').map((opt) => (
                       <option key={opt._id} value={opt._id}>{opt.make_name}</option>
                     ))}
-                    <option value="other">Khác (Nhập tùy chọn)</option>
+                    {makes.filter(opt => opt.make_name === 'Khác').map((opt) => (
+                      <option key={opt._id} value={opt._id}>{opt.make_name}</option>
+                    ))}
+                    {/* <option value="other">Khác (Nhập tùy chọn)</option> */}
                   </select>
                 </label>
                 {form.make_id === 'other' && (
@@ -244,10 +247,13 @@ export default function VehiclesPage() {
                     disabled={saving || (!form.make_id && form.make_id !== 'other')}
                   >
                     <option value="">Chọn dòng xe</option>
-                    {filteredModels.map((opt) => (
+                    {filteredModels.filter(opt => opt.model_name !== 'Khác').map((opt) => (
                       <option key={opt._id} value={opt._id}>{opt.model_name}</option>
                     ))}
-                    <option value="other">Khác (Nhập tùy chọn)</option>
+                    {filteredModels.filter(opt => opt.model_name === 'Khác').map((opt) => (
+                      <option key={opt._id} value={opt._id}>{opt.model_name}</option>
+                    ))}
+                    {/* <option value="other">Khác (Nhập tùy chọn)</option> */}
                   </select>
                 </label>
                 {form.model_id === 'other' && (

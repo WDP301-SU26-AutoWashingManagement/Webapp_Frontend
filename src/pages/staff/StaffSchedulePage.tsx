@@ -18,7 +18,11 @@ export default function StaffSchedulePage() {
   const isManager = user?.role === 'admin' || user?.role === 'boss' || user?.staff_type === 'manager'
 
   const [isSwapModalOpen, setIsSwapModalOpen] = useState(false);
+  const [selectedDateA, setSelectedDateA] = useState<string>('');
+  const [selectedShiftA, setSelectedShiftA] = useState<string>('');
   const [selectedStaffA, setSelectedStaffA] = useState<string>('');
+  const [selectedDateB, setSelectedDateB] = useState<string>('');
+  const [selectedShiftB, setSelectedShiftB] = useState<string>('');
   const [selectedStaffB, setSelectedStaffB] = useState<string>('');
   const [isSwapping, setIsSwapping] = useState(false);
 
@@ -33,7 +37,11 @@ export default function StaffSchedulePage() {
       await scheduleService.switchStaff(schedule_id_1, staff_id_1, schedule_id_2, staff_id_2);
       showSuccess('Đã hoán đổi thành công! Email thông báo đã được gửi.');
       setIsSwapModalOpen(false);
+      setSelectedDateA('');
+      setSelectedShiftA('');
       setSelectedStaffA('');
+      setSelectedDateB('');
+      setSelectedShiftB('');
       setSelectedStaffB('');
       
       // Reload schedules
@@ -164,6 +172,34 @@ export default function StaffSchedulePage() {
 
   const dayNames = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật']
 
+  let swapError: string | null = null;
+  if (selectedStaffA && selectedStaffB) {
+    const [schedule_id_1, staff_id_1] = selectedStaffA.split('_');
+    const [schedule_id_2, staff_id_2] = selectedStaffB.split('_');
+
+    if (selectedStaffA === selectedStaffB) {
+      swapError = 'Không thể đổi ca với chính phân công này.';
+    } else if (schedule_id_1 === schedule_id_2) {
+      swapError = 'Hai nhân viên đang ở cùng một ca, không thể hoán đổi.';
+    } else {
+      const s1 = schedules.find(s => s._id === schedule_id_1);
+      const s2 = schedules.find(s => s._id === schedule_id_2);
+
+      if (s1 && s2) {
+        const staff2InS1 = s1.assigned_staff.some((st: any) => (st._id || st) === staff_id_2);
+        const staff1InS2 = s2.assigned_staff.some((st: any) => (st._id || st) === staff_id_1);
+
+        if (staff2InS1 && staff1InS2) {
+          swapError = 'Cả hai nhân viên đều đã có mặt trong ca của nhau.';
+        } else if (staff2InS1) {
+          swapError = 'Nhân viên thay thế đã có mặt trong ca gốc.';
+        } else if (staff1InS2) {
+          swapError = 'Nhân viên gốc đã có mặt trong ca thay thế.';
+        }
+      }
+    }
+  }
+
   return (
     <div className="admin-page">
       <div className="admin-page__header">
@@ -194,7 +230,15 @@ export default function StaffSchedulePage() {
             </button>
             {isManager && (
               <button 
-                onClick={() => setIsSwapModalOpen(true)}
+                onClick={() => {
+                  setSelectedDateA('');
+                  setSelectedShiftA('');
+                  setSelectedStaffA('');
+                  setSelectedDateB('');
+                  setSelectedShiftB('');
+                  setSelectedStaffB('');
+                  setIsSwapModalOpen(true);
+                }}
                 style={{ marginLeft: '1rem', padding: '0.5rem 1rem', background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', borderRadius: '0.375rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}
               >
                 <RefreshCcw size={16} /> Hoán đổi ca
@@ -301,77 +345,212 @@ export default function StaffSchedulePage() {
       {/* Switch Shift Modal */}
       {isSwapModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
-            <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">
-                <RefreshCcw className="text-amber-600" size={20} />
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+              <h3 className="font-bold text-xl text-slate-800 flex items-center gap-2">
+                <RefreshCcw className="text-indigo-600" size={24} />
                 Hoán đổi ca làm việc
               </h3>
             </div>
             
-            <div className="p-6 space-y-6">
-              <div className="space-y-4">
+            <div className="p-8 space-y-8">
+              <div className="relative">
                 {(() => {
-                  const assignments: { id: string, label: string }[] = [];
-                  schedules.forEach(s => {
-                    s.assigned_staff.forEach(staff => {
-                      if (typeof staff === 'object' && staff !== null) {
-                        const dateStr = new Date(s.shift_date).toLocaleDateString('vi-VN', { weekday: 'short', month: '2-digit', day: '2-digit' });
-                        const staffName = staff.user_id?.full_name || staff.user_id?.email || staff.full_name || staff.email || 'Chưa cập nhật';
-                        assignments.push({
-                          id: `${s._id}_${staff._id}`,
-                          label: `${staffName} (${s.start_time} - ${dateStr})`
-                        });
-                      }
-                    });
-                  });
+                  const getFormattedDate = (d: string | Date) => {
+                    const date = new Date(d);
+                    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                  };
+
+                  const availableSchedulesA = schedules.filter(s => getFormattedDate(s.shift_date) === selectedDateA);
+                  
+                  const staffForShiftA = selectedShiftA 
+                    ? availableSchedulesA.find(s => s._id === selectedShiftA)?.assigned_staff.map(staff => ({
+                        id: `${selectedShiftA}_${(staff as any)._id || staff}`,
+                        label: (staff as any).full_name || (staff as any).user_id?.full_name || (staff as any).email || 'Chưa cập nhật'
+                    })) || []
+                    : [];
+
+                  const availableSchedulesB = schedules.filter(s => getFormattedDate(s.shift_date) === selectedDateB);
+
+                  let staffForShiftB = selectedShiftB
+                    ? availableSchedulesB.find(s => s._id === selectedShiftB)?.assigned_staff.map(staff => {
+                         const st_2 = (staff as any)._id || staff;
+                         return {
+                           id: `${selectedShiftB}_${st_2}`,
+                           label: (staff as any).full_name || (staff as any).user_id?.full_name || (staff as any).email || 'Chưa cập nhật',
+                           rawStaffId: st_2
+                         };
+                      }) || []
+                    : [];
+
+                  if (selectedStaffA && selectedShiftB) {
+                      const [sched_1, st_1] = selectedStaffA.split('_');
+                      const s1 = schedules.find(s => s._id === sched_1);
+                      const s2 = schedules.find(s => s._id === selectedShiftB);
+                      
+                      staffForShiftB = staffForShiftB.filter(b => {
+                          const sched_2 = selectedShiftB;
+                          const st_2 = b.rawStaffId;
+                          
+                          if (sched_1 === sched_2) return false;
+                          if (s2 && s2.assigned_staff.some((s: any) => (s._id || s) === st_1)) return false;
+                          if (s1 && s1.assigned_staff.some((s: any) => (s._id || s) === st_2)) return false;
+                          
+                          return true;
+                      });
+                  }
 
                   return (
-                    <>
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Chọn nhân viên 1 (Ca gốc)</label>
-                        <select 
-                          className="w-full border border-slate-300 rounded-md p-2 focus:ring-2 focus:ring-indigo-500 outline-none"
-                          value={selectedStaffA}
-                          onChange={(e) => setSelectedStaffA(e.target.value)}
-                        >
-                          <option value="">-- Chọn nhân viên --</option>
-                          {assignments.map(a => (
-                            <option key={a.id} value={a.id}>{a.label}</option>
-                          ))}
-                        </select>
-                      </div>
-                      
-                      <div className="flex justify-center -my-2 relative z-10">
-                        <div className="bg-white p-2 rounded-full border border-slate-200 shadow-sm">
-                          <RefreshCcw size={16} className="text-slate-400" />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative">
+                      {/* Ca gốc */}
+                      <div className="bg-slate-50 border border-slate-200 p-6 rounded-xl space-y-5">
+                        <div className="flex items-center gap-3 pb-4 border-b border-slate-200">
+                          <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold">1</div>
+                          <h4 className="font-semibold text-slate-700 text-lg">Ca hiện tại (Ca gốc)</h4>
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-semibold text-slate-700 mb-2">Ngày làm việc</label>
+                          <input 
+                            type="date"
+                            className="w-full border border-slate-300 rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all shadow-sm"
+                            value={selectedDateA}
+                            onChange={(e) => {
+                                setSelectedDateA(e.target.value);
+                                setSelectedShiftA('');
+                                setSelectedStaffA('');
+                            }}
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-semibold text-slate-700 mb-2">Khung giờ</label>
+                          <select 
+                            className="w-full border border-slate-300 rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none disabled:bg-slate-100 disabled:text-slate-400 transition-all shadow-sm"
+                            value={selectedShiftA}
+                            onChange={(e) => {
+                                setSelectedShiftA(e.target.value);
+                                setSelectedStaffA('');
+                            }}
+                            disabled={!selectedDateA}
+                          >
+                            <option value="">-- Chọn khung giờ --</option>
+                            {availableSchedulesA.length === 0 && selectedDateA ? (
+                              <option value="" disabled>Không có ca làm việc nào</option>
+                            ) : (
+                              availableSchedulesA.map(s => (
+                                <option key={s._id} value={s._id}>{s.start_time} - {s.end_time}</option>
+                              ))
+                            )}
+                          </select>
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-semibold text-slate-700 mb-2">Nhân viên cần đổi ca</label>
+                          <select 
+                            className="w-full border border-slate-300 rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none disabled:bg-slate-100 disabled:text-slate-400 transition-all shadow-sm"
+                            value={selectedStaffA}
+                            onChange={(e) => setSelectedStaffA(e.target.value)}
+                            disabled={!selectedShiftA}
+                          >
+                            <option value="">-- Chọn nhân viên --</option>
+                            {staffForShiftA.length === 0 && selectedShiftA ? (
+                              <option value="" disabled>Chưa có nhân viên trong ca này</option>
+                            ) : (
+                              staffForShiftA.map(a => (
+                                <option key={a.id} value={a.id}>{a.label}</option>
+                              ))
+                            )}
+                          </select>
                         </div>
                       </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Chọn nhân viên 2 (Ca thay thế)</label>
-                        <select 
-                          className="w-full border border-slate-300 rounded-md p-2 focus:ring-2 focus:ring-indigo-500 outline-none"
-                          value={selectedStaffB}
-                          onChange={(e) => setSelectedStaffB(e.target.value)}
-                        >
-                          <option value="">-- Chọn nhân viên --</option>
-                          {assignments.map(a => (
-                            <option key={a.id} value={a.id}>{a.label}</option>
-                          ))}
-                        </select>
+                      
+                      {/* Icon hoán đổi ở giữa (với màn hình to) */}
+                      <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 bg-white p-3 rounded-full border-4 border-white shadow-[0_0_15px_rgba(0,0,0,0.08)]">
+                        <RefreshCcw size={24} className="text-indigo-500" />
                       </div>
-                    </>
+
+                      {/* Ca thay thế */}
+                      <div className="bg-indigo-50/50 border border-indigo-100 p-6 rounded-xl space-y-5">
+                        <div className="flex items-center gap-3 pb-4 border-b border-indigo-100">
+                          <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold">2</div>
+                          <h4 className="font-semibold text-indigo-700 text-lg">Ca thay thế (Đổi với ai)</h4>
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-semibold text-slate-700 mb-2">Ngày làm việc</label>
+                          <input 
+                            type="date"
+                            className="w-full border border-indigo-200 bg-white rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none disabled:bg-slate-100 disabled:border-slate-200 disabled:text-slate-400 transition-all shadow-sm"
+                            value={selectedDateB}
+                            onChange={(e) => {
+                                setSelectedDateB(e.target.value);
+                                setSelectedShiftB('');
+                                setSelectedStaffB('');
+                            }}
+                            disabled={!selectedStaffA}
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-semibold text-slate-700 mb-2">Khung giờ</label>
+                          <select 
+                            className="w-full border border-indigo-200 bg-white rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none disabled:bg-slate-100 disabled:border-slate-200 disabled:text-slate-400 transition-all shadow-sm"
+                            value={selectedShiftB}
+                            onChange={(e) => {
+                                setSelectedShiftB(e.target.value);
+                                setSelectedStaffB('');
+                            }}
+                            disabled={!selectedDateB}
+                          >
+                            <option value="">-- Chọn khung giờ --</option>
+                            {availableSchedulesB.length === 0 && selectedDateB ? (
+                              <option value="" disabled>Không có ca làm việc nào</option>
+                            ) : (
+                              availableSchedulesB.map(s => (
+                                <option key={s._id} value={s._id}>{s.start_time} - {s.end_time}</option>
+                              ))
+                            )}
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-semibold text-slate-700 mb-2">Nhân viên thay thế</label>
+                          <select 
+                            className="w-full border border-indigo-200 bg-white rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none disabled:bg-slate-100 disabled:border-slate-200 disabled:text-slate-400 transition-all shadow-sm"
+                            value={selectedStaffB}
+                            onChange={(e) => setSelectedStaffB(e.target.value)}
+                            disabled={!selectedShiftB}
+                          >
+                            <option value="">-- Chọn nhân viên --</option>
+                            {staffForShiftB.length === 0 && selectedShiftB ? (
+                              <option value="" disabled>Không có NV khả dụng</option>
+                            ) : (
+                              staffForShiftB.map(a => (
+                                <option key={a.id} value={a.id}>{a.label}</option>
+                              ))
+                            )}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
                   );
                 })()}
               </div>
 
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex gap-3 items-start">
-                <AlertTriangle className="text-amber-600 shrink-0 mt-0.5" size={18} />
-                <p className="text-xs text-amber-800">
-                  Hành động này sẽ cập nhật trực tiếp vào cơ sở dữ liệu và tự động gửi <strong>Email thông báo</strong> cho cả 2 nhân viên.
-                </p>
-              </div>
+              {swapError ? (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex gap-3 items-start">
+                  <AlertTriangle className="text-red-600 shrink-0 mt-0.5" size={18} />
+                  <p className="text-sm text-red-800 font-medium">{swapError}</p>
+                </div>
+              ) : (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex gap-3 items-start">
+                  <AlertTriangle className="text-amber-600 shrink-0 mt-0.5" size={18} />
+                  <p className="text-xs text-amber-800">
+                    Hành động này sẽ cập nhật trực tiếp vào cơ sở dữ liệu và tự động gửi <strong>Email thông báo</strong> cho cả 2 nhân viên.
+                  </p>
+                </div>
+              )}
             </div>
             
             <div className="p-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50">
@@ -383,9 +562,10 @@ export default function StaffSchedulePage() {
               </button>
               <button 
                 onClick={handleSwapConfirm}
-                disabled={!selectedStaffA || !selectedStaffB}
-                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={!selectedStaffA || !selectedStaffB || !!swapError || isSwapping}
+                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
+                {isSwapping && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
                 Xác nhận đổi ca
               </button>
             </div>

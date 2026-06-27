@@ -74,6 +74,35 @@ export default function AdminBookingsPage() {
   });
   const totalPages = Math.ceil((data.total || 0) / limit);
 
+  // Generate page numbers
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+    
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      if (page <= 3) {
+        for (let i = 1; i <= 4; i++) pages.push(i);
+        pages.push('...');
+        pages.push(totalPages);
+      } else if (page >= totalPages - 2) {
+        pages.push(1);
+        pages.push('...');
+        for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
+      } else {
+        pages.push(1);
+        pages.push('...');
+        pages.push(page - 1);
+        pages.push(page);
+        pages.push(page + 1);
+        pages.push('...');
+        pages.push(totalPages);
+      }
+    }
+    return pages;
+  };
+
   return (
     <div className="admin-page animate-in fade-in duration-300">
       <div className="admin-page__header flex justify-between items-end">
@@ -95,6 +124,25 @@ export default function AdminBookingsPage() {
               className="pl-9 pr-4 py-1.5 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:border-blue-500 bg-white min-w-[220px] transition-colors"
             />
           </div>
+          
+          <select
+            value={activeTab}
+            onChange={(e) => {
+              setActiveTab(e.target.value as any);
+              setPage(1);
+            }}
+            className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:border-blue-500 bg-white min-w-[150px]"
+          >
+            <option value="all">Tất cả trạng thái</option>
+            <option value="pending">Chờ xác nhận</option>
+            <option value="confirmed">Đã xác nhận</option>
+            <option value="checked_in">Đã nhận xe</option>
+            <option value="in_progress">Đang xử lý</option>
+            <option value="washed">Rửa xong</option>
+            <option value="completed">Hoàn thành</option>
+            <option value="cancelled">Đã hủy</option>
+          </select>
+
           <input
             type="date"
             value={selectedDate}
@@ -115,29 +163,6 @@ export default function AdminBookingsPage() {
       </div>
 
       <div className="admin-card flex flex-col min-h-[500px]">
-        <div className="flex gap-6 border-b border-slate-200 px-6 pt-4 overflow-x-auto">
-          {[
-            { id: 'all', label: 'All' },
-            { id: 'pending', label: 'Pending' },
-            { id: 'confirmed', label: 'Confirmed' },
-            { id: 'checked_in', label: 'Checked_in' },
-            { id: 'in_progress', label: 'In_progress' },
-            { id: 'washed', label: 'Washed' },
-            { id: 'completed', label: 'Completed' },
-            { id: 'cancelled', label: 'Cancelled' }
-          ].map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => {
-                setActiveTab(tab.id as any);
-                setPage(1);
-              }}
-              className={`font-medium text-sm pb-3 border-b-2 transition-colors whitespace-nowrap ${activeTab === tab.id ? 'border-blue-500 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
 
         <div className="admin-table-wrap flex-1">
           <table className="admin-table">
@@ -215,7 +240,7 @@ export default function AdminBookingsPage() {
             <div className="text-sm text-slate-500">
               Hiển thị trang <span className="font-semibold text-slate-900">{page}</span> / <span className="font-semibold text-slate-900">{totalPages}</span> (Tổng số {data.total} đơn)
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
@@ -223,6 +248,24 @@ export default function AdminBookingsPage() {
               >
                 <ChevronLeft size={18} />
               </button>
+              
+              {getPageNumbers().map((p, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => typeof p === 'number' && setPage(p)}
+                  disabled={p === '...'}
+                  className={`w-8 h-8 flex items-center justify-center rounded text-sm font-medium ${
+                    p === page
+                      ? 'bg-blue-600 text-white border border-blue-600'
+                      : p === '...'
+                      ? 'text-slate-400 cursor-default'
+                      : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  {p}
+                </button>
+              ))}
+
               <button
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
