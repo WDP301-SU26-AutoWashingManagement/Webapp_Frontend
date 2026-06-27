@@ -73,15 +73,10 @@ export default function ComboPackages() {
             >
               {/* Card Header */}
               <div className="mb-4">
-                <div className="flex items-start justify-between mb-2 gap-3">
-                  <h3 className="text-xl font-bold text-slate-900 line-clamp-2 min-h-[56px]">
+                <div className="flex items-start mb-2">
+                  <h3 className="text-xl font-bold text-slate-900 line-clamp-2 min-h-[56px] w-full pr-2">
                     {pkg.package_name}
                   </h3>
-                  {pkg.package_discount_percentage > 0 && (
-                    <span className="shrink-0 inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20 mt-1">
-                      Tiết kiệm {pkg.package_discount_percentage}%
-                    </span>
-                  )}
                 </div>
                 <p className="text-base text-slate-500 min-h-[40px] line-clamp-2">{pkg.description}</p>
               </div>
@@ -98,6 +93,13 @@ export default function ComboPackages() {
                     </span>
                   )}
                 </div>
+                {pkg.package_discount_percentage > 0 && pkg.basePrice > 0 && (
+                  <div className="mt-1">
+                    <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
+                      Tiết kiệm {pkg.package_discount_percentage}%
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Divider */}
