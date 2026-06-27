@@ -6,6 +6,8 @@ import { showError, showSuccess } from '../../utils/toast'
 import { getErrorMessage } from '../../utils/errors'
 import { useAuth } from '../../hooks/useAuth'
 import { PasswordInput } from '../../components/auth/authUi'
+import { adminTierService } from '../../services/adminTierService'
+import type { Tier } from '../../types/tier'
 
 const AVATAR_MAX_BYTES = 5 * 1024 * 1024
 const AVATAR_ACCEPT = 'image/png,image/jpeg,image/jpg,image/webp'
@@ -14,15 +16,16 @@ export default function InternalProfilePage() {
   const { user, refreshUserFromProfile } = useAuth()
   const [profile, setProfile] = useState<ProfileData | null>(null)
   const [loading, setLoading] = useState(true)
-  
+
   const [form, setForm] = useState({ full_name: '', phone: '' })
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const avatarInputRef = useRef<HTMLInputElement>(null)
-  
+
   const [savingProfile, setSavingProfile] = useState(false)
   const [savingPassword, setSavingPassword] = useState(false)
-  
+  const [tiers, setTiers] = useState<Tier[]>([])
+
   const [passwordForm, setPasswordForm] = useState({
     old_password: '',
     new_password: '',
@@ -39,12 +42,17 @@ export default function InternalProfilePage() {
   const loadProfile = async () => {
     try {
       setLoading(true)
-      const data = await profileService.getProfile()
+      const [data, tiersData] = await Promise.all([
+        profileService.getProfile(),
+        adminTierService.list({ limit: 100 }).catch(() => ({ items: [] }))
+      ])
       setProfile(data)
       setForm({
         full_name: data.full_name || '',
         phone: data.phone || '',
       })
+      const sortedTiers = tiersData.items.sort((a, b) => (a.min_membership_points || 0) - (b.min_membership_points || 0));
+      setTiers(sortedTiers)
     } catch (err) {
       showError(getErrorMessage(err, 'Không thể tải thông tin hồ sơ'))
     } finally {
@@ -87,16 +95,16 @@ export default function InternalProfilePage() {
         ...(avatarFile ? { avatar: avatarFile } : {})
       })
       setProfile(updated)
-      
+
       // Clear file input
       setAvatarFile(null)
       if (avatarPreview?.startsWith('blob:')) URL.revokeObjectURL(avatarPreview)
       setAvatarPreview(null)
       if (avatarInputRef.current) avatarInputRef.current.value = ''
-      
+
       // Update global context user
       await refreshUserFromProfile()
-      
+
       showSuccess('Cập nhật hồ sơ thành công')
     } catch (err) {
       showError(getErrorMessage(err, 'Cập nhật thất bại'))
@@ -137,6 +145,23 @@ export default function InternalProfilePage() {
 
   if (!profile) return null
 
+  let userTierInfo = null;
+  if (user?.role === 'customer' && profile?.role_data?.tier_id) {
+    const rawTierId = profile.role_data.tier_id as any;
+    const rawName = (rawTierId.tier_name || 'member').toLowerCase();
+    const tData = tiers.find(t => (t.tier_name || '').toLowerCase() === rawName) || 
+                  (typeof rawTierId === 'object' ? rawTierId : { tier_name: 'Member' });
+    const tName = (tData.tier_name || 'member').toLowerCase();
+    const visualMap: Record<string, any> = {
+      member: { icon: '🏅', color: '#888780', colorDark: '#444441', colorLight: '#F1EFE8', subtitle: 'Hạng cơ bản' },
+      silver: { icon: '🥈', color: '#888780', colorDark: '#444441', colorLight: '#F1EFE8', subtitle: 'Khách hàng thân thiết' },
+      gold: { icon: '👑', color: '#BA7517', colorDark: '#633806', colorLight: '#faeedab0', subtitle: 'Khách VIP', featured: true },
+      platinum: { icon: '💎', color: '#1D9E75', colorDark: '#085041', colorLight: '#E1F5EE', subtitle: 'Hạng cao nhất' },
+    }
+    const v = visualMap[tName] || visualMap['member'];
+    userTierInfo = { tData, v };
+  }
+
   const displayedAvatar = avatarPreview || profile.avatar_url
 
   return (
@@ -149,7 +174,7 @@ export default function InternalProfilePage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
-        
+
         {/* Left Column: Basic Info Overview */}
         <div className="space-y-6 lg:col-span-1">
           <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -168,7 +193,7 @@ export default function InternalProfilePage() {
                 <Briefcase size={14} /> {user?.role}
               </p>
             </div>
-            
+
             <div className="mt-6 border-t border-slate-100 pt-6 space-y-4">
               <div className="flex items-center gap-3 text-sm text-slate-600">
                 <Mail size={16} className="text-slate-400" />
@@ -198,28 +223,60 @@ export default function InternalProfilePage() {
             {user?.role === 'customer' && profile.role_data && (
               <div className="mt-6 border-t border-slate-100 pt-6 space-y-4">
                 <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Thẻ thành viên</h4>
-                
-                {Boolean(profile.role_data.tier_id) && typeof profile.role_data.tier_id === 'object' && (
-                  <div className="flex items-center justify-between text-sm text-slate-700 bg-gradient-to-r from-amber-50 to-amber-100 p-3 rounded-lg border border-amber-200">
-                    <div className="flex items-center gap-2"><Crown size={16} className="text-amber-500" /> Hạng thành viên</div>
-                    <span className="font-bold text-amber-700 uppercase tracking-wide">{String((profile.role_data.tier_id as any).tier_name || 'N/A')}</span>
+
+                {userTierInfo && (
+                  <div className="mb-4 flex flex-col rounded-xl bg-white p-4 border border-gray-200/80 shadow-sm">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-base">{userTierInfo.v.icon}</span>
+                      <h4 className="text-sm font-bold uppercase" style={{ color: userTierInfo.v.colorDark }}>Ưu đãi hạng {userTierInfo.tData.tier_name}</h4>
+                    </div>
+
+                    {/* Stats */}
+                    <div className="grid grid-cols-2 gap-2 mt-2 mb-1">
+                      <div
+                        className="rounded-xl p-3 flex flex-col gap-0.5"
+                        style={{ backgroundColor: userTierInfo.v.colorLight }}
+                      >
+                        <span className="text-base font-bold leading-tight" style={{ color: userTierInfo.v.color }}>
+                          {userTierInfo.tData.booking_window_days || 0} ngày
+                        </span>
+                        <span className="text-[11px] text-slate-500">Đặt trước</span>
+                      </div>
+                      <div
+                        className="rounded-xl p-3 flex flex-col gap-0.5"
+                        style={{ backgroundColor: userTierInfo.v.colorLight }}
+                      >
+                        <span className="text-base font-bold leading-tight" style={{ color: userTierInfo.v.color }}>
+                          {userTierInfo.tData.discount_percentage || 0}%
+                        </span>
+                        <span className="text-[11px] text-slate-500">Giảm giá</span>
+                      </div>
+                    </div>
+
+                    {/* Perks */}
+                    {userTierInfo.tData.free_features && userTierInfo.tData.free_features.length > 0 && (
+                      <div className="border-t border-gray-100 pt-3 mt-3">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Đặc quyền</p>
+                        <ul className="flex flex-col gap-1.5">
+                          {userTierInfo.tData.free_features.map((p: string, idx: number) => (
+                            <li key={idx} className="flex items-start gap-1.5 text-xs text-slate-600">
+                              <span style={{ color: userTierInfo.v.color }} className="flex-shrink-0 mt-0.5">✓</span>
+                              <span>{p}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 )}
 
                 {(() => {
                   const currentPoints = Number(profile.role_data.membership_points ?? 0);
-                  
-                  // Chỉ sử dụng FALLBACK_TIERS nếu Backend chưa trả về next_tier
-                  // Thiết lập mốc điểm giống với cấu hình hiện tại của bạn: Silver (15 điểm)
-                  const FALLBACK_TIERS = [
-                    { tier_name: 'Silver', min_membership_points: 15 },
-                    { tier_name: 'Gold', min_membership_points: 50 },
-                    { tier_name: 'Platinum', min_membership_points: 100 }
-                  ];
-                  
+
+                  // Tìm next tier từ danh sách tiers lấy từ DB
                   let localNextTier = profile.role_data.next_tier as any;
-                  if (!localNextTier) {
-                    localNextTier = FALLBACK_TIERS.find(t => t.min_membership_points > currentPoints);
+                  if (!localNextTier && tiers.length > 0) {
+                    localNextTier = tiers.find(t => (t.min_membership_points || 0) > currentPoints);
                   }
 
                   if (localNextTier) {
@@ -236,10 +293,10 @@ export default function InternalProfilePage() {
                             <span className="text-sm font-medium text-slate-400"> / {nextTierPoints.toLocaleString('vi-VN')}</span>
                           </div>
                         </div>
-                        
+
                         <div className="relative pt-1">
                           <div className="overflow-hidden h-2.5 text-xs flex rounded-full bg-slate-100">
-                            <div 
+                            <div
                               style={{ width: `${percentage}%` }}
                               className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-gradient-to-r from-amber-400 to-amber-600 transition-all duration-500"
                             ></div>
@@ -248,7 +305,7 @@ export default function InternalProfilePage() {
                             <Crown size={14} />
                           </div>
                         </div>
-                        
+
                         <p className="text-xs text-slate-500 mt-2 text-right font-medium">
                           Còn <span className="text-amber-600 font-bold">{pointsNeeded.toLocaleString('vi-VN')}</span> điểm để thăng hạng <span className="uppercase text-amber-600 font-bold">{localNextTier.tier_name}</span>
                         </p>
@@ -263,10 +320,10 @@ export default function InternalProfilePage() {
                     </div>
                   );
                 })()}
-                <div className="flex items-center justify-between text-sm text-slate-700 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                {/* <div className="flex items-center justify-between text-sm text-slate-700 bg-slate-50 p-3 rounded-lg border border-slate-100">
                   <div className="flex items-center gap-2"><Award size={16} className="text-cyan-500" /> Điểm thưởng</div>
                   <span className="font-bold">{Number(profile.role_data.reward_points ?? 0).toLocaleString('vi-VN')}</span>
-                </div>
+                </div> */}
                 {Boolean(profile.role_data.referral_code) && (
                   <div className="flex items-center justify-between text-sm text-slate-700 bg-slate-50 p-3 rounded-lg border border-slate-100">
                     <div className="flex items-center gap-2"><Share2 size={16} className="text-purple-500" /> Mã giới thiệu</div>
@@ -280,13 +337,13 @@ export default function InternalProfilePage() {
 
         {/* Right Column: Forms */}
         <div className="space-y-6 lg:col-span-2">
-          
+
           {/* Update Profile Form */}
           <form onSubmit={handleProfileSubmit} className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
             <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
               <User size={18} className="text-cyan-600" /> Thông tin cơ bản
             </h3>
-            
+
             <div className="admin-form-group">
               <label className="admin-form-label">Ảnh đại diện</label>
               <div className="flex items-center gap-4 mt-2">
@@ -319,7 +376,7 @@ export default function InternalProfilePage() {
                   type="text"
                   className="admin-form-input"
                   value={form.full_name}
-                  onChange={e => setForm(f => ({...f, full_name: e.target.value}))}
+                  onChange={e => setForm(f => ({ ...f, full_name: e.target.value }))}
                   required
                   disabled={savingProfile}
                 />
@@ -330,7 +387,7 @@ export default function InternalProfilePage() {
                   type="tel"
                   className="admin-form-input"
                   value={form.phone}
-                  onChange={e => setForm(f => ({...f, phone: e.target.value}))}
+                  onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
                   disabled={savingProfile}
                 />
               </div>
@@ -361,18 +418,18 @@ export default function InternalProfilePage() {
                 <PasswordInput
                   id="old_pwd"
                   value={passwordForm.old_password}
-                  onChange={e => setPasswordForm(f => ({...f, old_password: e.target.value}))}
+                  onChange={e => setPasswordForm(f => ({ ...f, old_password: e.target.value }))}
                   required
                   disabled={savingPassword}
                 />
               </div>
-              
+
               <div className="admin-form-group">
                 <label className="admin-form-label">Mật khẩu mới *</label>
                 <PasswordInput
                   id="new_pwd"
                   value={passwordForm.new_password}
-                  onChange={e => setPasswordForm(f => ({...f, new_password: e.target.value}))}
+                  onChange={e => setPasswordForm(f => ({ ...f, new_password: e.target.value }))}
                   required
                   disabled={savingPassword}
                 />
@@ -383,7 +440,7 @@ export default function InternalProfilePage() {
                 <PasswordInput
                   id="confirm_pwd"
                   value={passwordForm.confirm_password}
-                  onChange={e => setPasswordForm(f => ({...f, confirm_password: e.target.value}))}
+                  onChange={e => setPasswordForm(f => ({ ...f, confirm_password: e.target.value }))}
                   required
                   disabled={savingPassword}
                 />
