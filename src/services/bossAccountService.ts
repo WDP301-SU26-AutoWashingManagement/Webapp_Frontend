@@ -13,5 +13,19 @@ export interface CreateInternalAccountPayload {
 export const bossAccountService = {
   createAccount: async (payload: CreateInternalAccountPayload): Promise<ApiResponse<unknown>> => {
     return apiClient.post('/auth/register', payload)
+  },
+  getAdmins: async (branchId?: string): Promise<any> => {
+    const query = branchId ? `?branch_id=${branchId}` : '';
+    const res = await apiClient.get<ApiResponse<any>>(`/admin${query}`);
+    return res.data;
+  },
+  getAdminDetail: async (id: string): Promise<ApiResponse<any>> => {
+    return apiClient.get(`/admin/${id}`);
+  },
+  updateAdmin: async (id: string, data: any): Promise<ApiResponse<any>> => {
+    return apiClient.patch(`/admin/${id}`, data);
+  },
+  deleteAdmin: async (id: string): Promise<ApiResponse<any>> => {
+    return apiClient.delete(`/admin/${id}`);
   }
 }
