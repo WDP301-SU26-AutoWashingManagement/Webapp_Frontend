@@ -23,6 +23,9 @@ interface DashboardStats {
   totalBookings: number
   dailyProfit: { date: string; profit: number }[]
   topServices: { serviceName: string; count: number }[]
+  topServicesRevenue: { serviceName: string; revenue: number }[]
+  topIndividualServices: { serviceName: string; count: number }[]
+  topIndividualServicesRevenue: { serviceName: string; revenue: number }[]
 }
 
 function StatCard({
@@ -196,6 +199,8 @@ export default function AdminDashboard() {
     endDate: fmt(new Date())
   })
   const [preset, setPreset] = useState<'7' | '14' | '21' | '30' | 'custom'>('7')
+  const [activeTabCount, setActiveTabCount] = useState<'combo' | 'individual'>('combo')
+  const [activeTabRevenue, setActiveTabRevenue] = useState<'combo' | 'individual'>('combo')
 
   const handlePresetChange = (p: '7' | '14' | '21' | '30') => {
     setPreset(p);
@@ -221,7 +226,7 @@ export default function AdminDashboard() {
         }
       }
 
-      const [customersRes, bookingsRes, profitRes, topRes] = await Promise.all([
+      const [customersRes, bookingsRes, profitRes, topRes, topRevRes, topIndRes, topIndRevRes] = await Promise.all([
         apiClient.get<{ data: { totalCustomers: number } }>(`/admin/customers/count${branchQuery}`),
         apiClient.post<{ data: { totalBookings: number } }>('/admin/bookings/count', {
           startDate: dateRange.startDate,
@@ -233,7 +238,10 @@ export default function AdminDashboard() {
           endDate: dateRange.endDate,
           ...branchBody
         }),
-        apiClient.get<{ data: { serviceName: string; count: number }[] }>(`/admin/top-services${branchQuery}`),
+        apiClient.get<{ data: { serviceName: string; count: number }[] }>(`/admin/top-services${branchQuery ? branchQuery + '&' : '?'}startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`),
+        apiClient.get<{ data: { serviceName: string; revenue: number }[] }>(`/admin/top-services-revenue${branchQuery ? branchQuery + '&' : '?'}startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`),
+        apiClient.get<{ data: { serviceName: string; count: number }[] }>(`/admin/top-individual-services${branchQuery ? branchQuery + '&' : '?'}startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`),
+        apiClient.get<{ data: { serviceName: string; revenue: number }[] }>(`/admin/top-individual-services-revenue${branchQuery ? branchQuery + '&' : '?'}startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`),
       ])
 
       const dailyProfit: { date: string; profit: number }[] = Array.isArray(profitRes.data)
@@ -243,6 +251,18 @@ export default function AdminDashboard() {
       const topServices: { serviceName: string; count: number }[] = Array.isArray(topRes.data)
         ? topRes.data
         : (topRes.data as { data: { serviceName: string; count: number }[] }).data ?? []
+
+      const topServicesRevenue: { serviceName: string; revenue: number }[] = Array.isArray(topRevRes.data)
+        ? topRevRes.data
+        : (topRevRes.data as { data: { serviceName: string; revenue: number }[] }).data ?? []
+
+      const topIndividualServices: { serviceName: string; count: number }[] = Array.isArray(topIndRes.data)
+        ? topIndRes.data
+        : (topIndRes.data as { data: { serviceName: string; count: number }[] }).data ?? []
+
+      const topIndividualServicesRevenue: { serviceName: string; revenue: number }[] = Array.isArray(topIndRevRes.data)
+        ? topIndRevRes.data
+        : (topIndRevRes.data as { data: { serviceName: string; revenue: number }[] }).data ?? []
 
       setStats({
         totalCustomers:
@@ -257,6 +277,9 @@ export default function AdminDashboard() {
           0,
         dailyProfit,
         topServices,
+        topServicesRevenue,
+        topIndividualServices,
+        topIndividualServicesRevenue
       })
     } catch {
       showError('Không thể tải dữ liệu dashboard')
@@ -271,7 +294,12 @@ export default function AdminDashboard() {
 
   const totalRevenue = stats?.dailyProfit.reduce((s, d) => s + d.profit, 0) ?? 0
   const averageRevenue = stats?.dailyProfit.length ? Math.round(totalRevenue / stats?.dailyProfit.length) : 0;
-  const maxServiceCount = stats?.topServices.length ? Math.max(...stats.topServices.map(s => s.count)) : 1;
+  
+  const displayTopServices = activeTabCount === 'combo' ? stats?.topServices : stats?.topIndividualServices;
+  const maxServiceCount = displayTopServices?.length ? Math.max(...displayTopServices.map(s => s.count)) : 1;
+  
+  const displayTopServicesRevenue = activeTabRevenue === 'combo' ? stats?.topServicesRevenue : stats?.topIndividualServicesRevenue;
+  const maxServiceRevenue = displayTopServicesRevenue?.length ? Math.max(...displayTopServicesRevenue.map(s => s.revenue)) : 1;
 
   const getDaysDiff = () => {
     const s = new Date(dateRange.startDate);
@@ -393,7 +421,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* Charts row */}
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
             {/* Revenue chart */}
             <div className="xl:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm p-6 w-full">
               <div className="flex justify-between items-start mb-6">
@@ -409,29 +437,42 @@ export default function AdminDashboard() {
               <MiniBarChart data={stats?.dailyProfit ?? []} />
             </div>
 
-            {/* Top services */}
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col w-full">
-              <div className="mb-6">
+            {/* Top services by count */}
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col w-full relative">
+              <div className="mb-4">
                 <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
                   <Star className="text-amber-500 fill-amber-500" size={20} />
-                  Top 5 Dịch Vụ
+                  Top Lượt Đặt
                 </h2>
-                <p className="text-sm text-slate-500 mt-1">Dịch vụ được đặt nhiều nhất</p>
+                <div className="flex items-center mt-3 bg-slate-100 rounded-lg p-1">
+                  <button 
+                    onClick={() => setActiveTabCount('combo')}
+                    className={`flex-1 text-[11px] font-semibold py-1.5 rounded-md transition-all ${activeTabCount === 'combo' ? 'bg-white shadow text-slate-800' : 'text-slate-500 hover:text-slate-700'}`}
+                  >
+                    COMBO
+                  </button>
+                  <button 
+                    onClick={() => setActiveTabCount('individual')}
+                    className={`flex-1 text-[11px] font-semibold py-1.5 rounded-md transition-all ${activeTabCount === 'individual' ? 'bg-white shadow text-slate-800' : 'text-slate-500 hover:text-slate-700'}`}
+                  >
+                    DỊCH VỤ LẺ
+                  </button>
+                </div>
               </div>
 
-              <div className="flex-1 pr-2">
-                {stats?.topServices.length ? (
+              <div className="flex-1 pr-2 mt-2">
+                {displayTopServices?.length ? (
                   <ul className="space-y-6">
-                    {stats.topServices.slice(0, 5).map((s, i) => (
+                    {displayTopServices.slice(0, 5).map((s, i) => (
                       <li key={s.serviceName} className="group">
                         <div className="flex justify-between items-end mb-2">
                           <span className="font-semibold text-slate-700 text-sm flex items-center gap-2">
                             <span className={`w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold ${i === 0 ? 'bg-amber-100 text-amber-600' : i === 1 ? 'bg-slate-100 text-slate-600' : i === 2 ? 'bg-orange-100 text-orange-600' : 'bg-blue-50 text-blue-500'}`}>
                               {i + 1}
                             </span>
-                            {s.serviceName}
+                            <span className="line-clamp-1 text-xs" title={s.serviceName}>{s.serviceName}</span>
                           </span>
-                          <span className="text-xs font-bold text-slate-900 bg-slate-100 px-2.5 py-1 rounded-md">
+                          <span className="text-[10px] font-bold text-slate-900 bg-slate-100 px-2 py-1 rounded-md shrink-0 ml-1">
                             {s.count}
                           </span>
                         </div>
@@ -439,6 +480,63 @@ export default function AdminDashboard() {
                           <div
                             className={`h-full rounded-full transition-all duration-1000 ease-out ${i === 0 ? 'bg-amber-400' : i === 1 ? 'bg-slate-400' : i === 2 ? 'bg-orange-400' : 'bg-blue-400'}`}
                             style={{ width: `${(s.count / maxServiceCount) * 100}%` }}
+                          ></div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full py-10 text-slate-400">
+                    <Activity size={32} className="opacity-20 mb-2" />
+                    <p className="text-sm">Chưa có dữ liệu</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Top services by revenue */}
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col w-full relative">
+              <div className="mb-4">
+                <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                  <TrendingUp className="text-emerald-500" size={20} />
+                  Top Doanh Thu
+                </h2>
+                <div className="flex items-center mt-3 bg-slate-100 rounded-lg p-1">
+                  <button 
+                    onClick={() => setActiveTabRevenue('combo')}
+                    className={`flex-1 text-[11px] font-semibold py-1.5 rounded-md transition-all ${activeTabRevenue === 'combo' ? 'bg-white shadow text-slate-800' : 'text-slate-500 hover:text-slate-700'}`}
+                  >
+                    COMBO
+                  </button>
+                  <button 
+                    onClick={() => setActiveTabRevenue('individual')}
+                    className={`flex-1 text-[11px] font-semibold py-1.5 rounded-md transition-all ${activeTabRevenue === 'individual' ? 'bg-white shadow text-slate-800' : 'text-slate-500 hover:text-slate-700'}`}
+                  >
+                    DỊCH VỤ LẺ
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex-1 pr-2 mt-2">
+                {displayTopServicesRevenue?.length ? (
+                  <ul className="space-y-6">
+                    {displayTopServicesRevenue.slice(0, 5).map((s, i) => (
+                      <li key={s.serviceName} className="group">
+                        <div className="flex justify-between items-end mb-2">
+                          <span className="font-semibold text-slate-700 text-sm flex items-center gap-2">
+                            <span className={`w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold ${i === 0 ? 'bg-emerald-100 text-emerald-600' : i === 1 ? 'bg-slate-100 text-slate-600' : i === 2 ? 'bg-emerald-50 text-emerald-500' : 'bg-blue-50 text-blue-500'}`}>
+                              {i + 1}
+                            </span>
+                            <span className="line-clamp-1 text-xs" title={s.serviceName}>{s.serviceName}</span>
+                          </span>
+                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded-md shrink-0 ml-1">
+                            {s.revenue > 1000000 ? `${(s.revenue / 1000000).toFixed(1)}tr` : `${(s.revenue / 1000).toFixed(0)}k`}
+                          </span>
+                        </div>
+                        <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all duration-1000 ease-out ${i === 0 ? 'bg-emerald-400' : i === 1 ? 'bg-slate-400' : i === 2 ? 'bg-emerald-300' : 'bg-blue-400'}`}
+                            style={{ width: `${(s.revenue / maxServiceRevenue) * 100}%` }}
                           ></div>
                         </div>
                       </li>

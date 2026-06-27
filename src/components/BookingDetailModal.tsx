@@ -224,18 +224,73 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onPay, hi
                   <Tag size={16} className="text-purple-500" /> Dịch vụ & Thanh toán
                 </h3>
                 <div className="bg-slate-50 rounded-xl p-4 space-y-3 border border-slate-100">
-                  <div>
-                    <span className="text-sm text-slate-500 block mb-1">Gói dịch vụ:</span>
-                    <span className="text-sm font-bold text-slate-800 block">
-                      {booking.service_package?.name || booking.service_package?.service_name || 'Dịch vụ lẻ'}
-                    </span>
+                  <div className="space-y-2">
+                    <span className="text-sm text-slate-500 block mb-1">Chi tiết dịch vụ:</span>
+                    {booking.services && booking.services.length > 0 ? (
+                      (() => {
+                        const combos: Record<string, { name: string, price: number, items: string[] }> = {};
+                        const individuals: Array<{ name: string, price: number }> = [];
+                        
+                        booking.services.forEach(svc => {
+                          if (svc.service_package_id) {
+                            const pkgId = svc.service_package_id._id;
+                            if (!combos[pkgId]) {
+                              combos[pkgId] = {
+                                name: svc.service_package_id.package_name,
+                                price: 0,
+                                items: []
+                              };
+                            }
+                            combos[pkgId].price += svc.price_snapshot;
+                            combos[pkgId].items.push(svc.service_id?.service_name || 'Dịch vụ');
+                          } else {
+                            individuals.push({
+                              name: svc.service_id?.service_name || 'Dịch vụ',
+                              price: svc.price_snapshot
+                            });
+                          }
+                        });
+
+                        return (
+                          <>
+                            {Object.values(combos).map((combo, idx) => (
+                              <div key={`combo-${idx}`} className="flex justify-between items-start text-sm mb-2">
+                                <span className="text-slate-800 flex-1 pr-2 flex flex-col">
+                                  <span className="font-semibold text-cyan-700">{combo.name}</span>
+                                  <span className="text-[12px] text-slate-500 ml-2 mt-0.5 whitespace-pre-wrap leading-relaxed">
+                                    {combo.items.map(item => `• ${item}`).join('\n')}
+                                  </span>
+                                </span>
+                                <span className="font-medium text-slate-700 shrink-0 mt-0.5">
+                                  {combo.price.toLocaleString('vi-VN')} đ
+                                </span>
+                              </div>
+                            ))}
+                            {individuals.map((ind, idx) => (
+                              <div key={`ind-${idx}`} className="flex justify-between items-start text-sm mb-2">
+                                <span className="text-slate-800 flex-1 pr-2 font-medium">
+                                  {ind.name}
+                                </span>
+                                <span className="font-medium text-slate-700 shrink-0 mt-0.5">
+                                  {ind.price.toLocaleString('vi-VN')} đ
+                                </span>
+                              </div>
+                            ))}
+                          </>
+                        );
+                      })()
+                    ) : (
+                      <span className="text-sm font-bold text-slate-800 block">
+                        {booking.service_package?.name || booking.service_package?.service_name || 'Dịch vụ lẻ'}
+                      </span>
+                    )}
                   </div>
                   
                   <div className="h-px bg-slate-200 my-2"></div>
                   
                   {/* Hiển thị Giá gốc */}
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-slate-500">Giá dịch vụ:</span>
+                    <span className="text-sm text-slate-500">Tổng phí dịch vụ:</span>
                     <span className="text-sm font-medium text-slate-700">
                       {(booking.base_price ?? 0).toLocaleString('vi-VN')} đ
                     </span>

@@ -23,6 +23,18 @@ export interface WashBooking {
   customer?: { full_name?: string; phone_number?: string; tier_id?: { _id?: string; discount_percentage?: number; tier_name?: string } }
   created_at?: string
   branch_id?: any
+  services?: Array<{
+    service_id: {
+      _id: string
+      service_name: string
+      service_price: number
+    }
+    service_package_id?: {
+      _id: string
+      package_name: string
+    } | null
+    price_snapshot: number
+  }>
 }
 
 export interface CreateBookingInput {
