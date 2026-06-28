@@ -14,7 +14,8 @@ import {
     CalendarDays,
     Users,
     PlayCircle,
-    UserCog
+    UserCog,
+    CircleEllipsis
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import logo2 from '../../assets/logo2.png'
@@ -52,6 +53,11 @@ const NAV_GROUPS = [
                 label: 'Lịch hẹn hoàn thành',
                 icon: CreditCard,
                 to: '/staff/payments',
+            },
+            {
+                label: 'Tình trạng rửa xe',
+                icon: CircleEllipsis,
+                to: '/staff/washing-status',
             },
         ]
     },
