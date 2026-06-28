@@ -27,12 +27,16 @@ export function computePromotionDiscount(
 export function estimateBookingPrice(
   basePrice: number,
   promotion?: Pick<Promotion, 'type' | 'discount_percentage' | 'discount_amount' | 'min_order_amount'> | null,
+  tierDiscountPercentage: number = 0
 ): PriceEstimate {
-  const discount = promotion ? computePromotionDiscount(basePrice, promotion) : 0
+  const tierDiscount = Math.round(basePrice * (tierDiscountPercentage / 100));
+  const priceAfterTier = Math.max(0, basePrice - tierDiscount);
+
+  const promoDiscount = promotion ? computePromotionDiscount(priceAfterTier, promotion) : 0;
   return {
     basePrice,
-    discount,
-    finalPrice: Math.max(0, basePrice - discount),
+    discount: tierDiscount + promoDiscount,
+    finalPrice: Math.max(0, priceAfterTier - promoDiscount),
   }
 }
 

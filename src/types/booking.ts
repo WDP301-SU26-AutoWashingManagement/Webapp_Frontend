@@ -20,8 +20,21 @@ export interface WashBooking {
   final_price?: number
   vehicle?: { plate_number?: string; brand?: string; vehicle_model?: string }
   service_package?: { name?: string; service_name?: string }
-  customer?: { full_name?: string; phone_number?: string }
+  customer?: { full_name?: string; phone_number?: string; tier_id?: { _id?: string; discount_percentage?: number; tier_name?: string } }
   created_at?: string
+  branch_id?: any
+  services?: Array<{
+    service_id: {
+      _id: string
+      service_name: string
+      service_price: number
+    }
+    service_package_id?: {
+      _id: string
+      package_name: string
+    } | null
+    price_snapshot: number
+  }>
 }
 
 export interface CreateBookingInput {
@@ -45,4 +58,35 @@ export interface BookingListParams {
   booking_status?: BookingStatus | string
   from_date?: string
   to_date?: string
+}
+
+export interface IRecommendedItem {
+  service_id: string;
+  service_package_id: string | null;
+  name: string;
+  price: number;
+  duration_minutes: number;
+}
+
+export interface IApplicablePromotion {
+  id: string;
+  promotion_name: string;
+  code: string;
+  type: 'percentage' | 'fixed_amount';
+  discount_percentage?: number;
+  discount_amount?: number;
+  min_order_amount?: number;
+}
+
+export interface IBookingRecommendation {
+  vehicle_id: string;
+  branch_id: string | null;
+  recommended_items: IRecommendedItem[];
+  reason: string;
+  applicable_promotion_id: string | null;
+  applicable_promotion: IApplicablePromotion | null;
+  estimated_total: number;
+  suggested_scheduled_at: string | null;
+  source: 'ai' | 'fallback';
+  generated_at: string;
 }

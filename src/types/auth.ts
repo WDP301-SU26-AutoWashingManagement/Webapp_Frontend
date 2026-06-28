@@ -9,6 +9,7 @@ export interface AuthUser {
   avatar_url: string | null
   is_active: boolean
   staff_type?: string
+  branch_id?: string | null
 }
 
 export interface RegisterInput {

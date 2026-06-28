@@ -53,10 +53,11 @@ export function mapUserProfileToCustomerProfile(raw: Record<string, unknown>): C
     is_phone_verified: raw.is_phone_verified as boolean | undefined,
     last_login_at: (raw.last_login_at as string | null | undefined) ?? null,
     referral_code: roleData?.referral_code as string | undefined,
-    tier_id: roleData?.tier_id != null ? String(roleData.tier_id) : null,
+    tier_id: roleData?.tier_id != null ? (typeof roleData.tier_id === 'object' ? roleData.tier_id as any : String(roleData.tier_id)) : null,
     created_at: raw.created_at as string | undefined,
     updated_at: raw.updated_at as string | undefined,
     staff_type: roleData?.staff_type as string | undefined,
+    branch_id: (raw.branch_id ? normalizeId(raw.branch_id) : null) || (roleData?.branch_id ? normalizeId(roleData.branch_id) : null),
   }
 }
 
@@ -77,6 +78,7 @@ export function mapAuthUserToCustomerProfile(user: Record<string, unknown>): Cus
     last_login_at: (user.last_login_at as string | null | undefined) ?? null,
     created_at: user.created_at as string | undefined,
     updated_at: user.updated_at as string | undefined,
+    branch_id: user.branch_id ? normalizeId(user.branch_id) : null,
   }
 }
 
@@ -89,6 +91,7 @@ export function mapProfileToAuthUser(profile: CustomerProfile, role = 'customer'
     avatar_url: profile.avatar_url ?? null,
     is_active: profile.is_active ?? true,
     staff_type: profile.staff_type,
+    branch_id: profile.branch_id ?? null,
   }
 }
 

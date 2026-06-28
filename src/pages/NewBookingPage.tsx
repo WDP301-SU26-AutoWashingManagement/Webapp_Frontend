@@ -12,6 +12,7 @@ import { branchService } from '../services/branchService'
 import type { Branch } from '../services/branchService'
 import type { Promotion } from '../types/promotion'
 import type { Vehicle } from '../types/vehicle'
+import ReactAriaDatePicker from '../components/ReactAriaDatePicker'
 
 // Định nghĩa lại Type này vì type ServicePackage mặc định đang bị thiếu các trường này
 interface BookingServiceType {
@@ -33,17 +34,26 @@ import {
   toDatetimeLocalValue,
   getScheduleFieldHints,
   validateScheduledAt,
-  getAvailableTimeSlots,
 } from '../utils/bookingSchedule'
 import { estimateBookingPrice, formatPromotionLabel } from '../utils/promotionPricing'
 import { getApiErrorMessage } from '../utils/errors'
 import { showError, showSuccess } from '../utils/toast'
+import { getStoredCustomerProfile } from '../lib/authSession'
 import { MapPin, Calendar, CheckCircle2, ChevronRight, ChevronLeft, Star, Plus } from 'lucide-react'
 
-const BOOKING_WINDOW_DAYS = DEFAULT_BOOKING_WINDOW_DAYS
 
 export default function NewBookingPage() {
   const navigate = useNavigate()
+
+  const customerProfile = getStoredCustomerProfile();
+
+  const bookingWindowDays = useMemo(() => {
+    const tier = customerProfile?.tier_id;
+    if (tier && typeof tier === 'object' && typeof tier.booking_window_days === 'number') {
+      return tier.booking_window_days;
+    }
+    return DEFAULT_BOOKING_WINDOW_DAYS;
+  }, [customerProfile]);
 
   // -- UI State --
   const [step, setStep] = useState(1)
@@ -73,6 +83,8 @@ export default function NewBookingPage() {
   const [activeTab, setActiveTab] = useState<'combo' | 'single'>('combo')
   const [validatedPromotion, setValidatedPromotion] = useState<Promotion | null>(null)
   const [validatingPromotion, setValidatingPromotion] = useState(false)
+  const [recommendation, setRecommendation] = useState<import('../types/booking').IBookingRecommendation | null>(null)
+  const [loadingRecommendation, setLoadingRecommendation] = useState(false)
 
   const loadFormOptions = useCallback(async (force = false) => {
     if (formOptionsLoaded.current && !force) return
@@ -125,35 +137,153 @@ export default function NewBookingPage() {
   const scheduleBounds = useMemo(
     () => ({
       min: toDatetimeLocalValue(getEarliestBookableTime()),
-      max: toDatetimeLocalValue(getLatestBookableTime(BOOKING_WINDOW_DAYS)),
+      max: toDatetimeLocalValue(getLatestBookableTime(bookingWindowDays)),
     }),
-    [],
+    [bookingWindowDays],
   )
 
   const dateValue = form.scheduled_at ? form.scheduled_at.split('T')[0] : ''
   const timeValue = form.scheduled_at ? form.scheduled_at.split('T')[1] : ''
 
-  const availableTimeSlots = useMemo(() => {
-    if (!dateValue) return []
-    return getAvailableTimeSlots(dateValue, scheduleBounds.min, scheduleBounds.max)
-  }, [dateValue, scheduleBounds])
+  const [apiSlots, setApiSlots] = useState<{ timeStr: string; available_bays: number }[]>([])
+  const [loadingSlots, setLoadingSlots] = useState(false)
+  const [lastFetchedDate, setLastFetchedDate] = useState<string>('')
 
-  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newDate = e.target.value
-    if (!newDate) {
-      setForm((p) => ({ ...p, scheduled_at: '' }))
-      return
+  useEffect(() => {
+    let active = true;
+    if (!form.branch_id || !dateValue) {
+      setApiSlots([]);
+      setLastFetchedDate('');
+      return;
     }
-    const newSlots = getAvailableTimeSlots(newDate, scheduleBounds.min, scheduleBounds.max)
-    const newTime = (timeValue && newSlots.includes(timeValue)) ? timeValue : (newSlots[0] || '08:00')
-    setForm((p) => ({ ...p, scheduled_at: `${newDate}T${newTime}` }))
-  }
+    const fetchSlots = async () => {
+      setLoadingSlots(true);
+      try {
+        const res = await bookingService.getAvailableSlots(form.branch_id, dateValue);
+        if (!active) return;
 
-  const handleTimeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newTime = e.target.value
-    if (!dateValue) return
-    setForm((p) => ({ ...p, scheduled_at: `${dateValue}T${newTime}` }))
-  }
+        const mapped = res.map(slot => {
+          const d = new Date(slot.scheduled_at);
+          const timeStr = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+          return { timeStr, available_bays: slot.available_bays };
+        });
+        setApiSlots(mapped);
+        setLastFetchedDate(dateValue);
+      } catch (err) {
+        console.error("Lỗi khi lấy danh sách slot trống:", err);
+      } finally {
+        if (active) setLoadingSlots(false);
+      }
+    };
+    void fetchSlots();
+    return () => { active = false; };
+  }, [form.branch_id, dateValue]);
+
+  useEffect(() => {
+    // Only validate the time when we have finished fetching slots for the current date
+    if (dateValue !== lastFetchedDate) return;
+
+    if (apiSlots.length > 0 && dateValue) {
+      const isValid = apiSlots.some(s => s.timeStr === timeValue);
+      if (!isValid) {
+        setForm(p => ({ ...p, scheduled_at: `${dateValue}T${apiSlots[0].timeStr}` }));
+      }
+    } else if (apiSlots.length === 0 && dateValue) {
+      setForm(p => ({ ...p, scheduled_at: `${dateValue}T` }));
+    }
+  }, [apiSlots, dateValue, timeValue, lastFetchedDate]);
+
+
+  useEffect(() => {
+    let active = true;
+    if (!form.vehicle_id) {
+      setRecommendation(null);
+      return;
+    }
+    const fetchReco = async () => {
+      setLoadingRecommendation(true);
+      try {
+        const res = await bookingService.getRecommendation(form.vehicle_id, form.branch_id || undefined);
+        if (active) setRecommendation(res);
+      } catch (err) {
+        if (active) setRecommendation(null);
+      } finally {
+        if (active) setLoadingRecommendation(false);
+      }
+    };
+    void fetchReco();
+    return () => { active = false; };
+  }, [form.vehicle_id, form.branch_id]);
+
+  // Tự động điền Ngày/Giờ khi Auto-Pilot tải xong
+  useEffect(() => {
+    if (recommendation?.suggested_scheduled_at) {
+      const d = new Date(recommendation.suggested_scheduled_at);
+      const yyyy = d.getFullYear();
+      const MM = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      const hh = String(d.getHours()).padStart(2, '0');
+      const mm = String(d.getMinutes()).padStart(2, '0');
+      const newTime = `${yyyy}-${MM}-${dd}T${hh}:${mm}`;
+
+      setForm(p => ({ ...p, scheduled_at: newTime }));
+    }
+  }, [recommendation]);
+
+  const handleApplyRecommendation = async () => {
+    if (!recommendation) return;
+
+    // Auto-fill branch
+    let newBranchId = form.branch_id;
+    if (recommendation.branch_id) {
+      newBranchId = recommendation.branch_id;
+    }
+
+    // Auto-fill time
+    let newTime = form.scheduled_at;
+    if (recommendation.suggested_scheduled_at) {
+      const d = new Date(recommendation.suggested_scheduled_at);
+      const yyyy = d.getFullYear();
+      const MM = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      const hh = String(d.getHours()).padStart(2, '0');
+      const mm = String(d.getMinutes()).padStart(2, '0');
+      newTime = `${yyyy}-${MM}-${dd}T${hh}:${mm}`;
+    }
+
+    // Auto-fill combo/services
+    let comboId = '';
+    const sIds: string[] = [];
+    recommendation.recommended_items.forEach(item => {
+      if (item.service_package_id) {
+        comboId = item.service_package_id;
+      } else {
+        sIds.push(item.service_id);
+      }
+    });
+
+    // Auto-fill promotion
+    let promoCode = form.promotion_code;
+    if (recommendation.applicable_promotion) {
+      promoCode = recommendation.applicable_promotion.code;
+      try {
+        const { promotion } = await promotionService.validateCode(promoCode)
+        setValidatedPromotion(promotion)
+      } catch (e) { }
+    }
+
+    setForm(p => ({
+      ...p,
+      branch_id: newBranchId,
+      scheduled_at: newTime,
+      combo_package_id: comboId,
+      service_ids: sIds,
+      promotion_code: promoCode,
+    }));
+
+    showSuccess('Đã áp dụng cấu hình Gợi ý Thông minh!');
+    setStep(2);
+  };
 
   const selectedVehicle = useMemo(
     () => vehicles.find((v) => (v._id ?? v.id) === form.vehicle_id),
@@ -186,6 +316,16 @@ export default function NewBookingPage() {
     [compatibleServices, form.service_ids, includedServiceIdsInCombo],
   )
 
+
+
+  const tierDiscountPercentage = useMemo(() => {
+    const tier = customerProfile?.tier_id;
+    if (tier && typeof tier === 'object' && tier.discount_percentage) {
+      return tier.discount_percentage;
+    }
+    return 0;
+  }, [customerProfile]);
+
   const priceEstimate = useMemo(() => {
     let totalBasePrice = 0
     if (selectedCombo) {
@@ -196,8 +336,8 @@ export default function NewBookingPage() {
     }
 
     if (totalBasePrice === 0) return null
-    return estimateBookingPrice(totalBasePrice, validatedPromotion)
-  }, [selectedServices, selectedCombo, validatedPromotion])
+    return estimateBookingPrice(totalBasePrice, validatedPromotion, tierDiscountPercentage)
+  }, [selectedServices, selectedCombo, validatedPromotion, tierDiscountPercentage])
 
   const handleApplyPromotion = async () => {
     const code = form.promotion_code.trim()
@@ -234,7 +374,12 @@ export default function NewBookingPage() {
         showError('Thời gian hẹn không hợp lệ')
         return
       }
-      const timeCheck = validateScheduledAt(scheduledAt, BOOKING_WINDOW_DAYS)
+      
+      const selectedBranch = branches.find((b) => b._id === form.branch_id)
+      const openTime = selectedBranch?.operating_time?.default_open
+      const closeTime = selectedBranch?.operating_time?.default_close
+      
+      const timeCheck = validateScheduledAt(scheduledAt, bookingWindowDays, new Date(), openTime, closeTime)
       if (!timeCheck.valid) {
         showError(timeCheck.message ?? 'Thời gian hẹn không hợp lệ')
         return
@@ -308,6 +453,7 @@ export default function NewBookingPage() {
     <AccountPageShell
       title="Đặt lịch trực tuyến"
       description="Chỉ với vài thao tác để xế yêu của bạn được chăm sóc hoàn hảo."
+      maxWidthClass="max-w-5xl"
     >
       <div className="mx-auto max-w-6xl">
         {/* Stepper */}
@@ -339,96 +485,223 @@ export default function NewBookingPage() {
 
             {/* STEP 1: CƠ BẢN */}
             {step === 1 && (
-              <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-                <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-                  <MapPin className="text-cyan-600" /> Chọn chi nhánh & Thời gian
-                </h3>
+              <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
+                {/* Tiêu đề bước */}
+                <div className="flex items-start gap-3 border-b border-slate-100 pb-5">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-cyan-50 text-cyan-600">
+                    <MapPin size={22} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-800">Chọn chi nhánh & Thời gian</h3>
+                    <p className="mt-0.5 text-sm text-slate-500">Chọn cơ sở, phương tiện và khung giờ bạn muốn mang xe đến.</p>
+                  </div>
+                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <label className="block text-sm">
-                      <span className="font-semibold text-slate-700">Chi nhánh phục vụ *</span>
-                      <select
-                        required
-                        value={form.branch_id}
-                        onChange={(e) => setForm((p) => ({ ...p, branch_id: e.target.value }))}
-                        className={`${AUTH_INPUT_CLASS} mt-1.5`}
-                        disabled={loadingFormOptions}
-                      >
-                        <option value="">{loadingFormOptions ? 'Đang tải chi nhánh...' : '— Chọn chi nhánh —'}</option>
-                        {branches.map(b => (
-                          <option key={b._id} value={b._id}>Cơ sở {formatAddress(b)}</option>
-                        ))}
-                      </select>
-                    </label>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                  {/* CỘT TRÁI: Chi nhánh & Xe */}
+                  <div className="space-y-5">
+                    {/* Chi nhánh phục vụ */}
+                    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                      <label className="block">
+                        <span className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                          <MapPin size={16} className="text-cyan-600" /> Chi nhánh phục vụ <span className="text-rose-500">*</span>
+                        </span>
+                        <select
+                          required
+                          value={form.branch_id}
+                          onChange={(e) => setForm((p) => ({ ...p, branch_id: e.target.value }))}
+                          className={`${AUTH_INPUT_CLASS} mt-2 w-full`}
+                          disabled={loadingFormOptions}
+                        >
+                          <option value="">{loadingFormOptions ? 'Đang tải chi nhánh...' : '— Chọn chi nhánh —'}</option>
+                          {branches.map(b => (
+                            <option key={b._id} value={b._id}>Cơ sở {formatAddress(b)}</option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
 
-                    <label className="block text-sm">
-                      <span className="font-semibold text-slate-700">Chọn xe của bạn *</span>
-                      <select
-                        required
-                        value={form.vehicle_id}
-                        onChange={(e) => {
-                          const vehicle_id = e.target.value
-                          setForm((p) => {
-                            const vehicle = vehicles.find((v) => (v._id ?? v.id) === vehicle_id)
-                            const next = { ...p, vehicle_id }
-                            if (vehicle && form.service_ids.length > 0) {
-                              // Tạm bỏ kiểm tra mismatch vì vehicle_type đã bị thay bằng vehicle_class_id
-                            }
-                            return next
-                          })
-                        }}
-                        className={`${AUTH_INPUT_CLASS} mt-1.5`}
-                      >
-                        <option value="">{loadingFormOptions ? 'Đang tải xe...' : '— Chọn phương tiện —'}</option>
-                        {vehicles.map((v) => (
-                          <option key={v._id ?? v.id} value={v._id ?? v.id}>
-                            {v.license_plate} — {v.vehicle_model || 'Xe của tôi'}
-                          </option>
-                        ))}
-                      </select>
-                      <Link to="/vehicles" className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-cyan-600 hover:text-cyan-700">
+                    {/* Chọn xe */}
+                    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                      <label className="block">
+                        <span className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                          <Star size={16} className="text-cyan-600" /> Chọn xe của bạn <span className="text-rose-500">*</span>
+                        </span>
+                        <select
+                          required
+                          value={form.vehicle_id}
+                          onChange={(e) => {
+                            const vehicle_id = e.target.value
+                            setForm((p) => {
+                              const vehicle = vehicles.find((v) => (v._id ?? v.id) === vehicle_id)
+                              const next = { ...p, vehicle_id }
+                              if (vehicle && form.service_ids.length > 0) {
+                                // Tạm bỏ kiểm tra mismatch vì vehicle_type đã bị thay bằng vehicle_class_id
+                              }
+                              return next
+                            })
+                          }}
+                          className={`${AUTH_INPUT_CLASS} mt-2 w-full`}
+                        >
+                          <option value="">{loadingFormOptions ? 'Đang tải xe...' : '— Chọn phương tiện —'}</option>
+                          {vehicles.map((v) => (
+                            <option key={v._id ?? v.id} value={v._id ?? v.id}>
+                              {v.license_plate} — {v.vehicle_model || 'Xe của tôi'}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <Link to="/vehicles" className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-cyan-600 hover:text-cyan-700">
                         <Plus size={14} /> Thêm xe mới
                       </Link>
-                    </label>
+                    </div>
+
+                    {/* Khối Gợi ý AI */}
+                    {loadingRecommendation && (
+                      <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4 shadow-sm animate-pulse flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-full bg-indigo-200 shrink-0"></div>
+                        <div className="flex-1 space-y-2">
+                          <div className="h-4 bg-indigo-200 rounded w-1/2"></div>
+                          <div className="h-3 bg-indigo-200 rounded w-3/4"></div>
+                        </div>
+                      </div>
+                    )}
+                    {!loadingRecommendation && recommendation && (
+                      <div className="relative rounded-xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-blue-50 p-5 shadow-sm overflow-hidden">
+                        <div className="absolute top-0 right-0 -mt-4 -mr-4 w-16 h-16 bg-indigo-500 rounded-full opacity-10 blur-xl"></div>
+                        <div className="flex items-start gap-3 relative z-10">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 shadow-inner">
+                            ✨
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="text-sm font-bold text-indigo-900 mb-1">Auto-Pilot Booking</h4>
+                            <p className="text-xs text-indigo-700 italic leading-relaxed mb-3">"{recommendation.reason}"</p>
+
+                            <div className="bg-white/60 rounded-lg p-3 border border-indigo-100 mb-3 space-y-2">
+                              <div className="flex justify-between items-center text-xs">
+                                <span className="font-semibold text-slate-700">Dịch vụ:</span>
+                                <span className="text-right text-indigo-900 font-bold max-w-[150px] truncate">
+                                  {recommendation.recommended_items.map(i => i.name).join(', ')}
+                                </span>
+                              </div>
+                              {recommendation.suggested_scheduled_at && (
+                                <div className="flex justify-between items-center text-xs">
+                                  <span className="font-semibold text-slate-700">Khung giờ sớm nhất:</span>
+                                  <span className="text-right text-indigo-900 font-bold">
+                                    {new Date(recommendation.suggested_scheduled_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} ({new Date(recommendation.suggested_scheduled_at).toLocaleDateString('vi-VN')})
+                                  </span>
+                                </div>
+                              )}
+                              {recommendation.applicable_promotion && (
+                                <div className="flex justify-between items-center text-xs">
+                                  <span className="font-semibold text-slate-700">Khuyến mãi:</span>
+                                  <span className="text-right text-rose-600 font-bold">
+                                    {recommendation.applicable_promotion.code}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => void handleApplyRecommendation()}
+                              className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm shadow-indigo-200"
+                            >
+                              Áp dụng nhanh & Tiếp tục
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Hint text moved here to balance column heights */}
+                    <p className="mt-2 flex gap-2 rounded-lg border border-amber-100 bg-amber-50 p-3 text-xs leading-relaxed text-amber-700">
+                      <span className="shrink-0">💡</span>
+                      <span>
+                        {(() => {
+                          const selectedBranch = branches.find((b) => b._id === form.branch_id);
+                          const openTime = selectedBranch?.operating_time?.default_open;
+                          const closeTime = selectedBranch?.operating_time?.default_close;
+                          return getScheduleFieldHints(bookingWindowDays, openTime, closeTime);
+                        })()}
+                      </span>
+                    </p>
                   </div>
 
-                  <div>
-                    <label className="block text-sm h-full">
-                      <span className="font-semibold text-slate-700">Thời gian mang xe đến *</span>
-                      <div className="mt-1.5 rounded-xl border border-slate-200 bg-slate-50 p-4 h-[calc(100%-24px)] flex flex-col justify-center">
-                        <div className="flex items-center gap-3 mb-4 text-cyan-700 font-medium">
-                          <Calendar size={20} /> Chọn giờ hẹn
-                        </div>
-                        <div className="flex gap-3">
-                          <input
-                            type="date"
-                            required
-                            value={dateValue}
-                            min={scheduleBounds.min.split('T')[0]}
-                            max={scheduleBounds.max.split('T')[0]}
-                            onChange={handleDateChange}
-                            className={`${AUTH_INPUT_CLASS} bg-white flex-1`}
-                          />
-                          <select
-                            required
-                            value={timeValue}
-                            onChange={handleTimeChange}
-                            className={`${AUTH_INPUT_CLASS} bg-white w-32`}
-                            disabled={!dateValue || availableTimeSlots.length === 0}
-                          >
-                            {dateValue && availableTimeSlots.length > 0 ? (
-                              availableTimeSlots.map(t => <option key={t} value={t}>{t}</option>)
-                            ) : (
-                              <option value="">Giờ</option>
-                            )}
-                          </select>
-                        </div>
-                        <p className="mt-3 text-xs text-slate-500 bg-white p-3 rounded-lg border border-slate-100 shadow-sm leading-relaxed">
-                          💡 {getScheduleFieldHints(BOOKING_WINDOW_DAYS)}
-                        </p>
+                  {/* CỘT PHẢI: Thời gian */}
+                  <div className="flex flex-col rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <span className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                      <Calendar size={16} className="text-cyan-600" /> Thời gian mang xe đến <span className="text-rose-500">*</span>
+                    </span>
+
+                    {/* Chọn ngày */}
+                    <div className="mt-2">
+                      <ReactAriaDatePicker
+                        value={dateValue}
+                        minDate={scheduleBounds.min.split('T')[0]}
+                        maxDate={scheduleBounds.max.split('T')[0]}
+                        onChange={(newDate) => {
+                          if (!newDate) {
+                            setForm((p) => ({ ...p, scheduled_at: '' }))
+                            return
+                          }
+                          setForm((p) => ({ ...p, scheduled_at: `${newDate}T` }))
+                        }}
+                      />
+                    </div>
+
+                    {/* Lưới khung giờ */}
+                    <div className="mt-4">
+                      <div className="mb-3 flex items-center justify-between">
+                        <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Chọn khung giờ</span>
+                        {timeValue && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-cyan-50 px-2.5 py-0.5 text-xs font-semibold text-cyan-700">
+                            <CheckCircle2 size={12} /> Đã chọn {timeValue}
+                          </span>
+                        )}
                       </div>
-                    </label>
+
+                      {!form.branch_id ? (
+                        <div className="flex h-32 items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 text-center text-sm text-slate-400">
+                          Vui lòng chọn chi nhánh trước
+                        </div>
+                      ) : !dateValue ? (
+                        <div className="flex h-32 items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 text-center text-sm text-slate-400">
+                          Vui lòng chọn ngày
+                        </div>
+                      ) : loadingSlots ? (
+                        <div className="flex h-32 items-center justify-center gap-2 text-sm font-medium text-cyan-600">
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-cyan-600 border-t-transparent"></div>
+                          Đang tải...
+                        </div>
+                      ) : apiSlots.length > 0 ? (
+                        <div className="slots-scroll grid max-h-[280px] grid-cols-3 gap-2.5 overflow-y-auto pr-1 sm:grid-cols-4">
+                          {apiSlots.map(s => {
+                            const isSelected = s.timeStr === timeValue;
+                            return (
+                              <button
+                                key={s.timeStr}
+                                type="button"
+                                onClick={() => setForm(p => ({ ...p, scheduled_at: `${dateValue}T${s.timeStr}` }))}
+                                className={`flex flex-col items-center justify-center rounded-lg border px-1 py-2.5 transition-all ${isSelected
+                                  ? 'border-cyan-600 bg-cyan-600 text-white shadow-md'
+                                  : 'border-slate-200 bg-white text-slate-700 hover:border-cyan-400 hover:bg-cyan-50'
+                                  }`}
+                              >
+                                <span className="text-[15px] font-bold leading-tight">{s.timeStr}</span>
+                                <span className={`mt-0.5 text-[10px] font-medium ${isSelected ? 'text-cyan-100' : 'text-slate-400'}`}>
+                                  Còn {s.available_bays} chỗ
+                                </span>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      ) : (
+                        <div className="flex h-32 items-center justify-center rounded-lg border border-dashed border-rose-200 bg-rose-50 text-sm font-medium text-rose-500">
+                          Đã hết chỗ trong ngày này
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -609,7 +882,14 @@ export default function NewBookingPage() {
                           <span className="text-slate-500 mt-0.5">Dịch vụ:</span>
                           <div className="font-semibold text-slate-800 text-right flex flex-col gap-1 items-end">
                             {selectedCombo && (
-                              <span className="text-cyan-700 bg-cyan-50 px-2 py-0.5 rounded-md text-xs border border-cyan-100">[Combo] {selectedCombo.package_name}</span>
+                              <div className="flex flex-col items-end gap-1">
+                                <span className="text-cyan-700 bg-cyan-50 px-2 py-0.5 rounded-md text-xs border border-cyan-100">[Combo] {selectedCombo.package_name}</span>
+                                {selectedCombo.services && selectedCombo.services.length > 0 && (
+                                  <div className="text-xs text-slate-500 font-normal mt-0.5 max-w-[200px] text-right">
+                                    Bao gồm: {selectedCombo.services.map((s: any) => s.service_name).join(', ')}
+                                  </div>
+                                )}
+                              </div>
                             )}
                             {selectedServices.map(s => (
                               <span key={s._id}>{s.service_name}</span>
@@ -707,10 +987,16 @@ export default function NewBookingPage() {
                             <span>Tạm tính</span>
                             <span>{formatPrice(priceEstimate.basePrice)}</span>
                           </div>
-                          {priceEstimate.discount > 0 && (
+                          {tierDiscountPercentage > 0 && (
+                            <div className="flex justify-between items-center text-sm text-emerald-200 font-medium pt-1">
+                              <span>Ưu đãi hạng ({tierDiscountPercentage}%)</span>
+                              <span>− {formatPrice(Math.round(priceEstimate.basePrice * tierDiscountPercentage / 100))}</span>
+                            </div>
+                          )}
+                          {(priceEstimate.discount - Math.round(priceEstimate.basePrice * tierDiscountPercentage / 100)) > 0 && (
                             <div className="flex justify-between items-center text-sm text-rose-200 font-medium pt-1">
-                              <span>Giảm giá</span>
-                              <span>− {formatPrice(priceEstimate.discount)}</span>
+                              <span>Mã khuyến mãi</span>
+                              <span>− {formatPrice(priceEstimate.discount - Math.round(priceEstimate.basePrice * tierDiscountPercentage / 100))}</span>
                             </div>
                           )}
                           <div className="border-t border-cyan-400/50 my-4 pt-4"></div>

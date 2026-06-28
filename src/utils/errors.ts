@@ -11,15 +11,35 @@ export class ApiError extends Error {
   }
 }
 
+const ERROR_TRANSLATIONS: Record<string, string> = {
+  'cancellation_reason must be at least 5 characters': 'Lý do hủy lịch hẹn phải có ít nhất 5 ký tự',
+  'cancellation_reason is required': 'Vui lòng nhập lý do hủy lịch hẹn',
+}
+
+function translateError(msg: string): string {
+  return ERROR_TRANSLATIONS[msg] || msg
+}
+
 export function parseApiError(payload: ApiErrorPayload | null, fallback = 'Có lỗi xảy ra'): string {
   if (!payload) return fallback
   const { message, errors } = payload
-  if (Array.isArray(message)) return message.join(', ')
-  if (typeof message === 'string') return message
-  if (errors && typeof errors === 'object') {
+
+  if (Array.isArray(errors) && errors.length > 0) {
+    const errorMessages = errors.map((err: any) => typeof err === 'object' && err.message ? translateError(err.message) : translateError(String(err)))
+    if (errorMessages.length > 0) return errorMessages.join(', ')
+  } else if (errors && typeof errors === 'object') {
     const details = Object.values(errors).flat().filter(Boolean)
-    if (details.length) return details.join(', ')
+    if (details.length > 0) {
+      if (typeof details[0] === 'object' && details[0] !== null && 'message' in (details[0] as any)) {
+        return details.map((d: any) => translateError(d.message)).join(', ')
+      }
+      return details.map((d: any) => translateError(String(d))).join(', ')
+    }
   }
+
+  if (Array.isArray(message)) return message.map(translateError).join(', ')
+  if (typeof message === 'string') return translateError(message)
+  
   return fallback
 }
 

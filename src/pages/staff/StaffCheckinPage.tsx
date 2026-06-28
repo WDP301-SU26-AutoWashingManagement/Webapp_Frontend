@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Check } from 'lucide-react'
+import { Check, Eye, Search, RefreshCw } from 'lucide-react'
 import { bookingService, type BookingListResult } from '../../services/bookingService'
 import type { WashBooking } from '../../types/booking'
 import { showError, showSuccess } from '../../utils/toast'
@@ -9,11 +9,12 @@ import PaymentModal from '../../components/PaymentModal'
 export default function StaffCheckinPage() {
     const [data, setData] = useState<BookingListResult>({ items: [], total: 0 })
     const [loading, setLoading] = useState(true)
-    const [confirmModal, setConfirmModal] = useState<{isOpen: boolean, action: 'checkin'|'cancel'|'', booking: WashBooking|null}>({
+    const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean, action: 'checkin' | 'cancel' | '', booking: WashBooking | null }>({
         isOpen: false, action: '', booking: null
     })
     const [detailModal, setDetailModal] = useState<WashBooking | null>(null)
-    const [paymentModal, setPaymentModal] = useState<{isOpen: boolean, booking: WashBooking | null}>({isOpen: false, booking: null})
+    const [paymentModal, setPaymentModal] = useState<{ isOpen: boolean, booking: WashBooking | null }>({ isOpen: false, booking: null })
+    const [searchQuery, setSearchQuery] = useState('')
 
     const fetchBookings = async () => {
         setLoading(true)
@@ -45,21 +46,47 @@ export default function StaffCheckinPage() {
 
     const getStatusText = (status: string) => {
         switch (status) {
-            case 'confirmed': return <span className="text-blue-500 font-medium">confirmed</span>
+            case 'confirmed': return <span className="text-blue-500 font-medium">Đã xác nhận</span>
             default: return status
         }
     }
 
-    const filteredItems = data.items.filter((b: WashBooking) =>
-        b.booking_status === 'confirmed'
-    );
+    const filteredItems = data.items.filter((b: WashBooking) => {
+        if (searchQuery) {
+            const q = searchQuery.toLowerCase().trim()
+            const plate = b.vehicle?.plate_number?.toLowerCase() || ''
+            const id = (b._id ?? b.id!)?.toLowerCase() || ''
+            const shortId = id.slice(-6)
+            if (!plate.includes(q) && !shortId.includes(q) && !id.includes(q)) return false
+        }
+        return b.booking_status === 'confirmed'
+    });
 
     return (
         <div className="admin-page">
-            <div className="admin-page__header">
+            <div className="admin-page__header flex justify-between items-end">
                 <div>
                     <h1 className="admin-page__title">Checkin xe</h1>
                     <p className="admin-page__subtitle">Xác nhận nhận xe từ khách hàng khi khách mang xe tới.</p>
+                </div>
+                <div className="flex items-center gap-3">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                        <input
+                            type="text"
+                            placeholder="Tìm mã đơn, biển số xe..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-9 pr-4 py-1.5 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:border-cyan-500 bg-white min-w-[220px]"
+                        />
+                    </div>
+                    <button
+                        onClick={() => fetchBookings()}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 transition-all text-sm font-medium"
+                    >
+                        <RefreshCw size={14} className={loading ? 'animate-spin text-cyan-500' : ''} />
+                        Làm mới
+                    </button>
                 </div>
             </div>
 
@@ -77,7 +104,7 @@ export default function StaffCheckinPage() {
                                 <th>Biển số xe</th>
                                 <th>Dịch vụ</th>
                                 <th>Trạng thái</th>
-                                <th>Hành động</th>
+                                <th className="text-center">Hành động</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -93,10 +120,9 @@ export default function StaffCheckinPage() {
                                 filteredItems.map((b: WashBooking) => {
                                     const id = (b._id ?? b.id!).slice(-6).toUpperCase()
                                     return (
-                                        <tr 
-                                          key={b._id || b.id} 
-                                          onClick={() => setDetailModal(b)}
-                                          className="admin-table__row group hover:bg-slate-50 cursor-pointer transition-colors"
+                                        <tr
+                                            key={b._id || b.id}
+                                            className="admin-table__row group hover:bg-slate-50 transition-colors"
                                         >
                                             <td><div className="text-sm font-bold text-slate-700 group-hover:text-blue-600 transition-colors">#{id}</div></td>
                                             <td>
@@ -107,15 +133,21 @@ export default function StaffCheckinPage() {
                                             <td><div className="text-sm text-slate-600 truncate max-w-[200px]">{b.service_package?.name || b.service_package?.service_name || 'Dịch vụ lẻ'}</div></td>
                                             <td>{getStatusText(b.booking_status)}</td>
                                             <td>
-                                                <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                                                <div className="flex justify-center gap-2 items-center">
                                                     {b.booking_status === 'confirmed' && (
                                                         <button
                                                             onClick={() => setConfirmModal({ isOpen: true, action: 'checkin', booking: b })}
-                                                            className="text-xs font-semibold bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded hover:bg-indigo-100 transition"
+                                                            className="text-xs font-semibold bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded hover:bg-indigo-100 transition shadow-sm flex items-center gap-1.5"
                                                         >
-                                                            Nhận xe
+                                                            <Check size={14} /> Nhận xe
                                                         </button>
                                                     )}
+                                                    <button
+                                                        onClick={() => setDetailModal(b)}
+                                                        className="text-xs font-semibold px-3 py-1.5 rounded bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition shadow-sm flex items-center gap-1.5"
+                                                    >
+                                                        <Eye size={14} /> Chi tiết
+                                                    </button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -142,21 +174,21 @@ export default function StaffCheckinPage() {
                 </div>
             )}
 
-            <PaymentModal 
-              isOpen={paymentModal.isOpen} 
-              onClose={() => setPaymentModal({isOpen: false, booking: null})} 
-              booking={paymentModal.booking!} 
-              onSuccess={() => {
-                setPaymentModal({isOpen: false, booking: null})
-                fetchBookings()
-              }}
+            <PaymentModal
+                isOpen={paymentModal.isOpen}
+                onClose={() => setPaymentModal({ isOpen: false, booking: null })}
+                booking={paymentModal.booking!}
+                onSuccess={() => {
+                    setPaymentModal({ isOpen: false, booking: null })
+                    fetchBookings()
+                }}
             />
 
-            <BookingDetailModal 
-                booking={detailModal} 
-                isOpen={!!detailModal} 
-                onClose={() => setDetailModal(null)} 
-                onPay={(b) => setPaymentModal({isOpen: true, booking: b})}
+            <BookingDetailModal
+                booking={detailModal}
+                isOpen={!!detailModal}
+                onClose={() => setDetailModal(null)}
+                onPay={(b) => setPaymentModal({ isOpen: true, booking: b })}
             />
         </div>
     )

@@ -62,4 +62,10 @@ export const invoiceService = {
     const res = await apiClient.patch<any>(`/invoices/${invoiceId}/cancel-payment`, { reason });
     return res.data;
   },
+
+  // 6. Lấy danh sách Invoices (Cho Admin hoặc nếu backend cho phép)
+  list: async (params?: any): Promise<{ docs: Invoice[]; total: number; page: number; totalPages: number }> => {
+    const res = await apiClient.get<any>(`/invoices`, { params });
+    return res.data;
+  }
 };

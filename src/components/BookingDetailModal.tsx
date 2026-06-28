@@ -1,34 +1,75 @@
-import React from 'react'
-import { X, Calendar, Clock, User, Phone, Car, Tag, CreditCard, CheckCircle2 } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { X, Calendar, Clock, User, Phone, Car, Tag, CreditCard, CheckCircle2, FileText, Download, CheckSquare, Square, Image as ImageIcon, PenTool, Banknote } from 'lucide-react'
 import type { WashBooking } from '../types/booking'
-import { Banknote } from 'lucide-react'
+import { bookingChecklistService, type BookingChecklist } from '../services/bookingChecklistService'
+import CreateChecklistModal from './CreateChecklistModal'
+import ViewChecklistModal from './ViewChecklistModal'
+import { env } from '../config/env'
 
 interface BookingDetailModalProps {
   booking: WashBooking | null
   isOpen: boolean
   onClose: () => void
   onPay?: (booking: WashBooking) => void
+  hideStaffActions?: boolean
 }
 
-export default function BookingDetailModal({ booking, isOpen, onClose, onPay }: BookingDetailModalProps) {
+export default function BookingDetailModal({ booking, isOpen, onClose, onPay, hideStaffActions = false }: BookingDetailModalProps) {
+  const [checklist, setChecklist] = useState<BookingChecklist | null>(null)
+  const [loadingChecklist, setLoadingChecklist] = useState(false)
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showViewModal, setShowViewModal] = useState(false)
+
+  const fetchChecklist = async () => {
+    if (!booking) return
+    setLoadingChecklist(true)
+    try {
+      const appointmentId = booking._id ?? booking.id!
+      const data = await bookingChecklistService.getByAppointmentId(appointmentId)
+      setChecklist(data)
+    } catch (error) {
+      console.error("Lỗi khi tải biên bản kiểm tra:", error)
+    } finally {
+      setLoadingChecklist(false)
+    }
+  }
+
+  useEffect(() => {
+    if (isOpen && booking) {
+      fetchChecklist()
+    } else {
+      setChecklist(null)
+    }
+  }, [isOpen, booking])
+
   if (!isOpen || !booking) return null
 
   const id = (booking._id ?? booking.id!)?.slice(-6).toUpperCase()
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'pending': return <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-bold">pending</span>
-      case 'confirmed': return <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold">confirmed</span>
-      case 'checked_in': return <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-bold">checked_in</span>
-      case 'in_progress': return <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-bold">in_progress</span>
-      case 'washed': return <span className="px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-xs font-bold">washed</span>
-      case 'completed': return <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold">completed</span>
-      case 'cancelled': return <span className="px-3 py-1 bg-rose-100 text-rose-700 rounded-full text-xs font-bold">cancelled</span>
+      case 'pending': return <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-bold">Chờ xác nhận</span>
+      case 'confirmed': return <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold">Đã xác nhận</span>
+      case 'checked_in': return <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-bold">Đã nhận xe</span>
+      case 'in_progress': return <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-bold">Đang rửa</span>
+      case 'washed': return <span className="px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-xs font-bold">Rửa xong</span>
+      case 'completed': return <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold">Hoàn thành</span>
+      case 'cancelled': return <span className="px-3 py-1 bg-rose-100 text-rose-700 rounded-full text-xs font-bold">Đã hủy</span>
       default: return <span className="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-bold">{status}</span>
     }
   }
 
   const schedDate = new Date(booking.scheduled_at)
+
+  const formatBranchAddress = (branch: any) => {
+    if (!branch || typeof branch === 'string') return null;
+    const addr = branch.branch_address;
+    if (!addr) return null;
+    if (typeof addr === 'string') return addr;
+    const parts = [addr.street, addr.ward, addr.district, addr.city].filter(Boolean);
+    return parts.length > 0 ? parts.join(', ') : null;
+  }
+  const branchAddressStr = formatBranchAddress(booking.branch_id);
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
@@ -56,7 +97,7 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onPay }: 
             <div className="space-y-6">
               <div>
                 <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 flex items-center gap-2">
-                  <Calendar size={16} className="text-blue-500" /> Thời gian
+                  <Calendar size={16} className="text-blue-500" /> Thời gian & Địa điểm
                 </h3>
                 <div className="bg-slate-50 rounded-xl p-4 space-y-3 border border-slate-100">
                   <div className="flex justify-between items-center">
@@ -71,6 +112,17 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onPay }: 
                       {schedDate.toLocaleDateString('vi-VN')}
                     </span>
                   </div>
+                  {(branchAddressStr || booking.branch_id) && (
+                    <>
+                      <div className="h-px bg-slate-200 my-2"></div>
+                      <div>
+                        <span className="text-sm text-slate-500 block mb-1">Chi nhánh:</span>
+                        <span className="text-sm font-bold text-slate-800 block">
+                          {branchAddressStr || (typeof booking.branch_id === 'string' ? `ID: ${booking.branch_id}` : `RAW: ${JSON.stringify(booking.branch_id)}`)}
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -91,6 +143,56 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onPay }: 
                       {booking.customer?.phone_number || '---'}
                     </span>
                   </div>
+                </div>
+              </div>
+
+              {/* Biên bản kiểm tra xe */}
+              <div>
+                <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 flex items-center gap-2">
+                  <FileText size={16} className="text-cyan-500" /> Biên bản nhận xe
+                </h3>
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                  {loadingChecklist ? (
+                    <div className="text-sm text-slate-500">Đang tải dữ liệu...</div>
+                  ) : checklist ? (
+                    <div 
+                      onClick={() => setShowViewModal(true)}
+                      className="w-full flex items-center justify-between cursor-pointer hover:bg-slate-100 p-2 -m-2 rounded-lg transition-colors group"
+                    >
+                      <div>
+                        <span className="text-sm font-bold text-slate-800 block group-hover:text-cyan-600 transition-colors">Biên bản đồng kiểm xe</span>
+                        <span className="text-xs text-slate-500 block mt-1">
+                          Đã kiểm tra lúc {checklist.createdAt ? new Date(checklist.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '...'}
+                        </span>
+                      </div>
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation(); // Ngăn mở Modal xem chi tiết khi bấm nút tải
+                          const url = await bookingChecklistService.getPdfDownloadUrl(checklist._id)
+                          window.open(url, '_blank')
+                        }}
+                        className="px-3 py-1.5 bg-cyan-100 text-cyan-700 hover:bg-cyan-200 hover:text-cyan-800 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5"
+                      >
+                        <Download size={14} /> Tải PDF
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-2 w-full">
+                      <div className="text-sm text-slate-500 italic py-1">
+                        Chưa có biên bản kiểm tra xe cho lịch hẹn này.
+                      </div>
+                      {!hideStaffActions && (
+                        <div className="flex justify-start">
+                          <button
+                            onClick={() => setShowCreateModal(true)}
+                            className="px-3 py-1.5 bg-cyan-600 text-white hover:bg-cyan-700 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5"
+                          >
+                            Tạo biên bản
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -122,17 +224,116 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onPay }: 
                   <Tag size={16} className="text-purple-500" /> Dịch vụ & Thanh toán
                 </h3>
                 <div className="bg-slate-50 rounded-xl p-4 space-y-3 border border-slate-100">
-                  <div>
-                    <span className="text-sm text-slate-500 block mb-1">Gói dịch vụ:</span>
-                    <span className="text-sm font-bold text-slate-800 block">
-                      {booking.service_package?.name || booking.service_package?.service_name || 'Dịch vụ lẻ'}
+                  <div className="space-y-2">
+                    <span className="text-sm text-slate-500 block mb-1">Chi tiết dịch vụ:</span>
+                    {booking.services && booking.services.length > 0 ? (
+                      (() => {
+                        const combos: Record<string, { name: string, price: number, items: string[] }> = {};
+                        const individuals: Array<{ name: string, price: number }> = [];
+                        
+                        booking.services.forEach(svc => {
+                          if (svc.service_package_id) {
+                            const pkgId = svc.service_package_id._id;
+                            if (!combos[pkgId]) {
+                              combos[pkgId] = {
+                                name: svc.service_package_id.package_name,
+                                price: 0,
+                                items: []
+                              };
+                            }
+                            combos[pkgId].price += svc.price_snapshot;
+                            combos[pkgId].items.push(svc.service_id?.service_name || 'Dịch vụ');
+                          } else {
+                            individuals.push({
+                              name: svc.service_id?.service_name || 'Dịch vụ',
+                              price: svc.price_snapshot
+                            });
+                          }
+                        });
+
+                        return (
+                          <>
+                            {Object.values(combos).map((combo, idx) => (
+                              <div key={`combo-${idx}`} className="flex justify-between items-start text-sm mb-2">
+                                <span className="text-slate-800 flex-1 pr-2 flex flex-col">
+                                  <span className="font-semibold text-cyan-700">{combo.name}</span>
+                                  <span className="text-[12px] text-slate-500 ml-2 mt-0.5 whitespace-pre-wrap leading-relaxed">
+                                    {combo.items.map(item => `• ${item}`).join('\n')}
+                                  </span>
+                                </span>
+                                <span className="font-medium text-slate-700 shrink-0 mt-0.5">
+                                  {combo.price.toLocaleString('vi-VN')} đ
+                                </span>
+                              </div>
+                            ))}
+                            {individuals.map((ind, idx) => (
+                              <div key={`ind-${idx}`} className="flex justify-between items-start text-sm mb-2">
+                                <span className="text-slate-800 flex-1 pr-2 font-medium">
+                                  {ind.name}
+                                </span>
+                                <span className="font-medium text-slate-700 shrink-0 mt-0.5">
+                                  {ind.price.toLocaleString('vi-VN')} đ
+                                </span>
+                              </div>
+                            ))}
+                          </>
+                        );
+                      })()
+                    ) : (
+                      <span className="text-sm font-bold text-slate-800 block">
+                        {booking.service_package?.name || booking.service_package?.service_name || 'Dịch vụ lẻ'}
+                      </span>
+                    )}
+                  </div>
+                  
+                  <div className="h-px bg-slate-200 my-2"></div>
+                  
+                  {/* Hiển thị Giá gốc */}
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-slate-500">Tổng phí dịch vụ:</span>
+                    <span className="text-sm font-medium text-slate-700">
+                      {(booking.base_price ?? 0).toLocaleString('vi-VN')} đ
                     </span>
                   </div>
+
+                  {/* Hiển thị Hạng thành viên (Tier) nếu có */}
+                  {booking.customer?.tier_id && booking.customer.tier_id.discount_percentage ? (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-slate-500">
+                        Hạng {booking.customer.tier_id.tier_name || 'thành viên'}:
+                      </span>
+                      <span className="text-sm font-medium text-emerald-600">
+                        -{booking.customer.tier_id.discount_percentage}%
+                      </span>
+                    </div>
+                  ) : null}
+
+                  {/* Hiển thị Khuyến mãi (Discount Amount) nếu có */}
+                  {booking.discount_amount ? (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-slate-500">Khuyến mãi khác:</span>
+                      <span className="text-sm font-medium text-emerald-600">
+                        -{booking.discount_amount.toLocaleString('vi-VN')} đ
+                      </span>
+                    </div>
+                  ) : null}
+
                   <div className="h-px bg-slate-200 my-2"></div>
+                  
+                  {/* Hiển thị Tổng tiền thanh toán chính xác */}
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-slate-500">Tổng tiền:</span>
+                    <span className="text-sm text-slate-500">Tổng thanh toán:</span>
                     <span className="text-lg font-black text-rose-500">
-                      {booking.final_price?.toLocaleString('vi-VN')} đ
+                      {(() => {
+                        const paidInvoices = JSON.parse(localStorage.getItem('paid_invoices') || '{}');
+                        const cachedTotal = paidInvoices[booking._id || booking.id!];
+                        const displayedTotal = cachedTotal !== undefined 
+                          ? cachedTotal 
+                          : ((booking.discount_amount !== undefined) 
+                              ? (booking.final_price ?? 0) 
+                              : Math.max(0, (booking.final_price ?? booking.base_price ?? 0) - Math.round((booking.final_price ?? booking.base_price ?? 0) * ((booking.customer?.tier_id?.discount_percentage || 0) / 100))));
+                        return displayedTotal.toLocaleString('vi-VN');
+                      })()} đ
                     </span>
                   </div>
                 </div>
@@ -166,6 +367,22 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onPay }: 
         </div>
 
       </div>
+
+      <CreateChecklistModal 
+        booking={booking} 
+        isOpen={showCreateModal} 
+        onClose={() => setShowCreateModal(false)} 
+        onSuccess={() => {
+          setShowCreateModal(false);
+          fetchChecklist();
+        }} 
+      />
+
+      <ViewChecklistModal
+        checklist={checklist}
+        isOpen={showViewModal}
+        onClose={() => setShowViewModal(false)}
+      />
     </div>
   )
 }
