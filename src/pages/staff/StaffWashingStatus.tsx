@@ -1,27 +1,57 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ChangeEvent } from "react";
 import { washService } from "../../services/staffWashingStatusService"
 import { showError, showSuccess } from "../../utils/toast"
-import { Play, Car, Droplets, Info, Loader2, Cpu, CheckCircle } from "lucide-react"
+import { Play, Car, Droplets, Info, Loader2 } from "lucide-react"
+import { ActionType, type NotificationWashingStatus } from "../../services/notificationService";
+import { env } from "../../config/env";
+import { useSSE } from "../../hooks/useSSE";
 
 export default function StaffWashingStatus() {
     const [plate, setPlate] = useState('');
     const [loading, setLoading] = useState(false);
+    const [detecting, setDetecting] = useState<string>('');
+    
+    const [washingStatus, setWashingStatus] = useState<NotificationWashingStatus | null>(null);
+
+    const { data } = useSSE<{ type: string; data: any }>(`${env.serverBaseUrl}${env.apiBaseUrl}/sse-notifications`);
+
+    const plateRegex = /^\d{2}[A-Z]{1,2}-\d{3}\.\d{2}$/;
+
+    useEffect(() => {
+        if (data && data.type === 'washing_status') {
+            setWashingStatus(data.data);
+            if(data.data.action === ActionType.DONE || data.data.action === ActionType.ERROR || data.data.action === ActionType.WASHING) {
+                setDetecting("Thiết bị đang được sử dụng");
+            }
+            if(data.data.action === ActionType.PREPAIRING) {
+                setDetecting('');
+            }
+        }
+    }, [data]);
 
     const handlePlateChange = (e: ChangeEvent<HTMLInputElement>) => {
-        setPlate(e.target.value);
+        setPlate(e.target.value.trim());
+        if (!plateRegex.test(plate)) {
+            setDetecting('Biển số xe không đúng định dạng')
+        } else {
+            setDetecting('')
+        }
     };
 
     const handleWash = async () => {
-        const cleanedPlate = plate.trim();
-        if (!cleanedPlate) {
+        if (!plate) {
             showError('Vui lòng nhập biển số xe trước khi kích hoạt!');
+            return;
+        }
+        if (!plateRegex.test(plate)) {
+            setDetecting('Biển số xe không đúng định dạng')
             return;
         }
 
         setLoading(true);
         try {
-            const response = await washService.wash({ plate: cleanedPlate });
+            const response = await washService.wash({ plate: plate });
             if (response.success) {
                 showSuccess(response.message || 'Kích hoạt máy bơm nước thành công!');
                 setPlate(''); // clear input after success
@@ -53,30 +83,8 @@ export default function StaffWashingStatus() {
                             <Droplets size={20} />
                         </div>
                     </div>
-                    <h3 className="admin-stat-card__value">Sẵn sàng</h3>
-                    <p className="admin-stat-card__trend-label">Hệ thống áp lực nước ổn định</p>
-                </div>
-
-                <div className="admin-stat-card">
-                    <div className="admin-stat-card__header">
-                        <span className="admin-stat-card__label">Hệ thống Auto-Wash</span>
-                        <div className="admin-stat-card__icon-wrap" style={{ background: '#eff6ff', color: '#3b82f6' }}>
-                            <Cpu size={20} />
-                        </div>
-                    </div>
-                    <h3 className="admin-stat-card__value">Trực tuyến</h3>
-                    <p className="admin-stat-card__trend-label">Kết nối phần cứng ổn định</p>
-                </div>
-
-                <div className="admin-stat-card">
-                    <div className="admin-stat-card__header">
-                        <span className="admin-stat-card__label">Cảm biến Vị trí</span>
-                        <div className="admin-stat-card__icon-wrap" style={{ background: '#fef3c7', color: '#d97706' }}>
-                            <Car size={20} />
-                        </div>
-                    </div>
-                    <h3 className="admin-stat-card__value">Đang chờ</h3>
-                    <p className="admin-stat-card__trend-label">Đang chờ xe vào đúng làn</p>
+                    <h3 className="admin-stat-card__value">{washingStatus?.action}</h3>
+                    {/* <p className="admin-stat-card__trend-label">Hệ thống áp lực nước ổn định</p> */}
                 </div>
             </div>
 
@@ -108,12 +116,18 @@ export default function StaffWashingStatus() {
                                 />
                             </div>
                             <span className="admin-form-hint">Vui lòng kiểm tra kỹ biển số xe trước khi kích hoạt máy bơm.</span>
+                            {detecting && (
+                                <span 
+                                    className="text-danger text-danger--strong"
+                                    style={{ display: 'block', textAlign: 'left', color: '#ec3434ff' }}
+                                >{detecting}</span>
+                            )}
                         </div>
 
                         <button
                             className="admin-btn admin-btn--primary"
                             onClick={handleWash}
-                            disabled={loading || !plate.trim()}
+                            disabled={loading || !plate.trim() || detecting !== ''}
                             style={{ width: '100%', justifyContent: 'center', padding: '0.75rem', fontSize: '0.9rem' }}
                         >
                             {loading ? (
@@ -131,7 +145,7 @@ export default function StaffWashingStatus() {
                     </div>
 
                     {/* Card tình trạng xe */}
-                    <div className="admin-card">
+                    {/* <div className="admin-card">
                         <div className="admin-card__header pb-2" style={{ borderBottom: '1px solid #f1f5f9', marginBottom: '0.75rem' }}>
                             <h2 className="admin-card__title">Nhật ký hoạt động rửa xe gần đây</h2>
                         </div>
@@ -139,7 +153,7 @@ export default function StaffWashingStatus() {
                             <CheckCircle size={32} className="text-[#94a3b8]" />
                             <span>Tình trạng rửa xe sẽ hiển thị tại đây khi kết nối dữ liệu thời gian thực.</span>
                         </div>
-                    </div>
+                    </div> */}
                 </div>
 
                 {/* Cột phụ: Hướng dẫn an toàn & quy trình */}
