@@ -5,7 +5,7 @@ import Tiers from '../components/Tiers'
 import Branches from '../components/Branches'
 import ComboPackages from '../components/ComboPackages'
 import IndividualServices from '../components/IndividualServices'
-
+import PublicPromotions from '../components/PublicPromotions'
 
 export default function HomePage() {
     return (
@@ -16,6 +16,7 @@ export default function HomePage() {
             <Features />
             <ComboPackages />
             <IndividualServices />
+            <PublicPromotions />
             <Branches />
             <Tiers />
         </main>

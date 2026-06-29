@@ -111,6 +111,9 @@ const EMBEDDED_CSS = `
 
 .cascade-slider_item:not(.now) {
     filter: grayscale(0.4) opacity(0.7);
+    cursor: pointer;
+}
+.cascade-slider_item:not(.now) .bg-white {
     pointer-events: none;
 }
 
@@ -263,6 +266,11 @@ export const ThreeDServiceCarousel: React.FC<ThreeDServiceCarouselProps> = ({
                                 key={svc.id || svc._id}
                                 className={`cascade-slider_item ${getSlideClasses(index, activeIndex, total, itemCount)}`}
                                 data-slide-number={index}
+                                onClick={() => {
+                                    if (index !== activeIndex) {
+                                        setActiveIndex(index)
+                                    }
+                                }}
                             >
                                 <div className="w-full h-full bg-white rounded-2xl p-6 ring-1 ring-gray-200/80 shadow-sm hover:shadow-md hover:ring-cyan-500/50 flex flex-col justify-between group">
                                     {/* Icon & Title */}
