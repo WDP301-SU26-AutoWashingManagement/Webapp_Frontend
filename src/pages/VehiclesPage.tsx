@@ -46,6 +46,7 @@ export default function VehiclesPage() {
   const [form, setForm] = useState<VehicleFormState>(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [deleteConfirmVehicle, setDeleteConfirmVehicle] = useState<Vehicle | null>(null)
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -153,10 +154,14 @@ export default function VehiclesPage() {
     }
   }
 
-  const handleDelete = async (vehicle: Vehicle) => {
-    const id = vehicleId(vehicle)
+  const handleDelete = (vehicle: Vehicle) => {
+    setDeleteConfirmVehicle(vehicle)
+  }
+
+  const confirmDelete = async () => {
+    if (!deleteConfirmVehicle) return
+    const id = vehicleId(deleteConfirmVehicle)
     if (!id) return
-    if (!window.confirm(`Xóa phương tiện ${vehicle.license_plate}?`)) return
 
     try {
       await vehicleService.remove(id)
@@ -164,6 +169,8 @@ export default function VehiclesPage() {
       await loadData()
     } catch (err) {
       showError(getApiErrorMessage(err, 'Xóa phương tiện thất bại'))
+    } finally {
+      setDeleteConfirmVehicle(null)
     }
   }
 
@@ -427,6 +434,39 @@ export default function VehiclesPage() {
           </ul>
         )}
       </section>
+
+      {/* Modal xác nhận xóa phương tiện */}
+      {deleteConfirmVehicle && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl animate-in zoom-in-95 duration-200 border border-slate-100">
+            <div className="flex flex-col items-center text-center">
+              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-red-500 mb-4">
+                <Trash2 className="h-6 w-6" aria-hidden />
+              </span>
+              <h3 className="text-lg font-bold text-slate-900 mb-2">Xác nhận xóa</h3>
+              <p className="text-slate-500 text-sm mb-6">
+                Bạn có chắc chắn muốn xóa phương tiện có biển số <strong className="text-slate-800 font-semibold">{deleteConfirmVehicle.license_plate}</strong> không? Hành động này không thể hoàn tác.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmVehicle(null)}
+                className="flex-1 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                onClick={() => void confirmDelete()}
+                className="flex-1 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 shadow-sm"
+              >
+                Xóa xe
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AccountPageShell>
   )
 }

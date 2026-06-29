@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react'
-import { X, Calendar, Clock, User, Phone, Car, Tag, CreditCard, CheckCircle2, FileText, Download, CheckSquare, Square, Image as ImageIcon, PenTool, Banknote } from 'lucide-react'
+import { X, Calendar, User, Car, Tag, FileText, Download,  Image as  Banknote } from 'lucide-react'
 import type { WashBooking } from '../types/booking'
 import { bookingChecklistService, type BookingChecklist } from '../services/bookingChecklistService'
 import CreateChecklistModal from './CreateChecklistModal'
 import ViewChecklistModal from './ViewChecklistModal'
-import { env } from '../config/env'
 
 interface BookingDetailModalProps {
   booking: WashBooking | null
