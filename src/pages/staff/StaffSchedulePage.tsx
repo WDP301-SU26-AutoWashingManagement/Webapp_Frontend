@@ -97,46 +97,35 @@ export default function StaffSchedulePage() {
     }
   }
 
-  const [isAddStaffModalOpen, setIsAddStaffModalOpen] = useState(false)
-  const [selectedScheduleForAdd, setSelectedScheduleForAdd] = useState<Schedule | null>(null)
-  const [availableStaff, setAvailableStaff] = useState<any[]>([])
-  const [selectedStaffToAdd, setSelectedStaffToAdd] = useState<string>('')
-  const [isAddingStaff, setIsAddingStaff] = useState(false)
+  const [isAssignShiftModalOpen, setIsAssignShiftModalOpen] = useState(false)
+  const [selectedStaffForAssign, setSelectedStaffForAssign] = useState<any>(null)
+  const [selectedDateForAssign, setSelectedDateForAssign] = useState<Date | null>(null)
+  const [selectedShiftToAssign, setSelectedShiftToAssign] = useState<string>('')
+  const [isAssigning, setIsAssigning] = useState(false)
 
-  const handleOpenAddStaffModal = async (schedule: Schedule) => {
-    setSelectedScheduleForAdd(schedule)
-    setSelectedStaffToAdd('')
-    setIsAddStaffModalOpen(true)
-    try {
-      const params: any = { limit: 100 }
-      if (user?.role !== 'boss' && user?.branch_id) {
-        const userBranchId = typeof user.branch_id === 'object' ? (user.branch_id as any)._id : user.branch_id
-        if (userBranchId) params.branch_id = userBranchId
-      }
-      const data = await staffManagerService.getAllStaff(params)
-      if (data && Array.isArray(data.items)) {
-        const currentStaffIds = schedule.assigned_staff.map((s: any) => s._id || s)
-        setAvailableStaff(data.items.filter((staff: any) => !currentStaffIds.includes(staff._id)))
-      }
-    } catch (error) {
-      console.error('Failed to load staff list', error)
-    }
+  const handleOpenAssignModal = (staff: any, date: Date) => {
+    setSelectedStaffForAssign(staff)
+    setSelectedDateForAssign(date)
+    setSelectedShiftToAssign('')
+    setIsAssignShiftModalOpen(true)
   }
 
-  const handleAddStaffConfirm = async () => {
-    if (!selectedScheduleForAdd || !selectedStaffToAdd) return
-    setIsAddingStaff(true)
+  const handleAssignShiftConfirm = async () => {
+    if (!selectedStaffForAssign || !selectedShiftToAssign) return
+    setIsAssigning(true)
     try {
-      await scheduleService.addStaffToSchedule(selectedScheduleForAdd._id, selectedStaffToAdd)
-      showSuccess('Đã thêm nhân viên vào ca thành công!')
-      setIsAddStaffModalOpen(false)
-      setSelectedScheduleForAdd(null)
-      setSelectedStaffToAdd('')
+      const staffId = selectedStaffForAssign._id || selectedStaffForAssign.user_id?._id || selectedStaffForAssign
+      await scheduleService.addStaffToSchedule(selectedShiftToAssign, staffId)
+      showSuccess('Đã phân ca cho nhân viên thành công!')
+      setIsAssignShiftModalOpen(false)
+      setSelectedStaffForAssign(null)
+      setSelectedDateForAssign(null)
+      setSelectedShiftToAssign('')
       await fetchSchedules()
     } catch (error: any) {
-      showError(error?.response?.data?.message || 'Có lỗi xảy ra khi thêm nhân viên')
+      showError(error?.response?.data?.message || 'Có lỗi xảy ra khi phân ca')
     } finally {
-      setIsAddingStaff(false)
+      setIsAssigning(false)
     }
   }
 
@@ -147,6 +136,7 @@ export default function StaffSchedulePage() {
   })
   const [schedules, setSchedules] = useState<Schedule[]>([])
   const [loading, setLoading] = useState(true)
+  const [allStaff, setAllStaff] = useState<any[]>([])
 
   const fetchSchedules = async () => {
     setLoading(true)
@@ -167,7 +157,41 @@ export default function StaffSchedulePage() {
     }
   }
 
-  useEffect(() => { fetchSchedules() }, [])
+  const fetchStaff = async () => {
+    try {
+      const params: any = { limit: 100 }
+      if (user?.role !== 'boss' && user?.branch_id) {
+        const userBranchId = typeof user.branch_id === 'object' ? (user.branch_id as any)._id : user.branch_id
+        if (userBranchId) params.branch_id = userBranchId
+      }
+      const data = await staffManagerService.getAllStaff(params)
+      if (data && Array.isArray(data.items)) {
+        setAllStaff(data.items)
+      }
+    } catch (error) {
+      console.error('Failed to load staff list', error)
+    }
+  }
+
+  useEffect(() => { 
+    fetchSchedules()
+    fetchStaff()
+  }, [user])
+
+  const displayStaff = React.useMemo(() => {
+    if (allStaff.length > 0) return allStaff
+
+    const staffMap = new Map()
+    schedules.forEach(s => {
+      s.assigned_staff.forEach((staff: any) => {
+        const staffId = staff._id || staff.user_id?._id || staff
+        if (!staffMap.has(staffId)) {
+          staffMap.set(staffId, staff)
+        }
+      })
+    })
+    return Array.from(staffMap.values())
+  }, [allStaff, schedules])
 
   const weekDays = Array.from({ length: 7 }).map((_, i) => {
     const d = new Date(currentWeekStart)
@@ -183,6 +207,15 @@ export default function StaffSchedulePage() {
       const sd = new Date(s.shift_date)
       return sd.getDate() === date.getDate() && sd.getMonth() === date.getMonth() && sd.getFullYear() === date.getFullYear()
     }).sort((a, b) => a.start_time.localeCompare(b.start_time))
+
+  const getSchedulesForStaffOnDate = (staffId: string, date: Date) => {
+    return getSchedulesForDate(date).filter(s =>
+      s.assigned_staff.some((st: any) => {
+        const id = st._id || st.user_id?._id || st;
+        return id === staffId;
+      })
+    )
+  }
 
   const dayNames = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật']
 
@@ -232,21 +265,7 @@ export default function StaffSchedulePage() {
             </button>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            {/* Legend */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.75rem', color: '#64748b' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <span style={{ width: 10, height: 10, borderRadius: 3, background: '#C0DD97', display: 'inline-block' }} />
-                Đủ slot
-              </span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <span style={{ width: 10, height: 10, borderRadius: 3, background: '#FAC775', display: 'inline-block' }} />
-                Còn chỗ
-              </span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <span style={{ width: 10, height: 10, borderRadius: 3, background: '#F7C1C1', display: 'inline-block' }} />
-                Thiếu
-              </span>
-            </div>
+
             <button className="admin-btn admin-btn--ghost" onClick={() => setCurrentWeekStart(getStartOfWeek(new Date()))}>
               Về tuần này
             </button>
@@ -265,139 +284,96 @@ export default function StaffSchedulePage() {
           </div>
         </div>
 
-        {/* Calendar Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))' }}>
-          {weekDays.map((date, index) => {
-            const isToday = new Date().toDateString() === date.toDateString()
-            const daySchedules = getSchedulesForDate(date)
-
-            return (
-              <div key={date.toISOString()} style={{ borderRight: index < 6 ? '1px solid #e2e8f0' : 'none' }}>
-                {/* Column Header */}
-                <div style={{
-                  padding: '0.75rem 0.25rem',
-                  textAlign: 'center',
-                  borderBottom: '1px solid #e2e8f0',
-                  background: isToday ? '#E1F5EE' : '#f8fafc'
-                }}>
-                  <div style={{ fontSize: '0.75rem', fontWeight: 600, color: isToday ? '#0F6E56' : '#64748b' }}>
-                    {dayNames[index]}
-                  </div>
-                  <div style={{ fontSize: '1.25rem', fontWeight: 700, color: isToday ? '#085041' : '#334155', marginTop: '0.125rem' }}>
-                    {date.getDate()}
-                  </div>
-                </div>
-
-                {/* Column Body */}
-                <div style={{ padding: '6px', display: 'flex', flexDirection: 'column', gap: '6px', background: isToday ? '#f7fdfb' : 'transparent' }}>
-                  {loading ? (
-                    <div style={{ textAlign: 'center', color: '#94a3b8', fontSize: '0.8125rem', padding: '1rem' }}>...</div>
-                  ) : daySchedules.length > 0 ? (
-                    daySchedules.map(shift => {
-                      const isFull = shift.assigned_staff.length >= shift.max_staff
-                      const slot = getSlotStyle(shift.assigned_staff.length, shift.max_staff)
-
-                      return (
-                        <div
-                          key={shift._id}
-                          style={{
-                            height: '155px',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            background: slot.cardBg,
-                            border: `1px solid ${slot.cardBorder}`,
-                            borderRadius: '8px',
-                            padding: '7px 8px',
-                            cursor: 'pointer',
-                          }}
-                        >
-                          {/* Time */}
-                          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#334155', display: 'flex', alignItems: 'center', gap: '3px', marginBottom: '5px' }}>
-                            <Clock size={12} style={{ color: '#64748b', flexShrink: 0 }} />
-                            {shift.start_time} – {shift.end_time}
-                          </div>
-
-                          {/* Slot badge */}
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '5px' }}>
-                            <span style={{
-                              display: 'inline-flex', alignItems: 'center', gap: '3px',
-                              fontSize: '0.6875rem', fontWeight: 600,
-                              padding: '2px 7px', borderRadius: '10px',
-                              background: slot.badgeBg, color: slot.badgeColor
-                            }}>
-                              <Users size={11} />
-                              {shift.assigned_staff.length}/{shift.max_staff}
-                            </span>
-                            <span style={{ fontSize: '0.625rem', color: '#94a3b8' }}>
-                              {shift.shift_status}
-                            </span>
-                          </div>
-
-                          {/* Staff Blocks */}
-                          {shift.assigned_staff.length > 0 && (
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                              {shift.assigned_staff.map((staff: any, idx: number) => {
-                                const name = staff.full_name || staff.user_id?.full_name || staff.email || 'NV'
-                                const staffId = staff._id || staff.user_id?._id || String(idx)
-                                const c = getStaffColor(staffId)
-                                return (
-                                  <div
-                                    key={staffId}
-                                    title={name}
-                                    style={{
-                                      padding: '2px 6px',
-                                      borderRadius: '4px',
-                                      background: c.bg,
-                                      color: c.color,
-                                      border: `1px solid ${c.border}`,
-                                      fontSize: '0.65rem',
-                                      fontWeight: 600,
-                                      whiteSpace: 'nowrap',
-                                      overflow: 'hidden',
-                                      textOverflow: 'ellipsis',
-                                      maxWidth: '100%',
-                                      display: 'inline-block',
-                                      cursor: 'default',
-                                    }}
-                                  >
-                                    {getShortName(name)}
-                                  </div>
-                                )
-                              })}
-                            </div>
-                          )}
-
-                          {/* Add staff button */}
-                          {isManager && !isFull && (
-                            <button
-                              onClick={() => handleOpenAddStaffModal(shift)}
-                              style={{
-                                width: '100%', marginTop: 'auto', padding: '4px',
-                                background: 'rgba(255,255,255,0.6)',
-                                border: '1px dashed #cbd5e1',
-                                borderRadius: '6px', color: '#64748b',
-                                fontSize: '0.6875rem', fontWeight: 600,
-                                cursor: 'pointer', display: 'flex',
-                                justifyContent: 'center', alignItems: 'center', gap: '3px'
-                              }}
-                              onMouseEnter={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#4f46e5' }}
-                              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.6)'; e.currentTarget.style.color = '#64748b' }}
-                            >
-                              <Plus size={12} /> Thêm nhân viên
-                            </button>
-                          )}
+        {/* Calendar Matrix */}
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', minWidth: '1000px', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <thead style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+              <tr>
+                <th style={{ padding: '1rem', borderRight: '1px solid #e2e8f0', width: '200px', position: 'sticky', left: 0, background: '#f8fafc', zIndex: 10, boxShadow: '2px 0 5px -2px rgba(0,0,0,0.1)' }}>
+                  <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#475569' }}>Nhân viên</span>
+                </th>
+                {weekDays.map((date, index) => {
+                  const isToday = new Date().toDateString() === date.toDateString()
+                  return (
+                    <th key={index} style={{ padding: '0.75rem', borderRight: index < 6 ? '1px solid #e2e8f0' : 'none', minWidth: '130px', textAlign: 'center', background: isToday ? '#E1F5EE' : 'transparent' }}>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 600, color: isToday ? '#0F6E56' : '#64748b' }}>
+                        {dayNames[index]}
+                      </div>
+                      <div style={{ fontSize: '1.125rem', fontWeight: 700, color: isToday ? '#085041' : '#334155', marginTop: '0.125rem' }}>
+                        {date.getDate()}/{date.getMonth() + 1}
+                      </div>
+                    </th>
+                  )
+                })}
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan={8} style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>Đang tải...</td></tr>
+              ) : displayStaff.length === 0 ? (
+                <tr><td colSpan={8} style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>Không có dữ liệu nhân viên</td></tr>
+              ) : (
+                displayStaff.map((staff, sIndex) => {
+                  const staffId = staff._id || staff.user_id?._id || staff
+                  const staffName = staff.full_name || staff.user_id?.full_name || staff.email || staff.user_id?.email || 'Chưa cập nhật'
+                  const color = getStaffColor(staffId)
+                  
+                  return (
+                    <tr key={staffId} style={{ borderBottom: sIndex < displayStaff.length - 1 ? '1px solid #e2e8f0' : 'none' }}>
+                      {/* Staff Info Cell */}
+                      <td style={{ padding: '0.75rem 1rem', borderRight: '1px solid #e2e8f0', position: 'sticky', left: 0, background: '#fff', zIndex: 10, boxShadow: '2px 0 5px -2px rgba(0,0,0,0.1)' }}>
+                        <div style={{ fontWeight: 600, color: '#334155', fontSize: '0.875rem', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }} title={staffName}>
+                          {staffName}
                         </div>
-                      )
-                    })
-                  ) : (
-                    <div style={{ textAlign: 'center', color: '#cbd5e1', fontSize: '0.8125rem', padding: '2rem 0' }}>
-                      Trống
-                    </div>
-                  )}
-                </div>
-              </div>
-            )
-          })}
+                      </td>
+                      
+                      {/* Days Cells */}
+                      {weekDays.map((date, index) => {
+                        const daySchedules = getSchedulesForStaffOnDate(staffId, date)
+                        const isToday = new Date().toDateString() === date.toDateString()
+                        
+                        return (
+                          <td key={index} style={{ padding: '0.5rem', borderRight: index < 6 ? '1px solid #e2e8f0' : 'none', verticalAlign: 'top', background: isToday ? '#f7fdfb' : 'transparent' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                              {daySchedules.map(shift => (
+                                <div key={shift._id} style={{
+                                  background: '#EAF3DE', border: '1px solid #97C459', borderRadius: '6px', padding: '0.5rem', textAlign: 'center'
+                                }}>
+                                  <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#27500A', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                                    <Clock size={12} />
+                                    {shift.start_time} - {shift.end_time}
+                                  </div>
+                                </div>
+                              ))}
+                              
+                              {isManager && (
+                                <button
+                                  onClick={() => handleOpenAssignModal(staff, date)}
+                                  style={{
+                                    width: '100%', padding: '0.375rem',
+                                    background: 'transparent',
+                                    border: '1px dashed #cbd5e1',
+                                    borderRadius: '6px', color: '#64748b',
+                                    fontSize: '0.6875rem', fontWeight: 600,
+                                    cursor: 'pointer', display: 'flex',
+                                    justifyContent: 'center', alignItems: 'center', gap: '3px'
+                                  }}
+                                  onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = '#3b82f6'; e.currentTarget.style.borderColor = '#93c5fd' }}
+                                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#64748b'; e.currentTarget.style.borderColor = '#cbd5e1' }}
+                                >
+                                  <Plus size={12} /> Thêm ca
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        )
+                      })}
+                    </tr>
+                  )
+                })
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -548,56 +524,65 @@ export default function StaffSchedulePage() {
         </div>
       )}
 
-      {/* Add Staff Modal */}
-      {isAddStaffModalOpen && selectedScheduleForAdd && (
+      {/* Assign Shift Modal */}
+      {isAssignShiftModalOpen && selectedStaffForAssign && selectedDateForAssign && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
             <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
               <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">
                 <Plus className="text-indigo-600" size={20} />
-                Thêm nhân viên vào ca
+                Phân ca làm việc
               </h3>
             </div>
             <div className="p-6 space-y-6">
               <div className="space-y-2">
-                <p className="text-sm text-slate-600 font-medium">Ca làm việc:</p>
-                <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
-                  <div className="flex items-center gap-2 text-sm text-slate-800 font-semibold mb-1">
-                    <CalendarIcon size={14} className="text-slate-500" />
-                    {new Date(selectedScheduleForAdd.shift_date).toLocaleDateString('vi-VN')}
+                <p className="text-sm text-slate-600 font-medium">Thông tin:</p>
+                <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-slate-800 font-semibold">
+                    <Users size={14} className="text-slate-500" />
+                    {selectedStaffForAssign.user_id?.full_name || selectedStaffForAssign.full_name || 'Chưa cập nhật'}
                   </div>
                   <div className="flex items-center gap-2 text-sm text-slate-800 font-semibold">
-                    <Clock size={14} className="text-slate-500" />
-                    {selectedScheduleForAdd.start_time} - {selectedScheduleForAdd.end_time}
+                    <CalendarIcon size={14} className="text-slate-500" />
+                    {selectedDateForAssign.toLocaleDateString('vi-VN')}
                   </div>
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-slate-700">Chọn nhân viên</label>
-                <select className="w-full border border-slate-300 rounded-md p-2 focus:ring-2 focus:ring-indigo-500 outline-none" value={selectedStaffToAdd} onChange={e => setSelectedStaffToAdd(e.target.value)}>
-                  <option value="">-- Chọn nhân viên --</option>
-                  {availableStaff.map(staff => (
-                    <option key={staff._id} value={staff._id}>
-                      {staff.user_id?.full_name || staff.user_id?.email || 'Chưa cập nhật'} - {staff.staff_code}
-                    </option>
-                  ))}
+                <label className="block text-sm font-medium text-slate-700">Chọn ca khả dụng</label>
+                <select className="w-full border border-slate-300 rounded-md p-2 focus:ring-2 focus:ring-indigo-500 outline-none" value={selectedShiftToAssign} onChange={e => setSelectedShiftToAssign(e.target.value)}>
+                  <option value="">-- Chọn ca làm việc --</option>
+                  {(() => {
+                    const dateSchedules = getSchedulesForDate(selectedDateForAssign);
+                    const staffId = selectedStaffForAssign._id || selectedStaffForAssign.user_id?._id || selectedStaffForAssign;
+                    const availableShifts = dateSchedules.filter(s => 
+                      !s.assigned_staff.some((st: any) => {
+                        const stId = st._id || st.user_id?._id || st;
+                        return stId === staffId;
+                      }) &&
+                      s.assigned_staff.length < s.max_staff
+                    );
+                    
+                    return availableShifts.map(shift => (
+                      <option key={shift._id} value={shift._id}>
+                        {shift.start_time} - {shift.end_time} (Còn {shift.max_staff - shift.assigned_staff.length} slot)
+                      </option>
+                    ))
+                  })()}
                 </select>
-                {availableStaff.length === 0 && (
-                  <p className="text-xs text-amber-600 mt-1">Đang tải danh sách nhân viên hoặc không còn nhân viên khả dụng.</p>
-                )}
               </div>
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex gap-3 items-start">
                 <AlertTriangle className="text-blue-600 shrink-0 mt-0.5" size={18} />
-                <p className="text-xs text-blue-800">Hành động này sẽ cập nhật trực tiếp vào cơ sở dữ liệu và gửi Email thông báo cho nhân viên.</p>
+                <p className="text-xs text-blue-800">Hành động này sẽ phân công nhân viên vào ca đã chọn và gửi Email thông báo.</p>
               </div>
             </div>
             <div className="p-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50">
-              <button onClick={() => setIsAddStaffModalOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 rounded-md transition-colors" disabled={isAddingStaff}>
+              <button onClick={() => setIsAssignShiftModalOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 rounded-md transition-colors" disabled={isAssigning}>
                 Hủy bỏ
               </button>
-              <button onClick={handleAddStaffConfirm} disabled={!selectedStaffToAdd || isAddingStaff} className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
-                {isAddingStaff && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-                Xác nhận thêm
+              <button onClick={handleAssignShiftConfirm} disabled={!selectedShiftToAssign || isAssigning} className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                {isAssigning && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+                Xác nhận
               </button>
             </div>
           </div>
