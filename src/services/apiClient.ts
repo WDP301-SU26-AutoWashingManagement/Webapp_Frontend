@@ -65,7 +65,7 @@ class ApiClient {
     const axiosError = error as AxiosError<ApiErrorPayload>
     const status = axiosError.response?.status
     const message = getApiErrorMessage(error)
-    throw new ApiError(message, status)
+    throw new ApiError(message, status, axiosError.response?.data)
   }
 }
 
