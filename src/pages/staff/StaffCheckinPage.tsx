@@ -23,6 +23,7 @@ export default function StaffCheckinPage() {
     const [uploadFile, setUploadFile] = useState<File | null>(null)
     const [isScanning, setIsScanning] = useState(false)
     const [scanResult, setScanResult] = useState<{ success: boolean; message: string; license_plate?: string; appointment_id?: string } | null>(null)
+    const [manualPlate, setManualPlate] = useState('')
 
     const videoRef = useRef<HTMLVideoElement>(null)
     const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -77,6 +78,7 @@ export default function StaffCheckinPage() {
     const closeScanModal = () => {
         stopCamera()
         setIsScanModalOpen(false)
+        setManualPlate('')
     }
 
     const capturePhoto = () => {
@@ -116,14 +118,18 @@ export default function StaffCheckinPage() {
                 showSuccess('Điểm danh thành công!')
                 fetchBookings()
             } else {
+                setManualPlate(res.license_plate || '')
                 showError(res.message || 'Không tìm thấy lịch hẹn phù hợp')
             }
         } catch (error: any) {
             console.error('Lỗi checkin qua camera:', error)
+            const fallbackPlate = error.data?.license_plate || ''
             setScanResult({
                 success: false,
-                message: error.message || 'Lỗi kết nối máy chủ AI hoặc hệ thống.'
+                message: error.message || 'Lỗi kết nối máy chủ AI hoặc hệ thống.',
+                license_plate: fallbackPlate
             })
+            setManualPlate(fallbackPlate)
             showError(error.message || 'Điểm danh thất bại')
         } finally {
             setIsScanning(false)
@@ -135,11 +141,46 @@ export default function StaffCheckinPage() {
             closeScanModal()
         } else {
             setScanResult(null)
+            setManualPlate('')
             setCapturedFile(null)
             setUploadFile(null)
             if (scanTab === 'camera') {
                 startCamera()
             }
+        }
+    }
+
+    const handleManualCheckin = async () => {
+        if (!manualPlate.trim()) {
+            showError('Vui lòng nhập biển số xe')
+            return
+        }
+        
+        setIsScanning(true)
+        try {
+            const plateToSearch = manualPlate.trim().toLowerCase()
+            const foundBooking = data.items.find((b: WashBooking) => 
+                b.booking_status === 'confirmed' && 
+                b.vehicle?.plate_number?.toLowerCase() === plateToSearch
+            )
+
+            if (foundBooking) {
+                await bookingService.checkin(foundBooking._id || foundBooking.id!)
+                showSuccess('Điểm danh thành công!')
+                setScanResult({
+                    success: true,
+                    message: 'Điểm danh thành công qua biển số nhập tay',
+                    license_plate: foundBooking.vehicle?.plate_number,
+                    appointment_id: foundBooking._id || foundBooking.id
+                })
+                fetchBookings()
+            } else {
+                showError('Không tìm thấy xe đang chờ nhận với biển số này')
+            }
+        } catch (error) {
+            showError('Lỗi khi điểm danh')
+        } finally {
+            setIsScanning(false)
         }
     }
 
@@ -526,14 +567,18 @@ export default function StaffCheckinPage() {
                                                 {scanResult.message}
                                             </p>
 
-                                            {scanResult.license_plate && (
-                                                <div className="w-full bg-slate-50 rounded-xl p-4 border border-slate-100 text-left mb-6">
-                                                    <div className="flex justify-between items-center py-1.5">
-                                                        <span className="text-xs text-slate-500">Biển số quét được</span>
-                                                        <span className="text-sm font-bold text-slate-700">{scanResult.license_plate}</span>
-                                                    </div>
+                                            <div className="w-full bg-slate-50 rounded-xl p-4 border border-slate-100 text-left mb-6">
+                                                <div className="flex flex-col gap-2">
+                                                    <label className="text-xs text-slate-500 font-medium">Chỉnh sửa biển số (nếu nhận diện sai)</label>
+                                                    <input 
+                                                        type="text" 
+                                                        value={manualPlate}
+                                                        onChange={(e) => setManualPlate(e.target.value)}
+                                                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-bold text-slate-700 uppercase focus:border-indigo-500 outline-none bg-white"
+                                                        placeholder="Nhập biển số xe..."
+                                                    />
                                                 </div>
-                                            )}
+                                            </div>
                                         </>
                                     )}
 
@@ -542,9 +587,24 @@ export default function StaffCheckinPage() {
                                             type="button"
                                             onClick={resetScanModal}
                                             className="flex-1 py-2.5 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
+                                            disabled={isScanning}
                                         >
-                                            {scanResult.success ? 'Đóng' : 'Thử lại'}
+                                            {scanResult.success ? 'Đóng' : 'Chụp lại'}
                                         </button>
+                                        {!scanResult.success && (
+                                            <button
+                                                type="button"
+                                                onClick={handleManualCheckin}
+                                                className="flex-1 py-2.5 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-colors flex items-center justify-center gap-2 shadow-sm shadow-indigo-100"
+                                                disabled={isScanning}
+                                            >
+                                                {isScanning ? (
+                                                    <><RefreshCw size={16} className="animate-spin" /> Đang xử lý...</>
+                                                ) : (
+                                                    <><Check size={16} /> Xác nhận thủ công</>
+                                                )}
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             )}
