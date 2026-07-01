@@ -63,13 +63,13 @@ export const bookingService = {
           // API /customers có populate sẵn tier_id nên ta có thể 'mượn' để trích xuất danh sách các hạng.
           const customersBody = await apiClient.get<any>('/customers', { params: { limit: 50 } });
           const customersData = Array.isArray(customersBody.data) ? customersBody.data : [];
-          
+
           customersData.forEach((c: any) => {
             if (c.tier_id && typeof c.tier_id === 'object' && c.tier_id._id) {
               tierMap.set(String(c.tier_id._id), c.tier_id);
             }
           });
-          
+
           // Nếu vẫn còn thiếu tier nào, fetch đích danh customer đó (trường hợp hiếm)
           for (const b of items) {
             if (b.customer?.tier_id?._id && !tierMap.has(b.customer.tier_id._id) && b.customer_id) {
@@ -79,7 +79,7 @@ export const bookingService = {
                 if (cData?.tier_id && typeof cData.tier_id === 'object' && cData.tier_id._id) {
                   tierMap.set(String(cData.tier_id._id), cData.tier_id);
                 }
-              } catch (err) {}
+              } catch (err) { }
             }
           }
         }
@@ -118,7 +118,7 @@ export const bookingService = {
   async getRecommendation(vehicleId: string, branchId?: string): Promise<import('../types/booking').IBookingRecommendation> {
     const params: Record<string, string> = { vehicle_id: vehicleId }
     if (branchId) params.branch_id = branchId
-    
+
     const body = await apiClient.get<ApiResponse<import('../types/booking').IBookingRecommendation>>('/bookings/recommendation', { params })
     return unwrapApiData<import('../types/booking').IBookingRecommendation>(body)
   },
@@ -206,5 +206,17 @@ export const bookingService = {
   async complete(id: string): Promise<WashBooking> {
     const body = await apiClient.patch<ApiResponse<Record<string, unknown>>>(`/bookings/${id}/complete`)
     return normalizeWashBooking(unwrapApiData<Record<string, unknown>>(body))
+  },
+
+  async checkinWithCamera(file: File): Promise<{
+    success: boolean
+    message: string
+    appointment_id?: string
+    license_plate?: string
+  }> {
+    const formData = new FormData()
+    formData.append('file', file)
+    const body = await apiClient.post<any>('/checkin/camera', formData)
+    return body
   },
 }
