@@ -55,6 +55,11 @@ const NAV_GROUPS = [
                 to: '/staff/payments',
             },
             {
+                label: 'Lịch sử giao dịch',
+                icon: CreditCard,
+                to: '/staff/transaction-history',
+            },
+            {
                 label: 'Tình trạng rửa xe',
                 icon: CircleEllipsis,
                 to: '/staff/washing-status',

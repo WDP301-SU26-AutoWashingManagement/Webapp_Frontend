@@ -126,7 +126,14 @@ export const bookingService = {
 
   async getById(id: string): Promise<WashBooking> {
     const body = await apiClient.get<ApiResponse<Record<string, unknown>>>(`/bookings/${id}`)
-    const booking = normalizeWashBooking(unwrapApiData<Record<string, unknown>>(body))
+    const rawData = unwrapApiData<Record<string, unknown>>(body)
+    
+    // Backend getBookingById returns { appointment, services } instead of a flat object
+    const flatData = rawData.appointment 
+      ? { ...(rawData.appointment as Record<string, unknown>), services: rawData.services } 
+      : rawData
+
+    const booking = normalizeWashBooking(flatData)
 
     if (booking.customer?.tier_id?._id && booking.customer.tier_id.discount_percentage === undefined) {
       if (!(window as any).__tierCache) (window as any).__tierCache = new Map();

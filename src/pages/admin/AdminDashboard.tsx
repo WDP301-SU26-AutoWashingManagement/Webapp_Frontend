@@ -21,7 +21,8 @@ import { branchService, type Branch } from '../../services/branchService'
 interface DashboardStats {
   totalCustomers: number
   totalBookings: number
-  dailyProfit: { date: string; profit: number }[]
+  totalTransactions: number
+  dailyProfit: { date: string; profit: number; count: number }[]
   topServices: { serviceName: string; count: number }[]
   topServicesRevenue: { serviceName: string; revenue: number }[]
   topIndividualServices: { serviceName: string; count: number }[]
@@ -202,13 +203,14 @@ function StatCard({
   value: string | number
   icon: React.ElementType
   trend?: { value: number; label: string }
-  color: 'blue' | 'emerald' | 'purple' | 'amber'
+  color: 'blue' | 'emerald' | 'purple' | 'amber' | 'indigo'
 }) {
   const colorMap = {
     blue: 'from-blue-500 to-cyan-400 bg-blue-100 text-blue-600 border-blue-200',
     emerald: 'from-emerald-500 to-teal-400 bg-emerald-100 text-emerald-600 border-emerald-200',
     purple: 'from-purple-500 to-indigo-400 bg-purple-100 text-purple-600 border-purple-200',
     amber: 'from-amber-500 to-orange-400 bg-amber-100 text-amber-600 border-amber-200',
+    indigo: 'from-indigo-500 to-blue-400 bg-indigo-100 text-indigo-600 border-indigo-200',
   }
 
   const gradientMap = {
@@ -216,6 +218,7 @@ function StatCard({
     emerald: 'from-emerald-500/10 to-transparent',
     purple: 'from-purple-500/10 to-transparent',
     amber: 'from-amber-500/10 to-transparent',
+    indigo: 'from-indigo-500/10 to-transparent',
   }
 
   const isPositive = (trend?.value ?? 0) >= 0
@@ -396,7 +399,7 @@ export default function AdminDashboard() {
           endDate: dateRange.endDate,
           ...branchBody
         }),
-        apiClient.post<{ data: { date: string; profit: number }[] }>('/admin/profit', {
+        apiClient.post<{ data: { date: string; profit: number; count: number }[] }>('/admin/profit', {
           startDate: dateRange.startDate,
           endDate: dateRange.endDate,
           ...branchBody
@@ -407,9 +410,9 @@ export default function AdminDashboard() {
         apiClient.get<{ data: { serviceName: string; revenue: number }[] }>(`/admin/top-individual-services-revenue${branchQuery ? branchQuery + '&' : '?'}startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`),
       ])
 
-      const dailyProfit: { date: string; profit: number }[] = Array.isArray(profitRes.data)
+      const dailyProfit: { date: string; profit: number; count: number }[] = Array.isArray(profitRes.data)
         ? profitRes.data
-        : (profitRes.data as { data: { date: string; profit: number }[] }).data ?? []
+        : (profitRes.data as { data: { date: string; profit: number; count: number }[] }).data ?? []
 
       const topServices: { serviceName: string; count: number }[] = Array.isArray(topRes.data)
         ? topRes.data
@@ -428,16 +431,9 @@ export default function AdminDashboard() {
         : (topIndRevRes.data as { data: { serviceName: string; revenue: number }[] }).data ?? []
 
       setStats({
-        totalCustomers:
-          (customersRes.data as { data?: { totalCustomers?: number }; totalCustomers?: number })
-            ?.data?.totalCustomers ??
-          (customersRes.data as { totalCustomers?: number })?.totalCustomers ??
-          0,
-        totalBookings:
-          (bookingsRes.data as { data?: { totalBookings?: number }; totalBookings?: number })
-            ?.data?.totalBookings ??
-          (bookingsRes.data as { totalBookings?: number })?.totalBookings ??
-          0,
+        totalCustomers: (customersRes.data as any).data?.totalCustomers ?? (customersRes.data as any).totalCustomers ?? 0,
+        totalBookings: (bookingsRes.data as any).data?.totalBookings ?? (bookingsRes.data as any).totalBookings ?? 0,
+        totalTransactions: dailyProfit.reduce((sum, d) => sum + (d.count || 0), 0),
         dailyProfit,
         topServices,
         topServicesRevenue,
@@ -556,7 +552,7 @@ export default function AdminDashboard() {
       ) : (
         <div className="space-y-8 w-full">
           {/* Stat cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
             <StatCard
               label="Tổng Doanh thu"
               value={`${totalRevenue.toLocaleString('vi-VN')} đ`}
@@ -570,10 +566,16 @@ export default function AdminDashboard() {
               color="emerald"
             />
             <StatCard
-              label={`Lượt Booking (${getDaysDiff()} ngày)`}
+              label={`Lượt Booking`}
               value={stats?.totalBookings.toLocaleString('vi-VN') ?? 0}
               icon={CalendarCheck}
               color="purple"
+            />
+            <StatCard
+              label={`Giao dịch (${getDaysDiff()} ngày)`}
+              value={stats?.totalTransactions.toLocaleString('vi-VN') ?? 0}
+              icon={Activity}
+              color="indigo"
             />
             <StatCard
               label="Dịch vụ Bán chạy nhất"

@@ -45,6 +45,7 @@ import StaffDashboard from './pages/staff/StaffDashboard'
 import StaffBookingsPage from './pages/staff/StaffBookingsPage'
 import StaffCheckinPage from './pages/staff/StaffCheckinPage'
 import StaffPaymentsPage from './pages/staff/StaffPaymentsPage'
+import StaffTransactionHistoryPage from './pages/staff/StaffTransactionHistoryPage'
 import StaffInProgressPage from './pages/staff/StaffInProgressPage'
 import StaffLeaveRequestsPage from './pages/staff/StaffLeaveRequestsPage'
 import StaffTechnicalLayout from './pages/staff/StaffTechnicalLayout'
@@ -185,6 +186,7 @@ function AppContent() {
         >
           <Route index element={<Navigate to="/boss/dashboard" replace />} />
           <Route path="dashboard" element={<BossDashboard />} />
+          <Route path="transaction-history" element={<StaffTransactionHistoryPage />} />
           <Route path="customers" element={<SharedCustomersPage />} />
           <Route
             path="accounts"
@@ -223,6 +225,7 @@ function AppContent() {
           <Route path="checkin" element={<StaffCheckinPage />} />
           <Route path="in-progress" element={<StaffInProgressPage />} />
           <Route path="payments" element={<StaffPaymentsPage />} />
+          <Route path="transaction-history" element={<StaffTransactionHistoryPage />} />
           <Route path="leave-requests" element={<StaffLeaveRequestsPage />} />
           <Route path="schedules" element={<StaffSchedulePage />} />
           <Route path="list" element={<AdminStaffsPage />} />
