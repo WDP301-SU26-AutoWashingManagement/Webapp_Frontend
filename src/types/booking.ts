@@ -58,6 +58,7 @@ export interface BookingListParams {
   booking_status?: BookingStatus | string
   from_date?: string
   to_date?: string
+  time_slot?: string
 }
 
 export interface IRecommendedItem {

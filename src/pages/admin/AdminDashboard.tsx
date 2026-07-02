@@ -28,6 +28,169 @@ interface DashboardStats {
   topIndividualServicesRevenue: { serviceName: string; revenue: number }[]
 }
 
+function HourlyBookingChart({ branchId }: { branchId: string }) {
+  const [data, setData] = useState<{ time: string; count: number }[]>([])
+  const [loading, setLoading] = useState(false)
+  const [preset, setPreset] = useState<'3' | '5' | '7' | 'custom'>('7')
+  const [dateRange, setDateRange] = useState({
+    startDate: fmt(getDateDaysAgo(7)),
+    endDate: fmt(new Date())
+  })
+
+  const handlePresetChange = (p: '3' | '5' | '7') => {
+    setPreset(p);
+    setDateRange({
+      startDate: fmt(getDateDaysAgo(parseInt(p))),
+      endDate: fmt(new Date())
+    });
+  }
+
+  const fetchHourlyData = async () => {
+    setLoading(true)
+    try {
+      const branchBody = branchId !== 'all' ? { branch_id: branchId } : {}
+      const res = await apiClient.post<{ data: { time: string; count: number }[] }>('/admin/bookings/hourly-distribution', {
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate,
+        ...branchBody
+      })
+      const hourlyBookings = Array.isArray(res.data) ? res.data : (res.data as any).data ?? []
+      setData(hourlyBookings)
+    } catch (e) {
+      console.warn('Failed to fetch hourly distribution')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    void fetchHourlyData()
+  }, [dateRange, branchId])
+
+  return (
+    <div className="flex flex-col w-full pb-2">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 mt-2">
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center bg-slate-100 rounded-lg p-1">
+            {(['3', '5', '7'] as const).map((p) => (
+              <button
+                key={p}
+                onClick={() => handlePresetChange(p)}
+                className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${preset === p ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                {p} ngày
+              </button>
+            ))}
+            <button
+              onClick={() => setPreset('custom')}
+              className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${preset === 'custom' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              Tùy chỉnh
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={dateRange.startDate}
+              onChange={(e) => { setPreset('custom'); setDateRange(r => ({ ...r, startDate: e.target.value })) }}
+              className="px-2 py-1 text-xs bg-slate-50 border border-slate-200 rounded-md outline-none focus:ring-2 focus:ring-indigo-100"
+            />
+            <span className="text-slate-400 text-xs">→</span>
+            <input
+              type="date"
+              value={dateRange.endDate}
+              onChange={(e) => { setPreset('custom'); setDateRange(r => ({ ...r, endDate: e.target.value })) }}
+              className="px-2 py-1 text-xs bg-slate-50 border border-slate-200 rounded-md outline-none focus:ring-2 focus:ring-indigo-100"
+            />
+          </div>
+        </div>
+
+        {!loading && (
+          <div className="bg-indigo-50 border border-indigo-100 text-indigo-700 px-4 py-1.5 rounded-lg flex items-center gap-2 shadow-sm whitespace-nowrap self-start md:self-auto">
+            <span className="text-sm font-medium">Tổng số:</span>
+            <span className="font-bold text-lg">{data.reduce((sum, item) => sum + item.count, 0)}</span>
+            <span className="text-sm font-medium">lịch hẹn</span>
+          </div>
+        )}
+      </div>
+
+      {loading ? (
+        <div className="flex flex-col items-center justify-center h-64 text-slate-400 w-full">
+          <Activity size={32} className="opacity-20 mb-3 animate-pulse" />
+          <p className="text-sm animate-pulse">Đang tải dữ liệu...</p>
+        </div>
+      ) : !data || !data.length ? (
+        <div className="flex flex-col items-center justify-center h-64 text-slate-400 w-full">
+          <Activity size={48} className="opacity-20 mb-3" />
+          <p>Chưa có dữ liệu lịch hẹn</p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto pb-4 custom-scrollbar">
+          <div className="min-w-[800px] relative h-[320px] w-full flex items-end justify-between pt-24 pb-8 px-4">
+            {/* Background grid lines */}
+            <div className="absolute inset-0 flex flex-col justify-between pt-24 pb-12 px-4 pointer-events-none">
+              {[4, 3, 2, 1, 0].map((line) => (
+                <div key={line} className="w-full border-t border-slate-100 flex items-center h-0 relative">
+                  <span className="absolute -left-2 -top-2.5 text-[10px] text-slate-400 font-medium bg-white px-1">
+                    {line === 0 ? '0' : Math.ceil((Math.max(...data.map(d => d.count), 1) / 4) * line)}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Bars Container */}
+            <div className="relative z-10 w-full h-full pb-2">
+              <div className="flex justify-between items-end h-full w-full pl-8 pr-2">
+                {data.map((d) => {
+                  const maxCount = Math.max(...data.map(item => item.count), 1);
+                  const isPeak = d.count === maxCount && d.count > 0;
+                  const isEmpty = d.count === 0;
+                  const pct = isEmpty ? 0 : (d.count / maxCount) * 100;
+                  
+                  // Extract hour to determine if it's top of the hour for labeling
+                  const isHour = d.time.endsWith(':00');
+                  
+                  return (
+                    <div key={d.time} className="relative flex flex-col items-center justify-end group w-full h-full px-0.5 sm:px-1">
+                      {/* Tooltip */}
+                      <div className="absolute -top-14 opacity-0 group-hover:opacity-100 transition-all duration-200 bg-slate-800 text-white text-xs py-2 px-3 rounded-xl pointer-events-none whitespace-nowrap z-20 shadow-xl transform -translate-x-1/2 left-1/2 translate-y-2 group-hover:translate-y-0">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <Clock size={12} className={isPeak ? "text-amber-400" : "text-cyan-400"} />
+                          <span className="font-semibold text-slate-200">{d.time}</span>
+                        </div>
+                        <p className="font-bold text-sm text-center">{d.count} <span className="font-normal text-slate-300 text-xs">lịch hẹn</span></p>
+                        <div className="absolute -bottom-1.5 left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
+                      </div>
+
+                      {/* Bar */}
+                      <div className="w-full flex justify-center items-end h-full">
+                        {isEmpty ? (
+                          <div className="w-full max-w-[1.25rem] h-1.5 rounded-full bg-slate-100 transition-all duration-300 group-hover:bg-slate-200"></div>
+                        ) : (
+                          <div
+                            className={`w-full max-w-[1.5rem] rounded-t-md transition-all duration-700 ease-out ${isPeak ? 'bg-gradient-to-t from-amber-500 to-orange-400 shadow-lg shadow-amber-500/30' : 'bg-gradient-to-t from-indigo-500 to-cyan-400 hover:from-indigo-600 hover:to-cyan-500'}`}
+                            style={{ height: `${Math.max(pct, 4)}%` }}
+                          ></div>
+                        )}
+                      </div>
+
+                      {/* Label - Only show for full hours to avoid crowding */}
+                      <span className={`absolute -bottom-7 text-[10px] font-medium transition-colors ${isHour ? 'text-slate-600' : 'text-slate-300'} ${isPeak && isHour ? 'text-amber-600 font-bold' : ''}`}>
+                        {isHour ? d.time : ''}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function StatCard({
   label,
   value,
@@ -551,6 +714,21 @@ export default function AdminDashboard() {
               </div>
             </div>
           </div>
+          
+          {/* Charts row 2 */}
+          <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+            {/* Hourly Booking chart */}
+            <div className="xl:col-span-4 bg-white rounded-2xl border border-slate-100 shadow-sm p-6 w-full">
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                  <h2 className="text-lg font-bold text-slate-800">Tần suất Đặt lịch theo Khung giờ</h2>
+                  <p className="text-sm text-slate-500 mt-1">Phân bố số lượng khách hàng đặt lịch trong các khoảng thời gian của ngày</p>
+                </div>
+              </div>
+              <HourlyBookingChart branchId={selectedBranch} />
+            </div>
+          </div>
+
         </div>
       )}
     </div>
