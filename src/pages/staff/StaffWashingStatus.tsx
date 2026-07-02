@@ -22,7 +22,7 @@ export default function StaffWashingStatus() {
     `${env.serverBaseUrl}${env.apiBaseUrl}/sse-notifications`,
   );
 
-  const plateRegex = /^\d{2}[A-Z]{1,2}-\d{5}$/;
+  const plateRegex = /^\d{2}[A-Z]{1,2}-\d{4,5}$/;
 
   useEffect(() => {
     if (data && data.type === "washing_status") {
@@ -41,7 +41,7 @@ export default function StaffWashingStatus() {
   }, [data]);
 
   const handlePlateChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
+    const value = e.target.value.toUpperCase();
 
     setPlate(value);
 
