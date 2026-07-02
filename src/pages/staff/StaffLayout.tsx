@@ -124,8 +124,8 @@ export default function StaffLayout() {
         return {
             ...group,
             items: group.items.filter(item => {
-                // Giấu Hệ thống Auto-Cron và Doanh thu đối với Technical
-                if (!isManager && (item.to === '/staff/dashboard' || item.to === '/staff/revenue')) return false
+                // Giấu Hệ thống Auto-Cron, Doanh thu, và Lịch sử giao dịch đối với Technical
+                if (!isManager && (item.to === '/staff/dashboard' || item.to === '/staff/revenue' || item.to === '/staff/transaction-history')) return false
                 return true
             })
         }

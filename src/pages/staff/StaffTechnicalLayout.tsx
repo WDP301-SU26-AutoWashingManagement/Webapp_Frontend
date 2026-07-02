@@ -11,47 +11,82 @@ import {
     X,
     ChevronRight,
     CalendarOff,
-    CalendarDays
+    CalendarDays,
+    Wallet,
+    CheckSquare,
+    PlayCircle,
+    CreditCard,
+    CircleEllipsis
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import logo2 from '../../assets/logo2.png'
 
-const NAV_ITEMS = [
+const NAV_GROUPS = [
     {
-        label: 'Tổng quan',
-        icon: LayoutDashboard,
-        to: '/staff/technical/dashboard',
+        title: 'Lịch hẹn & Xử lý',
+        items: [
+            {
+                label: 'Tổng quan',
+                icon: LayoutDashboard,
+                to: '/staff/technical/dashboard',
+            },
+            {
+                label: 'Quản lý lịch hẹn',
+                icon: ClipboardList,
+                to: '/staff/technical/bookings',
+            },
+            {
+                label: 'Checkin xe',
+                icon: CheckSquare,
+                to: '/staff/technical/checkin',
+            },
+            {
+                label: 'Đang xử lý',
+                icon: PlayCircle,
+                to: '/staff/technical/in-progress',
+            },
+            {
+                label: 'Lịch hẹn hoàn thành',
+                icon: CreditCard,
+                to: '/staff/technical/payments',
+            },
+            {
+                label: 'Tình trạng rửa xe',
+                icon: CircleEllipsis,
+                to: '/staff/technical/washing-status',
+            },
+            {
+                label: 'Ghi chú tình trạng xe',
+                icon: FileText,
+                to: '/staff/technical/notes',
+            },
+            {
+                label: 'Lịch sử xe',
+                icon: History,
+                to: '/staff/technical/history',
+            },
+        ]
     },
     {
-        label: 'Xử lý booking',
-        icon: ClipboardList,
-        to: '/staff/technical/bookings',
-    },
-    {
-        label: 'Ghi chú tình trạng xe',
-        icon: FileText,
-        to: '/staff/technical/notes',
-    },
-    {
-        label: 'Lịch sử xe',
-        icon: History,
-        to: '/staff/technical/history',
-    },
-    {
-        label: 'Lịch làm việc',
-        icon: CalendarDays,
-        to: '/staff/technical/schedules',
-    },
-    {
-        label: 'Nghỉ phép',
-        icon: CalendarOff,
-        to: '/staff/technical/leave-requests',
-    },
-    {
-        label: 'Cài đặt',
-        icon: Settings,
-        to: '/staff/technical/settings',
-    },
+        title: 'Nội bộ',
+        items: [
+            {
+                label: 'Lịch làm việc',
+                icon: CalendarDays,
+                to: '/staff/technical/schedules',
+            },
+            {
+                label: 'Nghỉ phép',
+                icon: CalendarOff,
+                to: '/staff/technical/leave-requests',
+            },
+            {
+                label: 'Cài đặt',
+                icon: Settings,
+                to: '/staff/technical/settings',
+            },
+        ]
+    }
 ]
 
 export default function StaffTechnicalLayout() {
@@ -102,20 +137,39 @@ export default function StaffTechnicalLayout() {
                     </div>
                 )}
 
-                <nav className="admin-sidebar__nav">
-                    {NAV_ITEMS.map(({ label, icon: Icon, to }) => (
-                        <NavLink
-                            key={to}
-                            to={to}
-                            className={({ isActive }) =>
-                                `admin-nav-item ${isActive ? 'admin-nav-item--active' : ''}`
-                            }
-                            title={!sidebarOpen ? label : undefined}
-                        >
-                            <Icon size={18} className="admin-nav-item__icon" />
-                            {sidebarOpen && <span className="admin-nav-item__label">{label}</span>}
-                            {sidebarOpen && <ChevronRight size={14} className="admin-nav-item__chevron" />}
-                        </NavLink>
+                <nav className="admin-sidebar__nav" style={{ padding: '0.5rem', gap: '0.5rem', display: 'flex', flexDirection: 'column' }}>
+                    {NAV_GROUPS.map((group, idx) => (
+                        <div key={idx} style={{ marginBottom: idx !== NAV_GROUPS.length - 1 ? '1rem' : '0' }}>
+                            {sidebarOpen && (
+                                <div style={{
+                                    padding: '0 0.75rem',
+                                    marginBottom: '0.5rem',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 600,
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.05em',
+                                    color: '#94a3b8'
+                                }}>
+                                    {group.title}
+                                </div>
+                            )}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                {group.items.map(({ label, icon: Icon, to }) => (
+                                    <NavLink
+                                        key={to}
+                                        to={to}
+                                        className={({ isActive }) =>
+                                            `admin-nav-item ${isActive ? 'admin-nav-item--active' : ''}`
+                                        }
+                                        title={!sidebarOpen ? label : undefined}
+                                    >
+                                        <Icon size={18} className="admin-nav-item__icon" />
+                                        {sidebarOpen && <span className="admin-nav-item__label">{label}</span>}
+                                        {sidebarOpen && <ChevronRight size={14} className="admin-nav-item__chevron" />}
+                                    </NavLink>
+                                ))}
+                            </div>
+                        </div>
                     ))}
                 </nav>
 

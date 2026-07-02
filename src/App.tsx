@@ -28,7 +28,6 @@ import AdminServicePackagesPage from './pages/admin/AdminServicePackagesPage'
 import AdminStaffsPage from './pages/admin/AdminStaffsPage'
 import AdminTiersPage from './pages/admin/AdminTiersPage'
 import InternalProfilePage from './pages/shared/InternalProfilePage'
-import AdminPlaceholderPage from './pages/admin/AdminPlaceholderPage'
 
 
 // Boss
@@ -66,6 +65,9 @@ const STAFF_PATHS_PREFIX = '/staff'
 
 function StaffIndexRedirect() {
   const { user } = useAuth();
+  if (user?.staff_type === 'technical') {
+    return <Navigate to="/staff/technical/dashboard" replace />;
+  }
   const isManager = user?.role === 'admin' || user?.role === 'boss' || user?.staff_type === 'manager';
   return <Navigate to={isManager ? "/staff/dashboard" : "/staff/bookings"} replace />;
 }
@@ -90,9 +92,23 @@ function AppContent() {
     return <Navigate to="/boss/dashboard" replace />
   }
 
-  // Nếu là Staff nhưng đang ở trang ngoài -> đá về /staff
-  if (!loading && isAuthenticated && user?.role === 'staff' && !isStaffPage) {
-    return <Navigate to="/staff" replace />
+  // Nếu là Staff, kiểm tra chéo vùng làm việc
+  if (!loading && isAuthenticated && user?.role === 'staff') {
+    const isTechnical = user?.staff_type === 'technical';
+    const isTechnicalRoute = pathname.startsWith('/staff/technical');
+
+    if (!isStaffPage) {
+      if (isTechnical) return <Navigate to="/staff/technical/dashboard" replace />
+      return <Navigate to="/staff" replace />
+    } else {
+      // Đang ở trong /staff, kiểm tra không cho đi lạc chéo vùng
+      if (isTechnical && !isTechnicalRoute) {
+        return <Navigate to="/staff/technical/dashboard" replace />
+      }
+      if (!isTechnical && isTechnicalRoute) {
+        return <Navigate to="/staff" replace />
+      }
+    }
   }
 
   return (
@@ -167,7 +183,7 @@ function AppContent() {
           <Route path="tiers" element={<AdminTiersPage />} />
           <Route
             path="reports"
-            element={<AdminPlaceholderPage title="Báo cáo" description="Báo cáo doanh thu và thống kê" />}
+            element={<StaffTransactionHistoryPage />}
           />
           <Route
             path="settings"
@@ -244,7 +260,11 @@ function AppContent() {
         >
           <Route index element={<Navigate to="/staff/technical/dashboard" replace />} />
           <Route path="dashboard" element={<StaffTechnicalDashboard />} />
-          <Route path="bookings" element={<StaffTechnicalBookingsPage />} />
+          <Route path="bookings" element={<StaffBookingsPage />} />
+          <Route path="checkin" element={<StaffCheckinPage />} />
+          <Route path="in-progress" element={<StaffInProgressPage />} />
+          <Route path="payments" element={<StaffPaymentsPage />} />
+          <Route path="washing-status" element={<StaffWashingStatus />} />
           <Route path="notes" element={<StaffTechnicalNotesPage />} />
           <Route path="history" element={<StaffTechnicalHistoryPage />} />
           <Route path="leave-requests" element={<StaffLeaveRequestsPage />} />

@@ -16,6 +16,7 @@ import {
   Layers,
   Package,
   History,
+  Wallet,
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import logo2 from '../../assets/logo2.png'
@@ -40,8 +41,8 @@ const NAV_GROUPS = [
         to: '/admin/booking-history',
       },
       {
-        label: 'Báo cáo',
-        icon: BarChart3,
+        label: 'Lịch sử giao dịch',
+        icon: Wallet,
         to: '/admin/reports',
       },
     ]
