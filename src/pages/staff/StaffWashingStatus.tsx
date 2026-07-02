@@ -22,7 +22,7 @@ export default function StaffWashingStatus() {
     `${env.serverBaseUrl}${env.apiBaseUrl}/sse-notifications`,
   );
 
-  const plateRegex = /^\d{2}[A-Z]{1,2}-\d{4,5}$/;
+  const plateRegex = /^\d{2}[A-Z]{1,2}\d{0,1}-\d{4,5}$/;
 
   useEffect(() => {
     if (data && data.type === "washing_status") {
@@ -155,7 +155,7 @@ export default function StaffWashingStatus() {
                   value={plate}
                   onChange={handlePlateChange}
                   className="admin-search-input"
-                  placeholder="Nhập biển số xe (VD: 29A-12345)"
+                  placeholder="Nhập biển số xe (VD: 29A-12345 hoặc 29A1-12345)"
                   style={{ paddingLeft: "2.5rem", textTransform: "uppercase" }}
                   disabled={loading}
                 />
