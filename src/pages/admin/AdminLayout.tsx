@@ -15,6 +15,7 @@ import {
   Award,
   Layers,
   Package,
+  History,
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import logo2 from '../../assets/logo2.png'
@@ -32,6 +33,11 @@ const NAV_GROUPS = [
         label: 'Lịch hẹn',
         icon: CalendarCheck,
         to: '/admin/bookings',
+      },
+      {
+        label: 'Lịch sử lịch hẹn',
+        icon: History,
+        to: '/admin/booking-history',
       },
       {
         label: 'Báo cáo',

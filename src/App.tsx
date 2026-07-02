@@ -21,6 +21,7 @@ import Toaster from './components/Toaster'
 import AdminLayout from './pages/admin/AdminLayout'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminBookingsPage from './pages/admin/AdminBookingsPage'
+import AdminBookingHistoryPage from './pages/admin/AdminBookingHistoryPage'
 import AdminServicesPage from './pages/admin/AdminServicesPage'
 import AdminServiceGroupsPage from './pages/admin/AdminServiceGroupsPage'
 import AdminServicePackagesPage from './pages/admin/AdminServicePackagesPage'
@@ -156,6 +157,7 @@ function AppContent() {
             path="bookings"
             element={<AdminBookingsPage />}
           />
+          <Route path="booking-history" element={<AdminBookingHistoryPage />} />
           <Route path="staffs" element={<AdminStaffsPage />} />
           <Route path="services" element={<AdminServicesPage />} />
           <Route path="service-groups" element={<AdminServiceGroupsPage />} />

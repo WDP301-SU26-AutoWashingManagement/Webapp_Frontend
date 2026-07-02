@@ -36,7 +36,7 @@ export const bookingService = {
     const page = params?.page ?? 1
     const limit = params?.limit ?? 50
     const status = params?.booking_status ?? ''
-    const cacheKey = `bookings:list:${page}:${limit}:${status}:${params?.from_date || ''}:${params?.to_date || ''}`
+    const cacheKey = `bookings:list:${page}:${limit}:${status}:${params?.from_date || ''}:${params?.to_date || ''}:${params?.time_slot || ''}`
 
     return dedupeRequest(cacheKey, async () => {
       const body = (await apiClient.get<PaginatedEnvelope>('/bookings', {
@@ -46,6 +46,7 @@ export const bookingService = {
           ...(params?.booking_status ? { booking_status: params.booking_status } : {}),
           ...(params?.from_date ? { from_date: params.from_date } : {}),
           ...(params?.to_date ? { to_date: params.to_date } : {}),
+          ...(params?.time_slot ? { time_slot: params.time_slot } : {}),
         },
       })) as PaginatedEnvelope
 
