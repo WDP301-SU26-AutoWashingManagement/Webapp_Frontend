@@ -69,7 +69,7 @@ function StaffIndexRedirect() {
     return <Navigate to="/staff/technical/dashboard" replace />;
   }
   const isManager = user?.role === 'admin' || user?.role === 'boss' || user?.staff_type === 'manager';
-  return <Navigate to={isManager ? "/staff/dashboard" : "/staff/bookings"} replace />;
+  return <Navigate to={isManager ? "/staff/revenue" : "/staff/bookings"} replace />;
 }
 
 function AppContent() {
@@ -98,7 +98,7 @@ function AppContent() {
     const isTechnicalRoute = pathname.startsWith('/staff/technical');
 
     if (!isStaffPage) {
-      if (isTechnical) return <Navigate to="/staff/technical/dashboard" replace />
+      if (isTechnical) return <Navigate to="/staff/technical/bookings" replace />
       return <Navigate to="/staff" replace />
     } else {
       // Đang ở trong /staff, kiểm tra không cho đi lạc chéo vùng
