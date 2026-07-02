@@ -15,6 +15,6 @@ export const washService = {
      * Gửi yêu cầu rửa xe
      */
     async wash(plate: PlateInput): Promise<WashResponse> {
-        return await apiClient.post<WashResponse>('/wash', plate)
+        return await apiClient.post<WashResponse>('/wash/manual', plate)
     }
 }
