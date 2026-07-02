@@ -103,7 +103,7 @@ function AppContent() {
     } else {
       // Đang ở trong /staff, kiểm tra không cho đi lạc chéo vùng
       if (isTechnical && !isTechnicalRoute) {
-        return <Navigate to="/staff/technical/dashboard" replace />
+        return <Navigate to="/staff/technical/bookings" replace />
       }
       if (!isTechnical && isTechnicalRoute) {
         return <Navigate to="/staff" replace />
