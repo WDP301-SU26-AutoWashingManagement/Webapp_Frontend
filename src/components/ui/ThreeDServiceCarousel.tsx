@@ -111,7 +111,7 @@ const EMBEDDED_CSS = `
 
 .cascade-slider_item:not(.now) {
     filter: grayscale(0.4) opacity(0.7);
-    pointer-events: none;
+    cursor: pointer;
 }
 
 @media screen and (min-width: 768px) {
@@ -162,9 +162,9 @@ export const ThreeDServiceCarousel: React.FC<ThreeDServiceCarouselProps> = ({
     const navigate = useCallback((direction: 'next' | 'prev') => {
         setActiveIndex(current => {
             if (direction === 'next') {
-                return (current + 1) % total
-            } else {
                 return (current - 1 + total) % total
+            } else {
+                return (current + 1) % total
             }
         })
     }, [total])
@@ -263,6 +263,14 @@ export const ThreeDServiceCarousel: React.FC<ThreeDServiceCarouselProps> = ({
                                 key={svc.id || svc._id}
                                 className={`cascade-slider_item ${getSlideClasses(index, activeIndex, total, itemCount)}`}
                                 data-slide-number={index}
+                                onClick={(e) => {
+                                    if (index !== activeIndex) {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        setActiveIndex(index);
+                                        startAutoplay();
+                                    }
+                                }}
                             >
                                 <div className="w-full h-full bg-white rounded-2xl p-6 ring-1 ring-gray-200/80 shadow-sm hover:shadow-md hover:ring-cyan-500/50 flex flex-col justify-between group">
                                     {/* Icon & Title */}
@@ -299,6 +307,13 @@ export const ThreeDServiceCarousel: React.FC<ThreeDServiceCarouselProps> = ({
                                         <Link
                                             to="/bookings/new"
                                             className="rounded-lg bg-cyan-50 hover:bg-[#0ea5b7] hover:text-white px-3 py-2 text-center text-xs font-semibold text-[#0ea5b7] transition-colors duration-200"
+                                            onClick={(e) => {
+                                                // Nếu card chưa active, chặn sự kiện click Link và chỉ active card
+                                                if (index !== activeIndex) {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                }
+                                            }}
                                         >
                                             Đặt lịch
                                         </Link>
