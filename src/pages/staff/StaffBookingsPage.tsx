@@ -14,7 +14,7 @@ export default function StaffBookingsPage() {
   const [activeTab, setActiveTab] = useState<'pending' | 'in_progress' | 'completed' | 'cancelled' | 'all'>('pending')
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
-  const [selectedDate, setSelectedDate] = useState<string>('')
+  const [dateRange, setDateRange] = useState({ startDate: '', endDate: '' })
   const [page, setPage] = useState(1)
   const limit = 10
 
@@ -25,7 +25,7 @@ export default function StaffBookingsPage() {
   const [paymentModal, setPaymentModal] = useState<{ isOpen: boolean, booking: WashBooking | null }>({ isOpen: false, booking: null })
   const [detailModal, setDetailModal] = useState<WashBooking | null>(null)
 
-  const fetchBookings = async (currentPage: number, currentTab: string, currentFilter: string, dateStr: string) => {
+  const fetchBookings = async (currentPage: number, currentTab: string, currentFilter: string, range: { startDate: string, endDate: string }) => {
     setLoading(true)
     try {
       let statusParam = '';
@@ -37,12 +37,16 @@ export default function StaffBookingsPage() {
 
       const params: any = { page: currentPage, limit };
       if (statusParam) params.booking_status = statusParam;
-      if (dateStr) {
-        const start = new Date(dateStr);
+
+      if (range.startDate) {
+        const start = new Date(range.startDate);
         start.setHours(0, 0, 0, 0);
-        const end = new Date(dateStr);
-        end.setHours(23, 59, 59, 999);
         params.from_date = start.toISOString();
+      }
+
+      if (range.endDate) {
+        const end = new Date(range.endDate);
+        end.setHours(23, 59, 59, 999);
         params.to_date = end.toISOString();
       }
 
@@ -55,7 +59,7 @@ export default function StaffBookingsPage() {
     }
   }
 
-  useEffect(() => { fetchBookings(page, activeTab, statusFilter, selectedDate) }, [page, activeTab, statusFilter, selectedDate])
+  useEffect(() => { fetchBookings(page, activeTab, statusFilter, dateRange) }, [page, activeTab, statusFilter, dateRange])
 
   // Xử lý khi xác nhận modal đổi trạng thái
   const handleProceedAction = async () => {
@@ -68,7 +72,7 @@ export default function StaffBookingsPage() {
       // Note: complete sẽ được tự động gọi khi thanh toán (PaymentModal)
 
       showSuccess('Cập nhật trạng thái thành công')
-      fetchBookings(page, activeTab, statusFilter, selectedDate)
+      fetchBookings(page, activeTab, statusFilter, dateRange)
       setConfirmModal({ isOpen: false, action: '', booking: null })
     } catch (error: any) {
       showError(error?.response?.data?.message || 'Lỗi khi cập nhật trạng thái')
@@ -151,7 +155,7 @@ export default function StaffBookingsPage() {
       <div className="admin-page__header flex justify-between items-end">
         <div>
           <h1 className="admin-page__title">Quản lý booking</h1>
-          <p className="admin-page__subtitle">Xử lý toàn bộ luồng từ lúc nhận đơn đến khi thu tiền khách hàng.</p>
+          <p className="admin-page__subtitle">Xác nhận lịch hẹn đã được đặt.</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="relative">
@@ -192,17 +196,29 @@ export default function StaffBookingsPage() {
               <ChevronDown size={14} />
             </div>
           </div>
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => {
-              setSelectedDate(e.target.value);
-              setPage(1);
-            }}
-            className="px-4 py-1.5 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:border-cyan-500 bg-white cursor-pointer"
-          />
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={dateRange.startDate}
+              onChange={(e) => {
+                setDateRange(prev => ({ ...prev, startDate: e.target.value }));
+                setPage(1);
+              }}
+              className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:border-cyan-500 bg-white cursor-pointer"
+            />
+            <span className="text-slate-400 text-xs">→</span>
+            <input
+              type="date"
+              value={dateRange.endDate}
+              onChange={(e) => {
+                setDateRange(prev => ({ ...prev, endDate: e.target.value }));
+                setPage(1);
+              }}
+              className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:border-cyan-500 bg-white cursor-pointer"
+            />
+          </div>
           <button
-            onClick={() => fetchBookings(page, activeTab, statusFilter, selectedDate)}
+            onClick={() => fetchBookings(page, activeTab, statusFilter, dateRange)}
             className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 transition-all text-sm font-medium"
           >
             <RefreshCw size={14} className={loading ? 'animate-spin text-cyan-500' : ''} />
@@ -314,10 +330,10 @@ export default function StaffBookingsPage() {
                   onClick={() => typeof p === 'number' && setPage(p)}
                   disabled={p === '...'}
                   className={`min-w-[32px] h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-colors ${page === p
-                      ? 'bg-cyan-500 text-white shadow-sm'
-                      : p === '...'
-                        ? 'text-slate-400 cursor-default'
-                        : 'text-slate-600 hover:bg-slate-100'
+                    ? 'bg-cyan-500 text-white shadow-sm'
+                    : p === '...'
+                      ? 'text-slate-400 cursor-default'
+                      : 'text-slate-600 hover:bg-slate-100'
                     }`}
                 >
                   {p}
@@ -359,7 +375,7 @@ export default function StaffBookingsPage() {
         booking={paymentModal.booking!}
         onSuccess={() => {
           setPaymentModal({ isOpen: false, booking: null })
-          fetchBookings(page, activeTab, statusFilter, selectedDate)
+          fetchBookings(page, activeTab, statusFilter, dateRange)
         }}
       />
 

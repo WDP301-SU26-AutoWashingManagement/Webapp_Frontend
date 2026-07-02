@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Banknote, PlayCircle, Check, RefreshCw, Eye, Search } from 'lucide-react'
+import { Banknote, PlayCircle, Check, RefreshCw, Eye, Search, Filter, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import { bookingService } from '../../services/bookingService'
 import type { BookingListResult } from '../../services/bookingService'
 import type { WashBooking } from '../../types/booking'
@@ -15,11 +15,26 @@ export default function StaffInProgressPage() {
     const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean, action: 'start' | 'washed' | '', booking: WashBooking | null }>({ isOpen: false, action: '', booking: null })
     const [paymentModal, setPaymentModal] = useState<{ isOpen: boolean, booking: WashBooking | null }>({ isOpen: false, booking: null })
     const [searchQuery, setSearchQuery] = useState('')
+    const [statusFilter, setStatusFilter] = useState('in_progress')
+    const [selectedDate, setSelectedDate] = useState<string>('')
+    const [page, setPage] = useState(1)
+    const limit = 10
 
-    const fetchBookings = async () => {
+    const fetchBookings = async (currentPage: number, currentFilter: string, dateStr: string) => {
         setLoading(true)
         try {
-            const res = await bookingService.list({ limit: 50 })
+            const params: any = { page: currentPage, limit };
+            if (currentFilter) params.booking_status = currentFilter;
+            if (dateStr) {
+                const start = new Date(dateStr);
+                start.setHours(0, 0, 0, 0);
+                const end = new Date(dateStr);
+                end.setHours(23, 59, 59, 999);
+                params.from_date = start.toISOString();
+                params.to_date = end.toISOString();
+            }
+
+            const res = await bookingService.list(params)
             setData(res)
         } catch (error) {
             showError('Không thể tải danh sách booking')
@@ -29,8 +44,8 @@ export default function StaffInProgressPage() {
     }
 
     useEffect(() => {
-        fetchBookings()
-    }, [])
+        fetchBookings(page, statusFilter, selectedDate)
+    }, [page, statusFilter, selectedDate])
 
     const handleStartWashing = async () => {
         if (!confirmModal.booking) return;
@@ -38,7 +53,7 @@ export default function StaffInProgressPage() {
             await bookingService.start(confirmModal.booking._id || confirmModal.booking.id!)
             showSuccess('Bắt đầu làm dịch vụ thành công')
             setConfirmModal({ isOpen: false, action: '', booking: null })
-            fetchBookings()
+            fetchBookings(page, statusFilter, selectedDate)
         } catch (err: any) {
             showError(err?.response?.data?.message || 'Lỗi khi cập nhật trạng thái')
         }
@@ -50,7 +65,7 @@ export default function StaffInProgressPage() {
             await bookingService.washed(confirmModal.booking._id || confirmModal.booking.id!)
             showSuccess('Đã hoàn thành rửa xe')
             setConfirmModal({ isOpen: false, action: '', booking: null })
-            fetchBookings()
+            fetchBookings(page, statusFilter, selectedDate)
         } catch (err: any) {
             showError(err?.response?.data?.message || 'Lỗi khi cập nhật trạng thái')
         }
@@ -77,8 +92,31 @@ export default function StaffInProgressPage() {
             const shortId = id.slice(-6)
             if (!plate.includes(q) && !shortId.includes(q) && !id.includes(q)) return false
         }
-        return b.booking_status === 'checked_in' || b.booking_status === 'in_progress' || b.booking_status === 'washed'
+        if (b.booking_status !== statusFilter) return false
+        return true
     });
+
+    const totalPages = Math.ceil((data.total || 0) / limit);
+
+    const getPageNumbers = () => {
+        const pages = [];
+        const maxVisiblePages = 5;
+
+        if (totalPages <= maxVisiblePages) {
+            for (let i = 1; i <= totalPages; i++) {
+                pages.push(i);
+            }
+        } else {
+            if (page <= 3) {
+                pages.push(1, 2, 3, 4, '...', totalPages);
+            } else if (page >= totalPages - 2) {
+                pages.push(1, '...', totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+            } else {
+                pages.push(1, '...', page - 1, page, page + 1, '...', totalPages);
+            }
+        }
+        return pages;
+    }
 
     return (
         <div className="admin-page">
@@ -94,12 +132,44 @@ export default function StaffInProgressPage() {
                             type="text"
                             placeholder="Tìm mã đơn, biển số xe..."
                             value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onChange={(e) => {
+                                setSearchQuery(e.target.value);
+                                setPage(1);
+                            }}
                             className="pl-9 pr-4 py-1.5 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:border-cyan-500 bg-white min-w-[220px]"
                         />
                     </div>
+                    <div className="relative">
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                            <Filter size={16} />
+                        </div>
+                        <select
+                            value={statusFilter}
+                            onChange={(e) => {
+                                setStatusFilter(e.target.value);
+                                setPage(1);
+                            }}
+                            className="pl-9 pr-8 py-1.5 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:border-cyan-500 bg-white appearance-none cursor-pointer"
+                        >
+                            <option value="checked_in">Đã nhận xe</option>
+                            <option value="in_progress">Đang rửa</option>
+                            <option value="washed">Rửa xong</option>
+                        </select>
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                            <ChevronDown size={14} />
+                        </div>
+                    </div>
+                    <input
+                        type="date"
+                        value={selectedDate}
+                        onChange={(e) => {
+                            setSelectedDate(e.target.value);
+                            setPage(1);
+                        }}
+                        className="px-4 py-1.5 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:border-cyan-500 bg-white cursor-pointer"
+                    />
                     <button
-                        onClick={() => fetchBookings()}
+                        onClick={() => fetchBookings(page, statusFilter, selectedDate)}
                         className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 transition-all text-sm font-medium"
                     >
                         <RefreshCw size={14} className={loading ? 'animate-spin text-cyan-500' : ''} />
@@ -109,8 +179,11 @@ export default function StaffInProgressPage() {
             </div>
 
             <div className="admin-card">
-                <div className="admin-card__header pb-2">
+                <div className="admin-card__header flex items-center justify-between pb-2">
                     <h2 className="admin-card__title">Xe đang xử lý tại xưởng</h2>
+                    <span className="text-sm font-semibold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-100">
+                        Tổng số {data.total} đơn
+                    </span>
                 </div>
 
                 <div className="admin-table-wrap mt-2">
@@ -197,6 +270,50 @@ export default function StaffInProgressPage() {
                         </tbody>
                     </table>
                 </div>
+
+                {/* Phân trang */}
+                {!loading && (data.total || 0) > limit && (
+                    <div className="flex items-center justify-between px-6 py-4 border-t border-slate-200 mt-auto">
+                        <div className="text-sm text-slate-500">
+                            Hiển thị trang <span className="font-semibold text-slate-900">{page}</span> / <span className="font-semibold text-slate-900">{Math.max(1, totalPages)}</span>
+                        </div>
+                        {totalPages > 1 && (
+                            <div className="flex items-center gap-1">
+                                <button
+                                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                                    disabled={page === 1}
+                                    className="p-1.5 mr-2 rounded border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:hover:bg-transparent"
+                                >
+                                    <ChevronLeft size={18} />
+                                </button>
+
+                                {getPageNumbers().map((p, i) => (
+                                    <button
+                                        key={i}
+                                        onClick={() => typeof p === 'number' && setPage(p)}
+                                        disabled={p === '...'}
+                                        className={`min-w-[32px] h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-colors ${page === p
+                                            ? 'bg-cyan-500 text-white shadow-sm'
+                                            : p === '...'
+                                                ? 'text-slate-400 cursor-default'
+                                                : 'text-slate-600 hover:bg-slate-100'
+                                            }`}
+                                    >
+                                        {p}
+                                    </button>
+                                ))}
+
+                                <button
+                                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                                    disabled={page === totalPages}
+                                    className="p-1.5 ml-2 rounded border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:hover:bg-transparent"
+                                >
+                                    <ChevronRight size={18} />
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Payment Modal Mới đã tích hợp API */}
@@ -206,7 +323,7 @@ export default function StaffInProgressPage() {
                 booking={paymentModal.booking!}
                 onSuccess={() => {
                     setPaymentModal({ isOpen: false, booking: null })
-                    fetchBookings()
+                    fetchBookings(page, statusFilter, selectedDate)
                 }}
             />
 
