@@ -291,31 +291,57 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onPay, hi
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-slate-500">Tổng phí dịch vụ:</span>
                     <span className="text-sm font-medium text-slate-700">
-                      {(booking.base_price ?? 0).toLocaleString('vi-VN')} đ
+                      {(booking.base_price ?? booking.final_price ?? 0).toLocaleString('vi-VN')} đ
                     </span>
                   </div>
 
-                  {/* Hiển thị Hạng thành viên (Tier) nếu có */}
-                  {booking.customer?.tier_id && booking.customer.tier_id.discount_percentage ? (
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-slate-500">
-                        Hạng {booking.customer.tier_id.tier_name || 'thành viên'}:
-                      </span>
-                      <span className="text-sm font-medium text-emerald-600">
-                        -{booking.customer.tier_id.discount_percentage}%
-                      </span>
-                    </div>
-                  ) : null}
+                  {/* Hiển thị Hạng thành viên */}
+                  {(() => {
+                    const tierDiscAmount = booking.applied_tier_discount !== undefined 
+                        ? booking.applied_tier_discount 
+                        : (booking.customer?.tier_id?.discount_percentage 
+                            ? Math.round((booking.base_price ?? booking.final_price ?? 0) * (booking.customer.tier_id.discount_percentage / 100))
+                            : 0);
 
-                  {/* Hiển thị Khuyến mãi (Discount Amount) nếu có */}
-                  {booking.discount_amount ? (
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-slate-500">Khuyến mãi khác:</span>
-                      <span className="text-sm font-medium text-emerald-600">
-                        -{booking.discount_amount.toLocaleString('vi-VN')} đ
-                      </span>
-                    </div>
-                  ) : null}
+                    if (tierDiscAmount > 0) {
+                      return (
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-slate-500">
+                            Hạng {booking.customer?.tier_id?.tier_name || 'thành viên'}:
+                          </span>
+                          <span className="text-sm font-medium text-emerald-600">
+                            -{tierDiscAmount.toLocaleString('vi-VN')} đ
+                          </span>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
+
+                  {/* Hiển thị Khuyến mãi khác */}
+                  {(() => {
+                    let purePromotionDiscount = 0;
+                    if (booking.applied_promotion_discount !== undefined) {
+                      purePromotionDiscount = booking.applied_promotion_discount;
+                    } else {
+                      const base = booking.base_price ?? booking.final_price ?? 0;
+                      const tierDiscPct = booking.customer?.tier_id?.discount_percentage || 0;
+                      const tierDiscAmount = Math.round(base * (tierDiscPct / 100));
+                      purePromotionDiscount = Math.max(0, (booking.discount_amount || 0) - tierDiscAmount);
+                    }
+                    
+                    if (purePromotionDiscount > 0) {
+                      return (
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-slate-500">Khuyến mãi khác:</span>
+                          <span className="text-sm font-medium text-emerald-600">
+                            -{purePromotionDiscount.toLocaleString('vi-VN')} đ
+                          </span>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
 
                   <div className="h-px bg-slate-200 my-2"></div>
                   
@@ -326,12 +352,15 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onPay, hi
                       {(() => {
                         const paidInvoices = JSON.parse(localStorage.getItem('paid_invoices') || '{}');
                         const cachedTotal = paidInvoices[booking._id || booking.id!];
-                        const displayedTotal = cachedTotal !== undefined 
-                          ? cachedTotal 
-                          : ((booking.discount_amount !== undefined) 
-                              ? (booking.final_price ?? 0) 
-                              : Math.max(0, (booking.final_price ?? booking.base_price ?? 0) - Math.round((booking.final_price ?? booking.base_price ?? 0) * ((booking.customer?.tier_id?.discount_percentage || 0) / 100))));
-                        return displayedTotal.toLocaleString('vi-VN');
+                        if (cachedTotal !== undefined) return cachedTotal.toLocaleString('vi-VN');
+                        
+                        const base = booking.base_price ?? booking.final_price ?? 0;
+                        const tierDiscPct = booking.customer?.tier_id?.discount_percentage || 0;
+                        const tierDiscAmount = Math.round(base * (tierDiscPct / 100));
+                        
+                        const totalDiscount = booking.discount_amount || tierDiscAmount;
+                        const finalPrice = Math.max(0, base - totalDiscount);
+                        return finalPrice.toLocaleString('vi-VN');
                       })()} đ
                     </span>
                   </div>

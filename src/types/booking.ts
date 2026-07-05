@@ -17,6 +17,8 @@ export interface WashBooking {
   scheduled_at: string
   base_price?: number
   discount_amount?: number
+  applied_tier_discount?: number
+  applied_promotion_discount?: number
   final_price?: number
   vehicle?: { plate_number?: string; brand?: string; vehicle_model?: string }
   service_package?: { name?: string; service_name?: string }

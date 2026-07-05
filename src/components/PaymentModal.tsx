@@ -24,7 +24,7 @@ export default function PaymentModal({ isOpen, onClose, booking, onSuccess }: Pa
   const [paymentMode, setPaymentMode] = useState<'cash' | 'qr' | null>(null)
   const pollingRef = useRef<number | null>(null)
 
-  // Promotion states
+  const [step, setStep] = useState<1 | 2>(1)
   const [promotions, setPromotions] = useState<(Promotion & { calculatedDiscount: number })[]>([])
   const [selectedPromotionId, setSelectedPromotionId] = useState<string | null>(null)
   const [loadingPromotions, setLoadingPromotions] = useState(false)
@@ -102,6 +102,7 @@ export default function PaymentModal({ isOpen, onClose, booking, onSuccess }: Pa
       setPromotions([])
       setSelectedPromotionId(null)
       setIsCreatingInvoice(false)
+      setStep(1)
     }
   }, [isOpen, booking, invoice])
 
@@ -112,64 +113,65 @@ export default function PaymentModal({ isOpen, onClose, booking, onSuccess }: Pa
     }
   }
 
-  const handleCreateInvoice = async () => {
-    setIsCreatingInvoice(true)
-    try {
-      const inv = await invoiceService.createInvoice(booking._id || booking.id!, {
-        promotion_id: selectedPromotionId || undefined
-      })
-      setInvoice(inv)
-    } catch (err: any) {
-      if (err.message && err.message.toLowerCase().includes('tồn tại')) {
-        showError('Đơn này đã tạo Hóa đơn trước đó. Vui lòng liên hệ Admin để xử lý.');
-      } else {
-        showError(err.message || 'Không thể tạo hoá đơn')
-      }
-      onClose()
-    } finally {
-      setIsCreatingInvoice(false)
-    }
+  const handleNextStep = () => {
+    setStep(2)
+  }
+
+  const ensureInvoice = async () => {
+    if (invoice) return invoice
+    if (!booking) throw new Error('Booking data is missing')
+    const inv = await invoiceService.createInvoice(booking._id || booking.id!, {
+      promotion_id: selectedPromotionId || undefined
+    })
+    setInvoice(inv)
+    return inv
   }
 
   const handleConfirmCash = async () => {
-    if (!invoice || !user) return
+    if (!user) return
     setLoading(true)
     try {
-      await invoiceService.confirmCash(invoice._id, (user as any).id || (user as any)._id)
+      const currentInvoice = await ensureInvoice()
+      await invoiceService.confirmCash(currentInvoice._id, (user as any).id || (user as any)._id)
       showSuccess('Thanh toán tiền mặt thành công!')
 
       // LƯU CACHE TẠM CHO FRONTEND DO BACKEND KHÔNG TRẢ VỀ DỮ LIỆU INVOICE TRONG BOOKING
       const paidInvoices = JSON.parse(localStorage.getItem('paid_invoices') || '{}');
-      paidInvoices[booking._id || booking.id!] = invoice.total;
+      paidInvoices[booking._id || booking.id!] = currentInvoice.total;
       localStorage.setItem('paid_invoices', JSON.stringify(paidInvoices));
 
       onSuccess()
       onClose()
     } catch (err: any) {
-      showError(err.message || 'Lỗi khi xác nhận tiền mặt')
+      if (err.message && err.message.toLowerCase().includes('tồn tại')) {
+        showError('Đơn này đã tạo Hóa đơn trước đó. Vui lòng liên hệ Admin để xử lý.');
+        onClose()
+      } else {
+        showError(err.message || 'Lỗi khi xác nhận tiền mặt')
+      }
     } finally {
       setLoading(false)
     }
   }
 
   const handleCreateQR = async () => {
-    if (!invoice) return
     setLoading(true)
     try {
-      const inv = await invoiceService.createPaymentLink(invoice._id)
+      const currentInvoice = await ensureInvoice()
+      const inv = await invoiceService.createPaymentLink(currentInvoice._id)
       setInvoice(inv)
       setPaymentMode('qr')
       // Start polling
       pollingRef.current = window.setInterval(async () => {
         try {
-          const synced = await invoiceService.syncPaymentStatus(invoice._id)
+          const synced = await invoiceService.syncPaymentStatus(currentInvoice._id)
           if (synced.invoice_status === 'paid') {
             stopPolling()
             showSuccess('Khách đã chuyển khoản thành công!')
 
             // LƯU CACHE TẠM CHO FRONTEND DO BACKEND KHÔNG TRẢ VỀ DỮ LIỆU INVOICE TRONG BOOKING
             const paidInvoices = JSON.parse(localStorage.getItem('paid_invoices') || '{}');
-            paidInvoices[booking._id || booking.id!] = invoice.total;
+            paidInvoices[booking._id || booking.id!] = currentInvoice.total;
             localStorage.setItem('paid_invoices', JSON.stringify(paidInvoices));
 
             onSuccess()
@@ -180,7 +182,12 @@ export default function PaymentModal({ isOpen, onClose, booking, onSuccess }: Pa
         }
       }, 3000)
     } catch (err: any) {
-      showError(err.message || 'Lỗi khi tạo mã QR PayOS')
+      if (err.message && err.message.toLowerCase().includes('tồn tại')) {
+        showError('Đơn này đã tạo Hóa đơn trước đó. Vui lòng liên hệ Admin để xử lý.');
+        onClose()
+      } else {
+        showError(err.message || 'Lỗi khi tạo mã QR PayOS')
+      }
     } finally {
       setLoading(false)
     }
@@ -209,11 +216,18 @@ export default function PaymentModal({ isOpen, onClose, booking, onSuccess }: Pa
         <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
           <X size={20} />
         </button>
-        <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-          <CreditCard size={22} className="text-blue-500" /> Thanh toán
-        </h2>
+        <div className="flex items-center mb-4">
+          {step === 2 && !paymentMode && (
+            <button onClick={() => { setStep(1); setInvoice(null); }} className="mr-3 text-slate-400 hover:text-slate-600 transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            </button>
+          )}
+          <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+            <CreditCard size={22} className="text-blue-500" /> Thanh toán
+          </h2>
+        </div>
 
-        {!invoice ? (
+        {step === 1 ? (
           // BƯỚC 1: Chọn Khuyến mãi và Tạo Hóa Đơn
           <div className="space-y-4">
             <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
@@ -283,12 +297,10 @@ export default function PaymentModal({ isOpen, onClose, booking, onSuccess }: Pa
             </div>
 
             <button
-              onClick={handleCreateInvoice}
-              disabled={isCreatingInvoice}
+              onClick={handleNextStep}
               className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-medium transition disabled:opacity-50"
             >
-              {isCreatingInvoice ? <RefreshCw size={18} className="animate-spin" /> : <Banknote size={18} />}
-              Xác nhận & Tạo hóa đơn
+              Tiếp tục thanh toán
             </button>
           </div>
         ) : (
@@ -316,17 +328,37 @@ export default function PaymentModal({ isOpen, onClose, booking, onSuccess }: Pa
                 </div>
               ) : null}
 
-              {invoice.discount_amount > 0 && (
-                <div className="flex justify-between items-center mb-2 text-emerald-600 text-sm">
-                  <span className="font-medium">Giảm giá (Khuyến mãi):</span>
-                  <span className="font-semibold">-{invoice.discount_amount.toLocaleString('vi-VN')} đ</span>
-                </div>
-              )}
+              {(() => {
+                const bPrice = booking.base_price ?? booking.final_price ?? 0;
+                const tDiscountAmount = Math.round(bPrice * ((booking.customer?.tier_id?.discount_percentage || 0) / 100));
+                let pDiscountAmount = 0;
+                if (invoice) {
+                  pDiscountAmount = invoice.discount_amount - tDiscountAmount;
+                } else if (selectedPromotionId) {
+                  pDiscountAmount = promotions.find(p => (p._id || p.id) === selectedPromotionId)?.calculatedDiscount || 0;
+                }
+                const isPromoActive = invoice ? invoice.discount_amount > 0 : pDiscountAmount > 0;
+                
+                return isPromoActive && (
+                  <div className="flex justify-between items-center mb-2 text-emerald-600 text-sm">
+                    <span className="font-medium">Giảm giá (Khuyến mãi):</span>
+                    <span className="font-semibold">-{pDiscountAmount.toLocaleString('vi-VN')} đ</span>
+                  </div>
+                )
+              })()}
 
               <div className="border-t border-slate-200 border-dashed my-3"></div>
               <div className="flex justify-between items-center">
                 <span className="text-slate-800 font-bold">Tổng thanh toán:</span>
-                <span className="text-2xl font-black text-rose-500">{invoice.total.toLocaleString('vi-VN')} đ</span>
+                <span className="text-2xl font-black text-rose-500">
+                  {(() => {
+                    if (invoice && invoice.total !== undefined) return invoice.total.toLocaleString('vi-VN');
+                    const bPrice = booking.base_price ?? booking.final_price ?? 0;
+                    const tDiscount = Math.round(bPrice * ((booking.customer?.tier_id?.discount_percentage || 0) / 100));
+                    const pDiscount = selectedPromotionId ? (promotions.find(p => (p._id || p.id) === selectedPromotionId)?.calculatedDiscount || 0) : 0;
+                    return Math.max(0, bPrice - tDiscount - pDiscount).toLocaleString('vi-VN');
+                  })()} đ
+                </span>
               </div>
             </div>
 
@@ -353,7 +385,7 @@ export default function PaymentModal({ isOpen, onClose, booking, onSuccess }: Pa
             )}
 
             {/* Chế độ đang quét QR (Thiết kế giống PayOS) */}
-            {paymentMode === 'qr' && (
+            {paymentMode === 'qr' && invoice && (
               <div className="animate-in fade-in zoom-in duration-300">
                 <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
 
