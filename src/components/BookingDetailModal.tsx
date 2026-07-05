@@ -307,7 +307,7 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onPay, hi
                       return (
                         <div className="flex justify-between items-center">
                           <span className="text-sm text-slate-500">
-                            Hạng {booking.customer?.tier_id?.tier_name || 'thành viên'}:
+                            Giảm giá hạng thành viên:
                           </span>
                           <span className="text-sm font-medium text-emerald-600">
                             -{tierDiscAmount.toLocaleString('vi-VN')} đ
@@ -355,10 +355,17 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onPay, hi
                         if (cachedTotal !== undefined) return cachedTotal.toLocaleString('vi-VN');
                         
                         const base = booking.base_price ?? booking.final_price ?? 0;
-                        const tierDiscPct = booking.customer?.tier_id?.discount_percentage || 0;
-                        const tierDiscAmount = Math.round(base * (tierDiscPct / 100));
                         
-                        const totalDiscount = booking.discount_amount || tierDiscAmount;
+                        let totalDiscount = 0;
+                        if (booking.applied_tier_discount !== undefined || booking.applied_promotion_discount !== undefined) {
+                          totalDiscount = (booking.applied_tier_discount || 0) + (booking.applied_promotion_discount || 0);
+                        } else if (booking.discount_amount !== undefined) {
+                          totalDiscount = booking.discount_amount;
+                        } else {
+                          const tierDiscPct = booking.customer?.tier_id?.discount_percentage || 0;
+                          totalDiscount = Math.round(base * (tierDiscPct / 100));
+                        }
+                        
                         const finalPrice = Math.max(0, base - totalDiscount);
                         return finalPrice.toLocaleString('vi-VN');
                       })()} đ

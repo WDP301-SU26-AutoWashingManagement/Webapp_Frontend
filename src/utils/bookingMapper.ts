@@ -111,6 +111,8 @@ export function normalizeWashBooking(raw: Record<string, unknown>): WashBooking 
     scheduled_at: String(raw.scheduled_at ?? ''),
     base_price: typeof raw.base_price === 'number' ? raw.base_price : undefined,
     discount_amount: typeof raw.discount_amount === 'number' ? raw.discount_amount : undefined,
+    applied_tier_discount: typeof raw.applied_tier_discount === 'number' ? raw.applied_tier_discount : undefined,
+    applied_promotion_discount: typeof raw.applied_promotion_discount === 'number' ? raw.applied_promotion_discount : undefined,
     final_price: typeof raw.final_price === 'number' ? raw.final_price : undefined,
     vehicle,
     service_package,
