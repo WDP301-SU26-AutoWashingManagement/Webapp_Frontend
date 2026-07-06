@@ -6,6 +6,7 @@ import { showError, showSuccess } from '../../utils/toast'
 import { getErrorMessage } from '../../utils/errors'
 import { bossAccountService } from '../../services/bossAccountService'
 import type { CreateInternalAccountPayload } from '../../services/bossAccountService'
+import { adminStaffService } from '../../services/adminStaffService'
 import { branchService } from '../../services/branchService'
 import type { Branch } from '../../services/branchService'
 
@@ -151,8 +152,8 @@ function AccountModal({ onClose, onSaved }: AccountModalProps) {
                 }
                 required
               >
-                <option value="staff">Quản lý chi nhánh (Manager)</option>
-                <option value="admin">Quản lý hệ thống (Admin)</option>
+                <option value="staff">Quản lý chi nhánh </option>
+                <option value="admin">Quản lý hệ thống </option>
               </select>
             </div>
           </div>
@@ -225,7 +226,11 @@ function EditAdminModal({ admin, branches, onClose, onSaved }: { admin: any, bra
     e.preventDefault()
     setSaving(true)
     try {
-      await bossAccountService.updateAdmin(admin._id, form)
+      if (admin.is_manager) {
+        await adminStaffService.updateStaff(admin._id, form)
+      } else {
+        await bossAccountService.updateAdmin(admin._id, form)
+      }
       showSuccess('Cập nhật tài khoản thành công!')
       onSaved()
     } catch (err) {
@@ -273,16 +278,38 @@ function EditAdminModal({ admin, branches, onClose, onSaved }: { admin: any, bra
   )
 }
 
-function DetailAdminModal({ adminId, branches, onClose }: { adminId: string, branches: Branch[], onClose: () => void }) {
+function DetailAdminModal({ admin, branches, onClose }: { admin: any, branches: Branch[], onClose: () => void }) {
+  const adminId = admin._id
+  const isManager = admin.is_manager
   const [detail, setDetail] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const fetchDetail = async () => {
       try {
-        const res = await bossAccountService.getAdminDetail(adminId)
-        if (res.success && res.data) {
-          setDetail(res.data)
+        let res: any;
+        if (isManager) {
+          res = await adminStaffService.getStaffDetail(adminId)
+          if (res.success && res.data) {
+            // map it back to admin format for the UI
+            setDetail({
+              _id: res.data._id,
+              user_id: {
+                full_name: res.data.full_name,
+                email: res.data.email,
+                phone: res.data.phone,
+                createdAt: res.data.hire_date || res.data.created_at,
+                branch_id: res.data.branch_id,
+                is_active: res.data.is_active
+              },
+              branch_id: res.data.branch_id
+            })
+          }
+        } else {
+          res = await bossAccountService.getAdminDetail(adminId)
+          if (res.success && res.data) {
+            setDetail(res.data)
+          }
         }
       } catch (err) {
         showError('Lỗi tải chi tiết tài khoản')
@@ -336,8 +363,8 @@ function DetailAdminModal({ adminId, branches, onClose }: { adminId: string, bra
                       if (!b && detail.user_id?.branch_id) {
                         b = branches.find(br => br._id === detail.user_id.branch_id || br.id === detail.user_id.branch_id)
                       }
-                      return b?.branch_address 
-                        ? `${b.branch_address.street}, ${b.branch_address.district}` 
+                      return b?.branch_address
+                        ? `${b.branch_address.street}, ${b.branch_address.district}`
                         : 'Tất cả chi nhánh'
                     })()}
                   </p>
@@ -368,19 +395,37 @@ export default function BossAccountsPage() {
   const [loading, setLoading] = useState(true)
   const [branches, setBranches] = useState<Branch[]>([])
   const [selectedBranch, setSelectedBranch] = useState<string>('')
+  const [roleFilter, setRoleFilter] = useState<string>('')
 
   const [editingAdmin, setEditingAdmin] = useState<any | null>(null)
-  const [detailAdminId, setDetailAdminId] = useState<string | null>(null)
+  const [detailAdmin, setDetailAdmin] = useState<any | null>(null)
 
   const loadData = async () => {
     setLoading(true)
     try {
-      const [branchRes, adminRes] = await Promise.all([
+      const [branchRes, adminRes, managerRes] = await Promise.all([
         branchService.list(),
-        bossAccountService.getAdmins(selectedBranch)
+        bossAccountService.getAdmins(selectedBranch),
+        adminStaffService.getStaffList({ staff_type: 'manager', branch_id: selectedBranch, limit: 100 })
       ])
       setBranches(branchRes)
-      setAdmins(adminRes.data || adminRes || [])
+
+      const adminData = adminRes.data || adminRes || []
+      const managerData = (managerRes.data?.data || []).map((m: any) => ({
+        _id: m._id,
+        is_manager: true,
+        branch_id: m.branch_id,
+        user_id: {
+          _id: m.user_id,
+          full_name: m.full_name,
+          email: m.email,
+          phone: m.phone,
+          role: 'staff',
+          createdAt: m.hire_date || m.created_at
+        }
+      }))
+
+      setAdmins([...adminData, ...managerData])
     } catch (err) {
       showError('Không thể tải danh sách quản trị viên')
     } finally {
@@ -397,13 +442,25 @@ export default function BossAccountsPage() {
     const term = search.toLowerCase()
     const nameMatch = (user.full_name || '').toLowerCase().includes(term)
     const emailMatch = (user.email || '').toLowerCase().includes(term)
-    return nameMatch || emailMatch
+
+    let roleMatch = true
+    if (roleFilter === 'admin') {
+      roleMatch = user.role === 'admin'
+    } else if (roleFilter === 'manager') {
+      roleMatch = user.role === 'staff'
+    }
+
+    return (nameMatch || emailMatch) && roleMatch
   })
 
-  const handleDeleteAdmin = async (id: string) => {
+  const handleDeleteAdmin = async (admin: any) => {
     if (!window.confirm('Bạn có chắc chắn muốn xóa tài khoản này không?')) return;
     try {
-      await bossAccountService.deleteAdmin(id);
+      if (admin.is_manager) {
+        await adminStaffService.deleteStaff(admin._id);
+      } else {
+        await bossAccountService.deleteAdmin(admin._id);
+      }
       showSuccess('Xóa tài khoản thành công');
       loadData();
     } catch (error) {
@@ -440,6 +497,15 @@ export default function BossAccountsPage() {
         </div>
 
         <div className="flex gap-4">
+          <select
+            className="admin-form-input w-48"
+            value={roleFilter}
+            onChange={e => setRoleFilter(e.target.value)}
+          >
+            <option value="">Tất cả vai trò</option>
+            <option value="admin">Quản lý hệ thống </option>
+            <option value="manager">Quản lý chi nhánh </option>
+          </select>
           <select
             className="admin-form-input w-48"
             value={selectedBranch}
@@ -486,7 +552,7 @@ export default function BossAccountsPage() {
                 const user = admin.user_id || {}
                 let branch = admin.branch_id
                 if (!branch && user.branch_id) {
-                   branch = branches.find(b => b._id === user.branch_id || b.id === user.branch_id)
+                  branch = branches.find(b => b._id === user.branch_id || b.id === user.branch_id)
                 }
                 const branchAddress = branch?.branch_address ? `${branch.branch_address.street}, ${branch.branch_address.district}` : 'Tất cả chi nhánh'
 
@@ -512,9 +578,15 @@ export default function BossAccountsPage() {
                       </span>
                     </td>
                     <td>
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
-                        Quản lý (Admin)
-                      </span>
+                      {user.role === 'admin' ? (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">
+                          Quản lý hệ thống
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
+                          Quản lý chi nhánh
+                        </span>
+                      )}
                     </td>
                     <td className="text-sm text-slate-500">
                       {user.createdAt ? new Date(user.createdAt).toLocaleDateString('vi-VN') : 'N/A'}
@@ -522,7 +594,7 @@ export default function BossAccountsPage() {
                     <td className="text-right">
                       <div className="flex justify-end gap-2">
                         <button
-                          onClick={() => setDetailAdminId(admin._id)}
+                          onClick={() => setDetailAdmin(admin)}
                           className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
                           title="Xem chi tiết"
                         >
@@ -536,7 +608,7 @@ export default function BossAccountsPage() {
                           <Edit size={16} />
                         </button>
                         <button
-                          onClick={() => handleDeleteAdmin(admin._id)}
+                          onClick={() => handleDeleteAdmin(admin)}
                           className="p-1.5 text-rose-600 hover:bg-rose-50 rounded"
                           title="Xóa"
                         >
@@ -574,11 +646,11 @@ export default function BossAccountsPage() {
         />
       )}
 
-      {detailAdminId && (
+      {detailAdmin && (
         <DetailAdminModal
-          adminId={detailAdminId}
+          admin={detailAdmin}
           branches={branches}
-          onClose={() => setDetailAdminId(null)}
+          onClose={() => setDetailAdmin(null)}
         />
       )}
     </div>
