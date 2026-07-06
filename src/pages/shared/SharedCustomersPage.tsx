@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
-  Search, RefreshCw, X, ChevronLeft, ChevronRight, User, Star, Plus, Edit2, Trash2
+  Search, RefreshCw, X, ChevronLeft, ChevronRight, User, Star, Plus, Edit2, Ban
 } from 'lucide-react'
 import { adminCustomerService, type AdminCustomer, type CreateCustomerInput } from '../../services/adminCustomerService'
 import { adminTierService } from '../../services/adminTierService'
@@ -271,15 +271,19 @@ export default function SharedCustomersPage() {
     setModalOpen(true)
   }
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Bạn có chắc chắn muốn xoá khách hàng này? Tất cả dữ liệu đặt lịch của khách sẽ bị mất!')) return
+  const handleDeactivate = async (id: string, isActive: boolean) => {
+    if (!isActive) {
+      showError('Khách hàng này đã bị khóa')
+      return
+    }
+    if (!window.confirm('Bạn có chắc chắn muốn khóa tài khoản khách hàng này? Họ sẽ không thể đăng nhập vào hệ thống.')) return
     setDeletingId(id)
     try {
-      await adminCustomerService.remove(id)
-      showSuccess('Đã xoá khách hàng')
+      await adminCustomerService.update(id, { is_active: false })
+      showSuccess('Đã khóa khách hàng thành công')
       fetchData(page)
     } catch (err) {
-      showError(getErrorMessage(err, 'Xoá thất bại'))
+      showError(getErrorMessage(err, 'Khóa thất bại'))
     } finally {
       setDeletingId(null)
     }
@@ -427,11 +431,11 @@ export default function SharedCustomersPage() {
                         </button>
                         <button 
                           className="flex items-center justify-center w-8 h-8 rounded-lg bg-red-50/50 text-red-500 hover:bg-red-50 hover:text-red-600 border border-transparent hover:border-red-100 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed" 
-                          title="Xóa khách hàng"
-                          disabled={deletingId === id}
-                          onClick={() => void handleDelete(id)}
+                          title={user.is_active ? "Khóa khách hàng" : "Khách hàng đã bị khóa"}
+                          disabled={deletingId === id || !user.is_active}
+                          onClick={() => void handleDeactivate(id, user.is_active)}
                         >
-                          {deletingId === id ? <RefreshCw size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                          {deletingId === id ? <RefreshCw size={14} className="animate-spin" /> : <Ban size={14} />}
                         </button>
                       </div>
                     </td>
