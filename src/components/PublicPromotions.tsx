@@ -20,7 +20,7 @@ export default function PublicPromotions() {
     if (loading || promotions.length === 0) return null
 
     return (
-        <section className="py-16 bg-slate-50 relative overflow-hidden">
+        <section className="py-16 bg-slate-50 relative overflow-hidden" id="promotions">
             <div className="max-w-7xl mx-auto px-4 relative z-10">
                 <div className="text-center mb-12">
                     <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-4 flex items-center justify-center gap-3">

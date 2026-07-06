@@ -1,47 +1,51 @@
 import { Link } from 'react-router-dom'
-import { Settings2, BarChart3, BellRing, ShieldCheck, Car, CalendarCheck, CheckCircle2 } from 'lucide-react'
+import { Package, Wrench, Tag, Crown, Car, CalendarCheck, CheckCircle2 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 
 const features = [
   {
-    icon: Settings2,
+    icon: Package,
     accent: '#0EA5B7',
     accentSoft: '#E6F8FB',
     accentBorder: 'rgba(14,165,183,0.18)',
-    badge: 'Quản trị',
-    title: 'Quản lý toàn quyền kiểm soát',
-    desc: 'Cấu hình tier rules, tích lũy điểm, tier pricing và chạy khuyến mãi mục tiêu (ví dụ: chỉ Silver trở lên). Manager giám sát và phê duyệt cấu hình lớn.',
-    tags: ['Cấu hình hạng', 'Khuyến mãi mục tiêu', 'Phê duyệt quản lý'],
+    badge: 'Combo Dịch Vụ',
+    title: 'Gói chăm sóc toàn diện tiết kiệm',
+    desc: 'Các Combo được thiết kế sẵn bao gồm nhiều dịch vụ kết hợp với mức giá ưu đãi hơn rất nhiều so với khi mua từng dịch vụ lẻ, mang lại sự chăm sóc tốt nhất cho xế yêu.',
+    tags: ['Giá ưu đãi', 'Chăm sóc toàn diện', 'Tiết kiệm chi phí'],
+    linkId: 'combos',
   },
   {
-    icon: BarChart3,
+    icon: Wrench,
     accent: '#2563EB',
     accentSoft: '#EAF2FF',
     accentBorder: 'rgba(37,99,235,0.18)',
-    badge: 'Báo cáo',
-    title: 'Báo cáo & hiệu suất',
-    desc: 'Manager nhận báo cáo doanh thu, KPI và hiệu suất chương trình loyalty theo thời gian thực. Admin xem danh sách booking trong ngày.',
-    tags: ['Báo cáo doanh thu', 'Bảng điều khiển KPI', 'Danh sách booking'],
+    badge: 'Dịch Vụ Lẻ',
+    title: 'Tuỳ biến dịch vụ chuyên sâu',
+    desc: 'Bên cạnh Combo, chúng tôi cung cấp các dịch vụ lẻ chuyên biệt (phủ bóng, tẩy ố kính...) không có trong Combo, giúp bạn linh hoạt lựa chọn giải quyết chính xác vấn đề của xe.',
+    tags: ['Linh hoạt', 'Chuyên sâu', 'Dịch vụ cao cấp'],
+    linkId: 'services',
   },
   {
-    icon: BellRing,
-    accent: '#7C3AED',
-    accentSoft: '#F2EAFF',
-    accentBorder: 'rgba(124,58,237,0.18)',
-    badge: 'Tự động',
-    title: 'Tự động hóa thông minh',
-    desc: 'Nâng/hạ hạng tự động hàng tháng, điểm hết hạn sau 12 tháng, auto-apply perks khi checkout — không cần nhân viên xử lý thủ công.',
-    tags: ['Đánh giá hạng tự động', 'Điểm hết hạn', 'Áp quyền lợi tự động'],
-  },
-  {
-    icon: ShieldCheck,
+    icon: Tag,
     accent: '#059669',
     accentSoft: '#EAF9F4',
     accentBorder: 'rgba(5,150,105,0.18)',
-    badge: 'Thanh toán',
-    title: 'Checkout minh bạch',
-    desc: 'Tier discount áp tự động theo hạng, cộng với redemption discount nếu khách dùng điểm, và promotion discount nếu đang có chiến dịch.',
-    tags: ['Giá theo hạng', 'Đổi điểm', 'Ghép khuyến mãi'],
+    badge: 'Khuyến Mãi',
+    title: 'Mã giảm giá trực tiếp',
+    desc: 'Cập nhật liên tục các chương trình Promotion hấp dẫn. Mã khuyến mãi sẽ được áp dụng và trừ thẳng vào tổng hóa đơn đặt lịch của bạn một cách minh bạch.',
+    tags: ['Giảm giá thẳng', 'Ưu đãi liên tục', 'Dành cho các khách hàng'],
+    linkId: 'promotions',
+  },
+  {
+    icon: Crown,
+    accent: '#7C3AED',
+    accentSoft: '#F2EAFF',
+    accentBorder: 'rgba(124,58,237,0.18)',
+    badge: 'Hạng Thành Viên',
+    title: 'Đặc quyền thân thiết (Tiers)',
+    desc: 'Hệ thống tự động tích điểm sau mỗi lần rửa xe. Hạng càng cao, bạn càng nhận nhiều đặc quyền như: Phần trăm giảm giá cố định, khung thời gian ưu tiên đặt trước.',
+    tags: ['Tích điểm', 'Đặc quyền riêng', 'Ưu tiên đặt trước'],
+    linkId: 'tiers',
   },
 ]
 
@@ -81,6 +85,13 @@ const onboardingSteps = [
 export default function Features() {
   const { isAuthenticated } = useAuth()
 
+  const scrollToSection = (id: string) => {
+    const el = document.getElementById(id)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }
+
   return (
     <section
       className="marketing-section page-section px-6 md:px-16 bg-white/35 backdrop-blur-md border-t border-b border-cyan-500/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)]"
@@ -91,24 +102,24 @@ export default function Features() {
           <div>
             <div className="section-label">Tính năng</div>
             <h2 className="section-title mb-4">
-              <span className="block">Đầy đủ cho cả</span>
-              <span className="mt-2 block sm:mt-3">khách hàng & vận hành</span>
+              <span className="block">Hệ sinh thái chăm sóc</span>
+              <span className="mt-2 block sm:mt-3">dành riêng cho bạn</span>
             </h2>
-            <p className="section-sub mb-0 max-w-2xl">Bộ tính năng được trình bày gọn, sáng và đồng bộ với homepage, tập trung vào giá trị thực thay vì nhồi thông tin.</p>
+            <p className="section-sub mb-0 max-w-2xl">Hiểu rõ các tính năng của AutoWash giúp bạn lựa chọn dịch vụ tốt nhất và nhận tối đa ưu đãi.</p>
           </div>
 
           <div className="rounded-3xl border border-cyan-500/15 bg-gradient-to-br from-cyan-500/10 via-white/85 to-white/95 p-5 shadow-sm backdrop-blur-sm">
             <div className="mb-4 flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-500/20 bg-cyan-500/10 text-cyan-600">
-                <Settings2 size={20} strokeWidth={1.7} />
+                <Crown size={20} strokeWidth={1.7} />
               </div>
               <div>
-                <p className="marketing-eyebrow text-cyan-700">Linh hoạt</p>
-                <p className="text-sm text-slate-500">Tối ưu cho cả frontend lẫn vận hành</p>
+                <p className="marketing-eyebrow text-cyan-700">Giá trị cốt lõi</p>
+                <p className="text-sm text-slate-500">Minh bạch, linh hoạt và tiết kiệm</p>
               </div>
             </div>
             <p className="text-sm leading-relaxed text-slate-700">
-              Các module quản trị, báo cáo và tự động hóa được gom thành từng khối dễ đọc, dễ scan và dễ chuyển đổi hành động.
+              Mọi quyền lợi từ tích điểm, giảm giá cho đến gói dịch vụ đều được hệ thống tự động tính toán, mang lại trải nghiệm tối ưu nhất cho khách hàng.
             </p>
           </div>
         </div>
@@ -117,8 +128,9 @@ export default function Features() {
           {features.map((f, index) => (
             <div
               key={f.title}
-              className="group relative overflow-hidden rounded-3xl border bg-white/78 p-7 shadow-sm backdrop-blur-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-lg"
+              className="group relative overflow-hidden rounded-3xl border bg-white/78 p-7 shadow-sm backdrop-blur-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-lg cursor-pointer"
               style={{ borderColor: f.accentBorder }}
+              onClick={() => scrollToSection(f.linkId)}
             >
               <div
                 className="absolute inset-x-0 top-0 h-1"

@@ -142,20 +142,9 @@ function StaffModal({ onClose, onSaved }: StaffModalProps) {
               <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
                 <Wrench size={15} />
               </span>
-              <select
-                className="admin-form-input pl-9"
-                value={form.staff_type}
-                onChange={(e) =>
-                  setForm((f) => ({
-                    ...f,
-                    staff_type: e.target.value as "technical" | "manager",
-                  }))
-                }
-                required
-              >
-                <option value="technical">Kỹ thuật viên (Technical)</option>
-                <option value="manager">Quản lý (Manager)</option>
-              </select>
+              <div className="admin-form-input pl-9 bg-slate-50 text-slate-500 flex items-center">
+                Kỹ thuật viên (Technical)
+              </div>
             </div>
           </div>
 
@@ -251,15 +240,9 @@ function EditStaffModal({ staff, onClose, onSaved }: { staff: any, onClose: () =
         <form onSubmit={handleSubmit} className="admin-modal__body">
           <div className="admin-form-group">
             <label className="admin-form-label">Loại nhân viên</label>
-            <select
-              className="admin-form-input"
-              value={form.staff_type}
-              onChange={(e) => setForm((f) => ({ ...f, staff_type: e.target.value as "technical" | "manager" }))}
-              required
-            >
-              <option value="technical">Kỹ thuật viên (Technical)</option>
-              <option value="manager">Quản lý (Manager)</option>
-            </select>
+            <div className="admin-form-input bg-slate-50 text-slate-500 flex items-center">
+              Kỹ thuật viên (Technical)
+            </div>
           </div>
 
           <div className="admin-form-group">
@@ -425,7 +408,6 @@ export default function AdminStaffsPage() {
 
   const [modalOpen, setModalOpen] = useState(false)
   const [search, setSearch] = useState('')
-  const [staffType, setStaffType] = useState(isAdminOrBoss ? '' : 'technical')
   const [selectedBranch, setSelectedBranch] = useState('')
   const [page, setPage] = useState(1)
 
@@ -459,11 +441,7 @@ export default function AdminStaffsPage() {
         params.branch_id = selectedBranch
       }
 
-      if (!isAdminOrBoss) {
-        params.staff_type = 'technical'
-      } else if (staffType) {
-        params.staff_type = staffType
-      }
+      params.staff_type = 'technical'
 
       const res = await adminStaffService.getStaffList(params)
       if (res.success && res.data) {
@@ -492,7 +470,7 @@ export default function AdminStaffsPage() {
 
   useEffect(() => {
     fetchStaffs()
-  }, [page, search, staffType, selectedBranch])
+  }, [page, search, selectedBranch])
 
   return (
     <div className="admin-page">
@@ -543,18 +521,6 @@ export default function AdminStaffsPage() {
                 ))}
               </select>
             )}
-            <select
-              className="admin-form-input w-48"
-              value={staffType}
-              onChange={(e) => {
-                setStaffType(e.target.value)
-                setPage(1)
-              }}
-            >
-              <option value="">Tất cả loại NV</option>
-              <option value="manager">Quản lý (Manager)</option>
-              <option value="technical">Kỹ thuật (Technical)</option>
-            </select>
           </div>
         ) : (
           <div className="admin-form-input w-48 bg-slate-50 text-slate-500 cursor-not-allowed flex items-center">
