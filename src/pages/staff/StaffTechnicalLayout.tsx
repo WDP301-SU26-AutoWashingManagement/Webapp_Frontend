@@ -55,16 +55,8 @@ const NAV_GROUPS = [
                 icon: CircleEllipsis,
                 to: '/staff/technical/washing-status',
             },
-            {
-                label: 'Ghi chú tình trạng xe',
-                icon: FileText,
-                to: '/staff/technical/notes',
-            },
-            {
-                label: 'Lịch sử xe',
-                icon: History,
-                to: '/staff/technical/history',
-            },
+
+
         ]
     },
     {

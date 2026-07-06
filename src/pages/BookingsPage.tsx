@@ -20,8 +20,8 @@ type BookingTab = 'upcoming' | 'completed' | 'cancelled'
 const TAB_CONFIG: { id: BookingTab; label: string; statuses: BookingStatus[] }[] = [
   {
     id: 'upcoming',
-    label: 'Sắp tới',
-    statuses: ['pending', 'confirmed', 'checked_in', 'in_progress'],
+    label: 'Đang xử lý',
+    statuses: ['pending', 'confirmed', 'checked_in', 'in_progress', 'washed'],
   },
   { id: 'completed', label: 'Hoàn thành', statuses: ['completed'] },
   { id: 'cancelled', label: 'Đã hủy', statuses: ['cancelled'] },
@@ -42,33 +42,44 @@ export default function BookingsPage() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<BookingTab>('upcoming')
 
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const limit = 5
+
   const [detailModal, setDetailModal] = useState<WashBooking | null>(null)
 
   const [cancelModal, setCancelModal] = useState<{ isOpen: boolean, booking: WashBooking | null }>({ isOpen: false, booking: null })
   const [cancelReason, setCancelReason] = useState('')
   const [isCancelling, setIsCancelling] = useState(false)
 
-  const loadBookings = useCallback(async () => {
+  const loadBookings = useCallback(async (currentPage: number) => {
     setLoading(true)
     try {
-      const { items } = await bookingService.list({ page: 1, limit: 50 })
-      setBookings(items)
+      const activeTabConfig = TAB_CONFIG.find((t) => t.id === activeTab)
+      const statusString = activeTabConfig?.statuses.join(',') || ''
+
+      const res = await bookingService.list({
+        page: currentPage,
+        limit,
+        booking_status: statusString
+      })
+      setBookings(res.items)
+      setTotalPages(Math.ceil((res.total || 0) / limit) || 1)
     } catch (err) {
       setBookings([])
+      setTotalPages(1)
       showError(getApiErrorMessage(err, 'Không tải được lịch hẹn'))
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [activeTab])
 
   useEffect(() => {
-    void loadBookings()
-  }, [loadBookings])
+    setPage(1)
+    void loadBookings(1)
+  }, [activeTab, loadBookings])
 
-  const filteredBookings = useMemo(
-    () => bookings.filter((b) => matchesTab(b, activeTab)),
-    [bookings, activeTab],
-  )
+  const filteredBookings = bookings
 
   if (searchParams.get('action') === 'new') {
     return <Navigate to="/bookings/new" replace />
@@ -94,7 +105,7 @@ export default function BookingsPage() {
       await bookingService.cancel(id, cancelReason.trim())
       showSuccess('Đã hủy lịch hẹn')
       setCancelModal({ isOpen: false, booking: null })
-      await loadBookings()
+      void loadBookings(page)
     } catch (err) {
       showError(getApiErrorMessage(err, 'Hủy lịch thất bại'))
     } finally {
@@ -240,6 +251,39 @@ export default function BookingsPage() {
                 )
               })}
             </ul>
+          )}
+
+          {/* Pagination Controls */}
+          {!loading && totalPages > 1 && (
+            <div className="mt-8 flex items-center justify-center gap-3">
+              <button
+                type="button"
+                disabled={page === 1}
+                onClick={() => {
+                  const newPage = page - 1
+                  setPage(newPage)
+                  void loadBookings(newPage)
+                }}
+                className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+              >
+                Trang trước
+              </button>
+              <span className="text-sm font-medium text-slate-600 bg-slate-50 px-4 py-2 rounded-lg border border-slate-100">
+                {page} / {totalPages}
+              </span>
+              <button
+                type="button"
+                disabled={page === totalPages}
+                onClick={() => {
+                  const newPage = page + 1
+                  setPage(newPage)
+                  void loadBookings(newPage)
+                }}
+                className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+              >
+                Trang sau
+              </button>
+            </div>
           )}
         </div>
       </section>
