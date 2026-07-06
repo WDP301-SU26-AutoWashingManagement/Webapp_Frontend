@@ -1,7 +1,7 @@
 // Đường dẫn: src/components/PublicPromotions.tsx
 import { useEffect, useState } from 'react'
 import { Tag, Calendar, Scissors, Sparkles } from 'lucide-react'
-import { adminPromotionService } from '../services/adminPromotionService'
+import { promotionService } from '../services/promotionService'
 import type { Promotion } from '../types/promotion'
 import { BorderBeam } from './ui/BorderBeam'
 
@@ -11,8 +11,8 @@ export default function PublicPromotions() {
 
     useEffect(() => {
         // Chỉ lấy các mã Đang hoạt động (is_active: true)
-        adminPromotionService.list({ page: 1, limit: 10, is_active: true })
-            .then(res => setPromotions(res.items))
+        promotionService.list({ page: 1, limit: 10, is_active: true })
+            .then(res => setPromotions(res))
             .catch(console.error)
             .finally(() => setLoading(false))
     }, [])

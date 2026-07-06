@@ -44,7 +44,7 @@ export const promotionService = {
     }
   },
 
-  async list(params?: { page?: number; limit?: number }): Promise<Promotion[]> {
+  async list(params?: { page?: number; limit?: number; is_active?: boolean }): Promise<Promotion[]> {
     const body = await apiClient.get<ApiResponse<unknown[]>>('/promotions', { params })
     const data = unwrapApiData<unknown[]>(body)
     return Array.isArray(data) ? data.map(i => normalizePromotion(i as Record<string, unknown>)) : []
