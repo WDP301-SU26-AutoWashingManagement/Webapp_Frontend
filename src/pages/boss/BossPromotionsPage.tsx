@@ -433,7 +433,7 @@ export default function BossPromotionsPage() {
               <th className="text-center">Mô tả</th>
               <th className="text-center">Thời hạn</th>
               <th className="text-center">Trạng thái</th>
-              <th className="text-right">Thao tác</th>
+              <th className="text-center">Thao tác</th>
             </tr>
           </thead>
           <tbody>
@@ -473,21 +473,16 @@ export default function BossPromotionsPage() {
                     </div>
                   </td>
                   <td className="text-center">
-                    <button
+                    <span
                       className={`admin-status-badge mx-auto w-fit ${STATUS_CLASS[status]}`}
-                      onClick={() => void handleToggle(promo)}
-                      disabled={togglingId === id}
-                      title={promo.is_active ? 'Nhấn để tạm ngừng' : 'Nhấn để kích hoạt'}
+                      title={promo.is_active ? 'Đang kích hoạt' : 'Tạm ngừng'}
                     >
-                      {togglingId === id
-                        ? <RefreshCw size={12} className="animate-spin" />
-                        : promo.is_active ? <ToggleRight size={14} /> : <ToggleLeft size={14} />
-                      }
                       {STATUS_LABEL[status]}
-                    </button>
+                    </span>
                   </td>
-                  <td className="text-right">
-                    <div className="admin-action-group">
+                  <td className="text-center">
+                    <div className="admin-action-group items-center flex justify-center gap-2">
+
                       <button
                         className="admin-action-btn admin-action-btn--edit"
                         onClick={() => setModal(promo)}
@@ -503,6 +498,15 @@ export default function BossPromotionsPage() {
                       >
                         {deletingId === id ? <RefreshCw size={14} className="animate-spin" /> : <Trash2 size={14} />}
                       </button>
+                      <label className="admin-toggle" style={{ margin: 0, opacity: togglingId === id ? 0.5 : 1 }}>
+                        <input
+                          type="checkbox"
+                          checked={promo.is_active}
+                          onChange={() => void handleToggle(promo)}
+                          disabled={togglingId === id}
+                        />
+                        <span className="admin-toggle__track" style={{ margin: 0 }} />
+                      </label>
                     </div>
                   </td>
                 </tr>
