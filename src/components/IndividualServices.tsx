@@ -118,6 +118,7 @@ export default function IndividualServices() {
         <div className="mt-8 mb-6">
           {activeServices.length > 0 ? (
             <ThreeDServiceCarousel
+              key={activeGroupId}
               services={activeServices}
               itemCount={activeServices.length >= 5 ? 5 : 3}
               autoplay={true}
