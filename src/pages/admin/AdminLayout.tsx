@@ -30,11 +30,7 @@ const NAV_GROUPS = [
         icon: LayoutDashboard,
         to: '/admin/dashboard',
       },
-      {
-        label: 'Lịch hẹn',
-        icon: CalendarCheck,
-        to: '/admin/bookings',
-      },
+
       {
         label: 'Lịch sử lịch hẹn',
         icon: History,

@@ -472,17 +472,14 @@ export default function BossPromotionsPage() {
                       <span>{fmtDate(promo.start_date)} → {fmtDate(promo.end_date)}</span>
                     </div>
                   </td>
-                  <td className="text-center">
-                    <span
-                      className={`admin-status-badge mx-auto w-fit ${STATUS_CLASS[status]}`}
-                      title={promo.is_active ? 'Đang kích hoạt' : 'Tạm ngừng'}
-                    >
-                      {STATUS_LABEL[status]}
-                    </span>
+                  <td style={{ textAlign: 'center' }}>
+                    <label className="relative inline-flex items-center cursor-pointer" title={promo.is_active ? "Đang hoạt động" : "Đã tạm ngưng"}>
+                      <input type="checkbox" className="sr-only peer" checked={promo.is_active} onChange={() => void handleToggle(promo)} disabled={togglingId === id} />
+                      <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-[100%] peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                    </label>
                   </td>
-                  <td className="text-center">
-                    <div className="admin-action-group items-center flex justify-center gap-2">
-
+                  <td style={{ textAlign: 'center' }}>
+                    <div className="flex items-center justify-center gap-2">
                       <button
                         className="admin-action-btn admin-action-btn--edit"
                         onClick={() => setModal(promo)}
@@ -498,15 +495,6 @@ export default function BossPromotionsPage() {
                       >
                         {deletingId === id ? <RefreshCw size={14} className="animate-spin" /> : <Trash2 size={14} />}
                       </button>
-                      <label className="admin-toggle" style={{ margin: 0, opacity: togglingId === id ? 0.5 : 1 }}>
-                        <input
-                          type="checkbox"
-                          checked={promo.is_active}
-                          onChange={() => void handleToggle(promo)}
-                          disabled={togglingId === id}
-                        />
-                        <span className="admin-toggle__track" style={{ margin: 0 }} />
-                      </label>
                     </div>
                   </td>
                 </tr>
