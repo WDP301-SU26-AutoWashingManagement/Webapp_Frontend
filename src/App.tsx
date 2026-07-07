@@ -26,6 +26,7 @@ import AdminServicesPage from './pages/admin/AdminServicesPage'
 import AdminServiceGroupsPage from './pages/admin/AdminServiceGroupsPage'
 import AdminServicePackagesPage from './pages/admin/AdminServicePackagesPage'
 import AdminStaffsPage from './pages/admin/AdminStaffsPage'
+import AdminManagersPage from './pages/admin/AdminManagersPage'
 import AdminTiersPage from './pages/admin/AdminTiersPage'
 import InternalProfilePage from './pages/shared/InternalProfilePage'
 
@@ -172,6 +173,7 @@ function AppContent() {
           <Route path="customers" element={<SharedCustomersPage />} />
 
           <Route path="booking-history" element={<AdminBookingHistoryPage />} />
+          <Route path="managers" element={<AdminManagersPage />} />
           <Route path="staffs" element={<AdminStaffsPage />} />
           <Route path="services" element={<AdminServicesPage />} />
           <Route path="service-groups" element={<AdminServiceGroupsPage />} />

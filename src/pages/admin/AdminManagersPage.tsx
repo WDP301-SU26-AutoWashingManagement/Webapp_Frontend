@@ -10,204 +10,10 @@ import { branchService } from '../../services/branchService'
 import type { Branch } from '../../services/branchService'
 import { useAuth } from '../../hooks/useAuth'
 
-interface StaffModalProps {
-  onClose: () => void
-  onSaved: () => void
-}
-
-function StaffModal({ onClose, onSaved }: StaffModalProps) {
-  const [form, setForm] = useState<CreateStaffPayload>({
-    full_name: '',
-    email: '',
-    password: '',
-    phone: '',
-    role: 'staff',
-    staff_type: 'technical',
-    branch_id: '',
-  })
-  const [saving, setSaving] = useState(false)
-  const nameRef = useRef<HTMLInputElement>(null)
-
-  const [branches, setBranches] = useState<Branch[]>([])
-  const [loadingBranches, setLoadingBranches] = useState(true)
-
-  useEffect(() => {
-    nameRef.current?.focus()
-
-    async function fetchBranches() {
-      try {
-        const data = await branchService.list()
-        setBranches(data)
-      } catch (err) {
-        showError('Không tải được danh sách chi nhánh')
-      } finally {
-        setLoadingBranches(false)
-      }
-    }
-    void fetchBranches()
-  }, [])
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (form.full_name.trim().length < 3) {
-      showError('Họ và tên phải có ít nhất 3 ký tự')
-      return
-    }
-    if (!form.password || form.password.length < 6) {
-      showError('Mật khẩu phải có ít nhất 6 ký tự')
-      return
-    }
-    if (!form.branch_id) {
-      showError('Vui lòng chọn chi nhánh')
-      return
-    }
-
-    setSaving(true)
-    try {
-      await adminStaffService.createStaff(form)
-      showSuccess('Tạo tài khoản nhân viên thành công!')
-      onSaved()
-    } catch (err) {
-      showError(getErrorMessage(err, 'Không thể tạo tài khoản nhân viên'))
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  return (
-    <div className="admin-modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="admin-modal">
-        <div className="admin-modal__header">
-          <h2 className="admin-modal__title">Thêm tài khoản nhân viên</h2>
-          <button type="button" onClick={onClose} className="admin-modal__close"><X size={18} /></button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="admin-modal__body">
-          <div className="admin-form-group">
-            <label className="admin-form-label">Họ và tên <span className="text-red-500">*</span></label>
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                <Users size={15} />
-              </span>
-              <input
-                ref={nameRef}
-                type="text"
-                className="admin-form-input pl-9"
-                value={form.full_name}
-                onChange={e => setForm(f => ({ ...f, full_name: e.target.value }))}
-                placeholder="Nguyễn Văn A"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="admin-form-group">
-            <label className="admin-form-label">Email <span className="text-red-500">*</span></label>
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                <Mail size={15} />
-              </span>
-              <input
-                type="email"
-                className="admin-form-input pl-9"
-                value={form.email}
-                onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                placeholder="nguyenvana@example.com"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="admin-form-group">
-            <label className="admin-form-label">Số điện thoại</label>
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                <Phone size={15} />
-              </span>
-              <input
-                type="text"
-                className="admin-form-input pl-9"
-                value={form.phone}
-                onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
-                placeholder="0912345678"
-              />
-            </div>
-          </div>
-
-          <div className="admin-form-group">
-            <label className="admin-form-label">
-              Loại nhân viên <span className="text-red-500">*</span>
-            </label>
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                <Wrench size={15} />
-              </span>
-              <div className="admin-form-input pl-9 bg-slate-50 text-slate-500 flex items-center">
-                Kỹ thuật viên (Technical)
-              </div>
-            </div>
-          </div>
-
-          <div className="admin-form-group">
-            <label className="admin-form-label">Mật khẩu <span className="text-red-500">*</span></label>
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                <Lock size={15} />
-              </span>
-              <input
-                type="text"
-                className="admin-form-input pl-9"
-                value={form.password}
-                onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-                placeholder="Mật khẩu ít nhất 6 ký tự"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="admin-form-group">
-            <label className="admin-form-label">Chi nhánh <span className="text-red-500">*</span></label>
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                <Building size={15} />
-              </span>
-              <select
-                className="admin-form-input pl-9"
-                value={form.branch_id}
-                onChange={e => setForm(f => ({ ...f, branch_id: e.target.value }))}
-                required
-                disabled={loadingBranches}
-              >
-                <option value="">{loadingBranches ? 'Đang tải danh sách...' : '-- Chọn chi nhánh --'}</option>
-                {branches.map(b => {
-                  const id = b._id ?? b.id ?? ''
-                  const address = b.branch_address ? `${b.branch_address.street}, ${b.branch_address.district}` : 'Không có địa chỉ'
-                  return (
-                    <option key={id} value={id}>
-                      {address}
-                    </option>
-                  )
-                })}
-              </select>
-            </div>
-          </div>
-
-          <div className="admin-modal__footer mt-6">
-            <button type="button" onClick={onClose} className="admin-btn admin-btn--ghost">Huỷ</button>
-            <button type="submit" disabled={saving} className="admin-btn admin-btn--primary">
-              {saving ? <RefreshCw size={14} className="animate-spin" /> : <Check size={14} />}
-              Tạo tài khoản
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  )
-}
 
 function EditStaffModal({ staff, onClose, onSaved }: { staff: any, onClose: () => void, onSaved: () => void }) {
   const [form, setForm] = useState({
-    staff_type: staff.staff_type || 'technical',
+    staff_type: staff.staff_type || 'manager',
     salary_coefficient: staff.salary_coefficient ?? 1,
     hour_per_week: staff.hour_per_week ?? 40,
     annual_leave_days: staff.annual_leave_days ?? 12,
@@ -241,7 +47,7 @@ function EditStaffModal({ staff, onClose, onSaved }: { staff: any, onClose: () =
           <div className="admin-form-group">
             <label className="admin-form-label">Loại nhân viên</label>
             <div className="admin-form-input bg-slate-50 text-slate-500 flex items-center">
-              Kỹ thuật viên (Technical)
+              Quản lý chi nhánh (Manager)
             </div>
           </div>
 
@@ -402,12 +208,11 @@ function DetailStaffModal({ staffId, onClose }: { staffId: string, onClose: () =
   )
 }
 
-export default function AdminStaffsPage() {
+export default function AdminManagersPage() {
   const { user } = useAuth()
   const isAdminOrBoss = user?.role === 'admin' || user?.role === 'boss'
   const isManager = user?.staff_type === 'manager'
 
-  const [modalOpen, setModalOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [selectedBranch, setSelectedBranch] = useState('')
   const [page, setPage] = useState(1)
@@ -441,8 +246,7 @@ export default function AdminStaffsPage() {
       } else if (user?.role === 'boss' && selectedBranch) {
         params.branch_id = selectedBranch
       }
-
-      params.staff_type = 'technical'
+      params.staff_type = 'manager'
 
       const res = await adminStaffService.getStaffList(params)
       if (res.success && res.data) {
@@ -478,14 +282,9 @@ export default function AdminStaffsPage() {
       {/* Header */}
       <div className="admin-page__header">
         <div>
-          <h1 className="admin-page__title">Nhân viên</h1>
-          <p className="admin-page__subtitle">Quản lý và cấp quyền tài khoản cho nhân viên phổ thông và kỹ thuật viên.</p>
+          <h1 className="admin-page__title">Quản lý chi nhánh</h1>
+          <p className="admin-page__subtitle">Danh sách quản lý chi nhánh (Manager).</p>
         </div>
-        {user?.role === 'admin' && (
-          <button className="admin-btn admin-btn--primary" onClick={() => setModalOpen(true)}>
-            <Plus size={15} /> Thêm nhân viên
-          </button>
-        )}
       </div>
 
       {/* Filters */}
@@ -585,24 +384,20 @@ export default function AdminStaffsPage() {
                       >
                         <Eye size={16} />
                       </button>
-                      {isManager && (
-                        <>
-                          <button 
-                            onClick={() => setEditingStaff(staff)}
-                            className="p-1.5 text-amber-600 hover:bg-amber-50 rounded"
-                            title="Sửa"
-                          >
-                            <Edit size={16} />
-                          </button>
-                          <button 
-                            onClick={() => handleDeleteStaff(staff._id)}
-                            className="p-1.5 text-rose-600 hover:bg-rose-50 rounded"
-                            title="Xóa"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </>
-                      )}
+                      <button 
+                        onClick={() => setEditingStaff(staff)}
+                        className="p-1.5 text-amber-600 hover:bg-amber-50 rounded"
+                        title="Sửa"
+                      >
+                        <Edit size={16} />
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteStaff(staff._id)}
+                        className="p-1.5 text-rose-600 hover:bg-rose-50 rounded"
+                        title="Xóa"
+                      >
+                        <Trash2 size={16} />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -630,15 +425,6 @@ export default function AdminStaffsPage() {
         </div>
       )}
 
-      {modalOpen && (
-        <StaffModal
-          onClose={() => setModalOpen(false)}
-          onSaved={() => {
-            setModalOpen(false)
-            fetchStaffs()
-          }}
-        />
-      )}
 
       {editingStaff && (
         <EditStaffModal
