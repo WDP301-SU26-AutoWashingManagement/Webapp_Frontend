@@ -237,7 +237,7 @@ export default function AdminTiersPage() {
               <th>Điểm yêu cầu</th>
               <th>Cửa sổ đặt trước</th>
               <th>Giảm giá</th>
-              <th className="text-right">Thao tác</th>
+              <th style={{ textAlign: 'center' }}>Thao tác</th>
             </tr>
           </thead>
           <tbody>
@@ -276,8 +276,8 @@ export default function AdminTiersPage() {
                       <Percent size={10} /> {tier.discount_percentage}%
                     </span>
                   </td>
-                  <td className="text-right">
-                    <div className="admin-action-group">
+                  <td style={{ textAlign: 'center' }}>
+                    <div className="flex items-center justify-center gap-2">
                       <button
                         className="admin-action-btn admin-action-btn--edit"
                         onClick={() => setModal(tier)}

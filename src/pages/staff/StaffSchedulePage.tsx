@@ -385,7 +385,17 @@ export default function StaffSchedulePage() {
                         </div>
                         <div>
                           <label className="block text-sm font-semibold text-slate-700 mb-2">Ngày làm việc</label>
-                          <input type="date" className="w-full border border-slate-300 rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all shadow-sm" value={selectedDateA} onChange={e => { setSelectedDateA(e.target.value); setSelectedShiftA(''); setSelectedStaffA('') }} />
+                          <div className="relative">
+                            <style>{`
+                              .date-picker-overlay::-webkit-calendar-picker-indicator {
+                                position: absolute;
+                                top: 0; left: 0; width: 100%; height: 100%;
+                                opacity: 0; cursor: pointer;
+                              }
+                            `}</style>
+                            <input type="text" className="w-full border border-slate-300 rounded-lg p-3 outline-none transition-all shadow-sm bg-white" value={selectedDateA ? selectedDateA.split('-').reverse().join('/') : ''} placeholder="dd/mm/yyyy" readOnly />
+                            <input type="date" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer date-picker-overlay" value={selectedDateA} onChange={e => { setSelectedDateA(e.target.value); setSelectedShiftA(''); setSelectedStaffA('') }} />
+                          </div>
                         </div>
                         <div>
                           <label className="block text-sm font-semibold text-slate-700 mb-2">Khung giờ</label>
@@ -418,7 +428,10 @@ export default function StaffSchedulePage() {
                         </div>
                         <div>
                           <label className="block text-sm font-semibold text-slate-700 mb-2">Ngày làm việc</label>
-                          <input type="date" className="w-full border border-indigo-200 bg-white rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 outline-none disabled:bg-slate-100 disabled:border-slate-200 disabled:text-slate-400 transition-all shadow-sm" value={selectedDateB} onChange={e => { setSelectedDateB(e.target.value); setSelectedShiftB(''); setSelectedStaffB('') }} disabled={!selectedStaffA} />
+                          <div className="relative">
+                            <input type="text" className="w-full border border-indigo-200 bg-white rounded-lg p-3 outline-none disabled:bg-slate-100 disabled:border-slate-200 disabled:text-slate-400 transition-all shadow-sm" value={selectedDateB ? selectedDateB.split('-').reverse().join('/') : ''} placeholder="dd/mm/yyyy" disabled={!selectedStaffA} readOnly />
+                            <input type="date" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed date-picker-overlay" value={selectedDateB} onChange={e => { setSelectedDateB(e.target.value); setSelectedShiftB(''); setSelectedStaffB('') }} disabled={!selectedStaffA} />
+                          </div>
                         </div>
                         <div>
                           <label className="block text-sm font-semibold text-slate-700 mb-2">Khung giờ</label>
