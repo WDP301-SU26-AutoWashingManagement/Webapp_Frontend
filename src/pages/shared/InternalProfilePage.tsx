@@ -394,7 +394,11 @@ export default function InternalProfilePage() {
             </div>
 
             <div className="mt-6 flex justify-end">
-              <button type="submit" className="admin-btn admin-btn--primary flex items-center gap-2" disabled={savingProfile}>
+              <button 
+                type="submit" 
+                className="admin-btn admin-btn--primary flex items-center gap-2" 
+                disabled={savingProfile || (profile && form.full_name === (profile.full_name || '') && form.phone === (profile.phone || '') && !avatarFile)}
+              >
                 <Save size={14} /> {savingProfile ? 'Đang lưu...' : 'Lưu thay đổi'}
               </button>
             </div>

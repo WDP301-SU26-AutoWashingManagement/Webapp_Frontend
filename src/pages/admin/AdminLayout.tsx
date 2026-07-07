@@ -180,7 +180,13 @@ export default function AdminLayout() {
         {/* User footer */}
         <div className="admin-sidebar__footer">
           <div className="admin-sidebar__user">
-            <div className="admin-sidebar__avatar">{initials}</div>
+            <div className="admin-sidebar__avatar overflow-hidden">
+              {user?.avatar_url ? (
+                <img src={user.avatar_url} alt="Avatar" className="h-full w-full object-cover" />
+              ) : (
+                initials
+              )}
+            </div>
             {sidebarOpen && (
               <div className="admin-sidebar__user-info">
                 <p className="admin-sidebar__user-name">{displayName}</p>
