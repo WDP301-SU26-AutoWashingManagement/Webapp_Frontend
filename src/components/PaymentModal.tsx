@@ -17,11 +17,32 @@ interface PaymentModalProps {
   onSuccess: () => void
 }
 
+const getQuickCashSuggestions = (total: number) => {
+  const standardBills = [5000, 10000, 20000, 50000, 100000, 200000, 500000];
+  const suggestions = new Set<number>();
+  suggestions.add(total); // Khớp số
+  
+  // Find bills that are greater than total
+  for (const bill of standardBills) {
+    if (bill > total) {
+      suggestions.add(bill);
+    }
+  }
+  
+  const next10k = Math.ceil(total / 10000) * 10000;
+  const next50k = Math.ceil(total / 50000) * 50000;
+  if (next10k > total) suggestions.add(next10k);
+  if (next50k > total) suggestions.add(next50k);
+  
+  return Array.from(suggestions).sort((a, b) => a - b).slice(0, 5);
+}
+
 export default function PaymentModal({ isOpen, onClose, booking, onSuccess }: PaymentModalProps) {
   const { user } = useAuth()
   const [invoice, setInvoice] = useState<Invoice | null>(null)
   const [loading, setLoading] = useState(false)
   const [paymentMode, setPaymentMode] = useState<'cash' | 'qr' | null>(null)
+  const [cashReceived, setCashReceived] = useState<number>(0)
   const pollingRef = useRef<number | null>(null)
 
   const [step, setStep] = useState<1 | 2>(1)
@@ -103,6 +124,7 @@ export default function PaymentModal({ isOpen, onClose, booking, onSuccess }: Pa
       setSelectedPromotionId(null)
       setIsCreatingInvoice(false)
       setStep(1)
+      setCashReceived(0)
     }
   }, [isOpen, booking, invoice])
 
@@ -127,17 +149,34 @@ export default function PaymentModal({ isOpen, onClose, booking, onSuccess }: Pa
     return inv
   }
 
-  const handleConfirmCash = async () => {
-    if (!user) return
+  const handleSelectCashMode = async () => {
     setLoading(true)
     try {
       const currentInvoice = await ensureInvoice()
-      await invoiceService.confirmCash(currentInvoice._id, (user as any).id || (user as any)._id)
+      setCashReceived(currentInvoice.total)
+      setPaymentMode('cash')
+    } catch (err: any) {
+      if (err.message && err.message.toLowerCase().includes('tồn tại')) {
+        showError('Đơn này đã tạo Hóa đơn trước đó. Vui lòng liên hệ Admin để xử lý.');
+        onClose()
+      } else {
+        showError(err.message || 'Lỗi khi chuẩn bị hóa đơn thanh toán tiền mặt')
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleConfirmCash = async () => {
+    if (!user || !invoice) return
+    setLoading(true)
+    try {
+      await invoiceService.confirmCash(invoice._id, (user as any).id || (user as any)._id)
       showSuccess('Thanh toán tiền mặt thành công!')
 
       // LƯU CACHE TẠM CHO FRONTEND DO BACKEND KHÔNG TRẢ VỀ DỮ LIỆU INVOICE TRONG BOOKING
       const paidInvoices = JSON.parse(localStorage.getItem('paid_invoices') || '{}');
-      paidInvoices[booking._id || booking.id!] = currentInvoice.total;
+      paidInvoices[booking._id || booking.id!] = invoice.total;
       localStorage.setItem('paid_invoices', JSON.stringify(paidInvoices));
 
       onSuccess()
@@ -217,8 +256,18 @@ export default function PaymentModal({ isOpen, onClose, booking, onSuccess }: Pa
           <X size={20} />
         </button>
         <div className="flex items-center mb-4">
-          {step === 2 && !paymentMode && (
-            <button onClick={() => { setStep(1); setInvoice(null); }} className="mr-3 text-slate-400 hover:text-slate-600 transition-colors">
+          {step === 2 && paymentMode !== 'qr' && (
+            <button 
+              onClick={() => { 
+                if (paymentMode === 'cash') {
+                  setPaymentMode(null);
+                } else {
+                  setStep(1); 
+                  setInvoice(null); 
+                }
+              }} 
+              className="mr-3 text-slate-400 hover:text-slate-600 transition-colors"
+            >
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
             </button>
           )}
@@ -366,7 +415,7 @@ export default function PaymentModal({ isOpen, onClose, booking, onSuccess }: Pa
             {!paymentMode && (
               <div className="grid grid-cols-2 gap-3">
                 <button
-                  onClick={handleConfirmCash}
+                  onClick={handleSelectCashMode}
                   disabled={loading}
                   className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 border-slate-100 hover:border-emerald-500 hover:bg-emerald-50 transition-all text-slate-600 hover:text-emerald-600 font-semibold disabled:opacity-50"
                 >
@@ -381,6 +430,115 @@ export default function PaymentModal({ isOpen, onClose, booking, onSuccess }: Pa
                   <QrCode size={28} />
                   <span>Quét mã QR</span>
                 </button>
+              </div>
+            )}
+
+            {/* Chế độ xác nhận Tiền mặt */}
+            {paymentMode === 'cash' && invoice && (
+              <div className="animate-in fade-in zoom-in duration-300 space-y-4">
+                <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 flex items-center gap-3">
+                  <div className="text-emerald-600 bg-emerald-100 p-2 rounded-lg flex-shrink-0">
+                    <Banknote size={24} />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-emerald-900 text-sm">Xác nhận thanh toán tiền mặt</h3>
+                    <p className="text-xs text-emerald-700">Vui lòng nhập số tiền nhận từ khách để tính tiền thừa.</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  {/* Tổng tiền cần thanh toán */}
+                  <div className="flex justify-between items-center text-sm border-b border-slate-100 pb-2">
+                    <span className="text-slate-500 font-medium">Tổng tiền cần thanh toán:</span>
+                    <span className="font-bold text-slate-800 text-lg">
+                      {invoice.total.toLocaleString('vi-VN')} đ
+                    </span>
+                  </div>
+
+                  {/* Số tiền khách đưa */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+                      Số tiền khách đưa
+                    </label>
+                    <div className="relative flex items-center">
+                      <input
+                        type="text"
+                        className="w-full text-right font-black text-2xl text-slate-800 border-2 border-slate-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 rounded-xl p-3.5 pr-10 focus:outline-none transition-all"
+                        value={cashReceived === 0 ? '' : cashReceived.toLocaleString('vi-VN')}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/\D/g, '')
+                          setCashReceived(val ? parseInt(val, 10) : 0)
+                        }}
+                        placeholder="0"
+                      />
+                      <span className="absolute right-4 font-bold text-slate-400 text-lg">đ</span>
+                    </div>
+                  </div>
+
+                  {/* Gợi ý nhanh */}
+                  <div className="space-y-2">
+                    <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
+                      Gợi ý mệnh giá nhanh
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      {getQuickCashSuggestions(invoice.total).map((suggestion) => (
+                        <button
+                          key={suggestion}
+                          type="button"
+                          onClick={() => setCashReceived(suggestion)}
+                          className={`text-xs font-bold px-3 py-2 rounded-lg border transition ${
+                            cashReceived === suggestion
+                              ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                              : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
+                          }`}
+                        >
+                          {suggestion === invoice.total ? 'Chẵn tiền' : suggestion.toLocaleString('vi-VN')}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Kết quả tiền thừa / còn thiếu */}
+                  {cashReceived >= invoice.total ? (
+                    <div className="bg-emerald-50/60 border border-emerald-100 rounded-xl p-3.5 flex justify-between items-center animate-in fade-in duration-200">
+                      <span className="text-sm text-emerald-800 font-medium">Tiền thừa trả khách:</span>
+                      <span className="text-xl font-black text-emerald-700">
+                        {(cashReceived - invoice.total).toLocaleString('vi-VN')} đ
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="bg-rose-50 border border-rose-100 rounded-xl p-3.5 flex justify-between items-center animate-in fade-in duration-200">
+                      <span className="text-sm text-rose-800 font-medium">Khách còn thiếu:</span>
+                      <span className="text-xl font-black text-rose-600">
+                        {(invoice.total - cashReceived).toLocaleString('vi-VN')} đ
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Hành động */}
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMode(null)}
+                    disabled={loading}
+                    className="flex-1 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 py-3 px-4 rounded-xl font-semibold text-sm transition shadow-sm disabled:opacity-50"
+                  >
+                    Quay lại
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConfirmCash}
+                    disabled={loading || cashReceived < invoice.total}
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-3 px-4 rounded-xl font-semibold text-sm transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {loading ? (
+                      <RefreshCw size={16} className="animate-spin" />
+                    ) : (
+                      'Xác nhận thanh toán'
+                    )}
+                  </button>
+                </div>
               </div>
             )}
 
