@@ -4,6 +4,7 @@ import { useAuth } from '../../hooks/useAuth'
 import { scheduleService, type Schedule } from '../../services/scheduleService'
 import { staffManagerService } from '../../services/staffManagerService'
 import { showSuccess, showError } from '../../utils/toast'
+import { TerminalCronMonitor } from '../../components/manager/TerminalCronMonitor'
 
 function getStartOfWeek(date: Date) {
   const d = new Date(date)
@@ -17,6 +18,7 @@ function getStartOfWeek(date: Date) {
 export default function StaffSchedulePage() {
   const { user } = useAuth()
   const isManager = user?.role === 'admin' || user?.role === 'boss' || user?.staff_type === 'manager'
+  const [activeTab, setActiveTab] = useState<'schedule' | 'cron'>('schedule')
 
   const [isSwapModalOpen, setIsSwapModalOpen] = useState(false)
   const [selectedDateA, setSelectedDateA] = useState<string>('')
@@ -198,6 +200,20 @@ export default function StaffSchedulePage() {
         </div>
       </div>
 
+      {isManager && (
+        <div className="flex gap-3 px-1 pt-2 pb-4 overflow-x-auto">
+          {[
+            { id: 'schedule', label: 'Lịch làm việc' },
+            { id: 'cron', label: 'Hệ thống Cron' }
+          ].map(tab => (
+            <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`font-medium text-sm px-4 py-1.5 rounded-full transition-colors whitespace-nowrap ${activeTab === tab.id ? 'bg-[#0ea5b7] text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {activeTab === 'schedule' && (
       <div style={{ background: '#fff', borderRadius: '0.75rem', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
         {/* Toolbar */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1.25rem', borderBottom: '1px solid #e2e8f0' }}>
@@ -324,6 +340,14 @@ export default function StaffSchedulePage() {
           </table>
         </div>
       </div>
+      )}
+
+      {/* Terminal Cron Monitor */}
+      {isManager && activeTab === 'cron' && (
+        <div className="mt-4">
+          <TerminalCronMonitor />
+        </div>
+      )}
 
       {/* Swap Modal */}
       {isSwapModalOpen && (
