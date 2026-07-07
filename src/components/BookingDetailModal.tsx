@@ -4,6 +4,7 @@ import type { WashBooking } from '../types/booking'
 import { bookingChecklistService, type BookingChecklist } from '../services/bookingChecklistService'
 import CreateChecklistModal from './CreateChecklistModal'
 import ViewChecklistModal from './ViewChecklistModal'
+import { useAuth } from '../hooks/useAuth'
 
 interface BookingDetailModalProps {
   booking: WashBooking | null
@@ -14,10 +15,20 @@ interface BookingDetailModalProps {
 }
 
 export default function BookingDetailModal({ booking, isOpen, onClose, onPay, hideStaffActions = false }: BookingDetailModalProps) {
+  const { user } = useAuth()
+  
   const [checklist, setChecklist] = useState<BookingChecklist | null>(null)
   const [loadingChecklist, setLoadingChecklist] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showViewModal, setShowViewModal] = useState(false)
+
+  const isTechnical = user?.staff_type === 'technical'
+  const isManager = user?.staff_type === 'manager'
+  const isAdmin = user?.role === 'admin'
+  const isBoss = user?.role === 'boss'
+
+  const canCreateChecklist = !hideStaffActions && (isTechnical || isManager)
+  const canViewChecklist = isTechnical || isManager || isAdmin || isBoss
 
   const fetchChecklist = async () => {
     if (!booking) return
@@ -154,6 +165,7 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onPay, hi
                   {loadingChecklist ? (
                     <div className="text-sm text-slate-500">Đang tải dữ liệu...</div>
                   ) : checklist ? (
+                    canViewChecklist ? (
                     <div 
                       onClick={() => setShowViewModal(true)}
                       className="w-full flex items-center justify-between cursor-pointer hover:bg-slate-100 p-2 -m-2 rounded-lg transition-colors group"
@@ -175,12 +187,17 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onPay, hi
                         <Download size={14} /> Tải PDF
                       </button>
                     </div>
+                    ) : (
+                      <div className="text-sm text-slate-500 italic py-1">
+                        Bạn không có quyền xem biên bản này.
+                      </div>
+                    )
                   ) : (
                     <div className="flex flex-col gap-2 w-full">
                       <div className="text-sm text-slate-500 italic py-1">
                         Chưa có biên bản kiểm tra xe cho lịch hẹn này.
                       </div>
-                      {!hideStaffActions && (
+                      {canCreateChecklist && (
                         <div className="flex justify-start">
                           <button
                             onClick={() => setShowCreateModal(true)}

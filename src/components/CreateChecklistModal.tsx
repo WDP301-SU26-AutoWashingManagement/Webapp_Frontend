@@ -143,6 +143,16 @@ export default function CreateChecklistModal({ booking, isOpen, onClose, onSucce
   };
 
   const handleSubmit = async () => {
+    if (images.length === 0) {
+      showError('Vui lòng thêm ít nhất một ảnh hiện trạng xe.');
+      return;
+    }
+
+    if (!signature) {
+      showError('Vui lòng yêu cầu khách hàng ký xác nhận.');
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       const appointmentId = booking._id ?? booking.id!;
@@ -262,8 +272,8 @@ export default function CreateChecklistModal({ booking, isOpen, onClose, onSucce
           </button>
           <button 
             onClick={handleSubmit}
-            disabled={isSubmitting}
-            className="px-5 py-2 bg-cyan-600 text-white font-medium rounded-xl hover:bg-cyan-700 transition-colors flex items-center gap-2"
+            disabled={isSubmitting || images.length === 0 || !signature}
+            className="px-5 py-2 bg-cyan-600 text-white font-medium rounded-xl hover:bg-cyan-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting && <Loader2 size={16} className="animate-spin" />}
             Xác nhận tạo

@@ -129,6 +129,7 @@ export default function StaffTransactionHistoryPage() {
                     <div className="flex items-center gap-2">
                         <input
                             type="date"
+                            max={new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]}
                             value={dateRange.startDate}
                             onChange={(e) => {
                                 setDateRange(prev => ({ ...prev, startDate: e.target.value }));
@@ -139,6 +140,8 @@ export default function StaffTransactionHistoryPage() {
                         <span className="text-slate-400 text-xs font-semibold">→</span>
                         <input
                             type="date"
+                            max={new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]}
+                            min={dateRange.startDate}
                             value={dateRange.endDate}
                             onChange={(e) => {
                                 setDateRange(prev => ({ ...prev, endDate: e.target.value }));

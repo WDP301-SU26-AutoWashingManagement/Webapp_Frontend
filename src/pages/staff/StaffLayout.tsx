@@ -118,14 +118,17 @@ export default function StaffLayout() {
         .toUpperCase()
 
     const isManager = user?.role === 'admin' || user?.role === 'boss' || user?.staff_type === 'manager'
+    const isAdminOrBoss = user?.role === 'admin' || user?.role === 'boss'
 
     // Lọc menu tuỳ theo role
     const visibleNavGroups = NAV_GROUPS.map(group => {
         return {
             ...group,
             items: group.items.filter(item => {
-                // Giấu Hệ thống Auto-Cron, Doanh thu, và Lịch sử giao dịch đối với Technical
-                if (!isManager && (item.to === '/staff/dashboard' || item.to === '/staff/revenue' || item.to === '/staff/transaction-history')) return false
+                // Giấu Hệ thống Auto-Cron, Doanh thu đối với Manager và Technical
+                if (!isAdminOrBoss && (item.to === '/staff/dashboard' || item.to === '/staff/revenue')) return false
+                // Giấu Lịch sử giao dịch đối với Technical
+                if (!isManager && item.to === '/staff/transaction-history') return false
                 return true
             })
         }
@@ -135,7 +138,7 @@ export default function StaffLayout() {
         <div className="admin-layout">
             <aside className={`admin-sidebar ${sidebarOpen ? 'admin-sidebar--open' : 'admin-sidebar--collapsed'}`}>
                 <div className="admin-sidebar__brand">
-                    <Link to={isManager ? "/staff/dashboard" : "/staff/bookings"} className="admin-sidebar__logo-link">
+                    <Link to={isAdminOrBoss ? "/staff/dashboard" : "/staff/bookings"} className="admin-sidebar__logo-link">
                         <img src={logo2} alt="AutoWash" className="admin-sidebar__logo-img" />
                         {sidebarOpen && (
                             <span className="admin-sidebar__logo-text">

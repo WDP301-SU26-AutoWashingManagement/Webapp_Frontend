@@ -17,6 +17,8 @@ import {
   Package,
   History,
   Wallet,
+  UserCog,
+  HardHat,
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import logo2 from '../../assets/logo2.png'
@@ -30,11 +32,7 @@ const NAV_GROUPS = [
         icon: LayoutDashboard,
         to: '/admin/dashboard',
       },
-      {
-        label: 'Lịch hẹn',
-        icon: CalendarCheck,
-        to: '/admin/bookings',
-      },
+
       {
         label: 'Lịch sử lịch hẹn',
         icon: History,
@@ -47,19 +45,31 @@ const NAV_GROUPS = [
       },
     ]
   },
+
   {
     title: 'Nội bộ',
+    items: [
+      {
+        label: 'Quản lý chi nhánh',
+        icon: UserCog,
+        to: '/admin/managers',
+      },
+      {
+        label: 'Kỹ thuật viên',
+        icon: HardHat,
+        to: '/admin/staffs',
+      },
+    ]
+  },
+  {
+    title: 'Dịch vụ và Khách hàng',
     items: [
       {
         label: 'Khách hàng',
         icon: Users,
         to: '/admin/customers',
       },
-      {
-        label: 'Nhân viên',
-        icon: Users,
-        to: '/admin/staffs',
-      },
+
       {
         label: 'Nhóm dịch vụ',
         icon: Layers,

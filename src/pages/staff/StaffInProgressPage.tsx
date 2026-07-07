@@ -161,6 +161,7 @@ export default function StaffInProgressPage() {
                     </div>
                     <input
                         type="date"
+                        max={new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]}
                         value={selectedDate}
                         onChange={(e) => {
                             setSelectedDate(e.target.value);

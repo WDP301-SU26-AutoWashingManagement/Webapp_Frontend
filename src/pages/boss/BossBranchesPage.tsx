@@ -404,8 +404,8 @@ export default function BossBranchesPage() {
                 <th>Địa chỉ</th>
                 <th>Giờ hoạt động</th>
                 <th>Làn (Bay)</th>
-                <th>Trạng thái</th>
-                <th style={{ textAlign: 'right' }}>Thao tác</th>
+                <th style={{ textAlign: 'center' }}>Trạng thái</th>
+                <th style={{ textAlign: 'center' }}>Thao tác</th>
               </tr>
             </thead>
             <tbody>
@@ -425,22 +425,14 @@ export default function BossBranchesPage() {
                     <td>
                       <span className="admin-card__badge bg-blue-50 text-blue-700 border-blue-200">{branch.bay_counts}</span>
                     </td>
-                    <td>
-                      {branch.is_active ? (
-                        <span className="admin-card__badge bg-emerald-50 text-emerald-700 border-emerald-200">Hoạt động</span>
-                      ) : (
-                        <span className="admin-card__badge bg-slate-100 text-slate-600 border-slate-300">Tạm ngưng</span>
-                      )}
+                    <td style={{ textAlign: 'center' }}>
+                      <label className="relative inline-flex items-center cursor-pointer" title={branch.is_active ? "Đang hoạt động" : "Đã tạm ngưng"}>
+                        <input type="checkbox" className="sr-only peer" checked={branch.is_active} onChange={() => handleToggleActive(branch)} />
+                        <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-[100%] peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                      </label>
                     </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          className="admin-btn admin-btn--ghost px-2 py-1"
-                          title={branch.is_active ? "Tạm ngưng" : "Kích hoạt"}
-                          onClick={() => handleToggleActive(branch)}
-                        >
-                          <Power size={14} className={branch.is_active ? "text-amber-500" : "text-emerald-500"} />
-                        </button>
+                    <td style={{ textAlign: 'center' }}>
+                      <div className="flex items-center justify-center gap-2">
                         <button className="admin-btn admin-btn--ghost px-2 py-1" onClick={() => setModalData({ open: true, branch })}>
                           <Edit size={14} className="text-cyan-600" />
                         </button>

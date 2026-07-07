@@ -58,6 +58,16 @@ export const scheduleService = {
     return res.data;
   },
 
+  replaceStaff: async (scheduleId: string, old_staff_id: string, new_staff_id: string): Promise<any> => {
+    const res = await apiClient.post<ApiResponse<any>>(`/schedule/${scheduleId}/replace-staff`, { old_staff_id, new_staff_id });
+    return res.data;
+  },
+
+  updateScheduleStaff: async (scheduleId: string, staff_ids: string[]): Promise<any> => {
+    const res = await apiClient.put<ApiResponse<any>>(`/schedule/${scheduleId}/staff`, { staff_ids });
+    return res.data;
+  },
+
   getCronLogs: async (): Promise<any[]> => {
     const res = await apiClient.get<ApiResponse<any[]>>('/schedule/cron-logs');
     return res.data || [];

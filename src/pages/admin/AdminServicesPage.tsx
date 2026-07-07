@@ -309,8 +309,8 @@ export default function AdminServicesPage() {
               <th>Nhóm</th>
               <th>Giá</th>
               <th>Thời gian</th>
-              <th>Trạng thái</th>
-              <th className="text-right">Thao tác</th>
+              <th style={{ textAlign: 'center' }}>Trạng thái</th>
+              <th style={{ textAlign: 'center' }}>Thao tác</th>
             </tr>
           </thead>
           <tbody>
@@ -347,22 +347,14 @@ export default function AdminServicesPage() {
                       <Clock size={12} /> {pkg.duration_minutes} phút
                     </span>
                   </td>
-                  <td>
-                    <button
-                      className={`admin-status-badge ${pkg.is_active ? 'admin-status-badge--active' : 'admin-status-badge--inactive'}`}
-                      onClick={() => void handleToggle(pkg)}
-                      disabled={togglingId === id}
-                      title={pkg.is_active ? 'Nhấn để tạm ngừng' : 'Nhấn để kích hoạt'}
-                    >
-                      {togglingId === id
-                        ? <RefreshCw size={12} className="animate-spin" />
-                        : pkg.is_active ? <ToggleRight size={14} /> : <ToggleLeft size={14} />
-                      }
-                      {pkg.is_active ? 'Hoạt động' : 'Tạm ngừng'}
-                    </button>
+                  <td style={{ textAlign: 'center' }}>
+                    <label className="relative inline-flex items-center cursor-pointer" title={pkg.is_active ? "Đang hoạt động" : "Đã tạm ngưng"}>
+                      <input type="checkbox" className="sr-only peer" checked={pkg.is_active} onChange={() => void handleToggle(pkg)} disabled={togglingId === id} />
+                      <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-[100%] peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                    </label>
                   </td>
-                  <td className="text-right">
-                    <div className="admin-action-group">
+                  <td style={{ textAlign: 'center' }}>
+                    <div className="flex items-center justify-center gap-2">
                       <button
                         className="admin-action-btn admin-action-btn--edit"
                         onClick={() => setModal(pkg)}

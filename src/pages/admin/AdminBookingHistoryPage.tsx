@@ -266,6 +266,7 @@ export default function AdminBookingHistoryPage() {
             <span className="text-xs text-slate-500 font-medium">Từ</span>
             <input
               type="date"
+              max={new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]}
               value={fromDate}
               onChange={(e) => {
                 setFromDate(e.target.value);
@@ -276,6 +277,8 @@ export default function AdminBookingHistoryPage() {
             <span className="text-xs text-slate-500 font-medium ml-1">Đến</span>
             <input
               type="date"
+              max={new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]}
+              min={fromDate}
               value={toDate}
               onChange={(e) => {
                 setToDate(e.target.value);

@@ -394,8 +394,8 @@ export default function AdminServicePackagesPage() {
                   <th>Tên Gói</th>
                   <th>Nhóm</th>
                   <th>Giảm giá</th>
-                  <th>Trạng thái</th>
-                  <th className="text-right">Thao tác</th>
+                  <th style={{ textAlign: 'center' }}>Trạng thái</th>
+                  <th style={{ textAlign: 'center' }}>Thao tác</th>
                 </tr>
               </thead>
               <tbody>
@@ -420,17 +420,14 @@ export default function AdminServicePackagesPage() {
                           <Tag size={12} className="mr-1" /> Giảm {pkg.package_discount_percentage}%
                         </span>
                       </td>
-                      <td>
-                        <button
-                          className={`admin-status-badge ${pkg.is_active ? 'admin-status-badge--active' : 'admin-status-badge--inactive'}`}
-                          onClick={() => handleToggle(pkg)}
-                          title={pkg.is_active ? 'Tạm ngừng' : 'Kích hoạt'}
-                        >
-                          {pkg.is_active ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
-                        </button>
+                      <td style={{ textAlign: 'center' }}>
+                        <label className="relative inline-flex items-center cursor-pointer" title={pkg.is_active ? "Đang hoạt động" : "Đã tạm ngưng"}>
+                          <input type="checkbox" className="sr-only peer" checked={pkg.is_active} onChange={() => handleToggle(pkg)} />
+                          <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-[100%] peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                        </label>
                       </td>
-                      <td className="text-right">
-                        <div className="admin-action-group">
+                      <td style={{ textAlign: 'center' }}>
+                        <div className="flex items-center justify-center gap-2">
                           <button onClick={() => handleOpenEdit(pkg)} className="admin-action-btn admin-action-btn--edit" title="Chỉnh sửa">
                             <Pencil size={15} />
                           </button>

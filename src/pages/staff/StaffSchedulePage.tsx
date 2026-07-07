@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react'
-import { ChevronLeft, ChevronRight, Users, Clock, Calendar as CalendarIcon, RefreshCcw, AlertTriangle, Plus } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Users, Clock, Calendar as CalendarIcon, RefreshCcw, AlertTriangle, Plus, Eye, X } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { scheduleService, type Schedule } from '../../services/scheduleService'
 import { staffManagerService } from '../../services/staffManagerService'
 import { showSuccess, showError } from '../../utils/toast'
+import { TerminalCronMonitor } from '../../components/manager/TerminalCronMonitor'
 
 function getStartOfWeek(date: Date) {
   const d = new Date(date)
@@ -17,6 +18,7 @@ function getStartOfWeek(date: Date) {
 export default function StaffSchedulePage() {
   const { user } = useAuth()
   const isManager = user?.role === 'admin' || user?.role === 'boss' || user?.staff_type === 'manager'
+  const [activeTab, setActiveTab] = useState<'schedule' | 'cron'>('schedule')
 
   const [isSwapModalOpen, setIsSwapModalOpen] = useState(false)
   const [selectedDateA, setSelectedDateA] = useState<string>('')
@@ -47,29 +49,48 @@ export default function StaffSchedulePage() {
   }
 
   const [isAssignShiftModalOpen, setIsAssignShiftModalOpen] = useState(false)
-  const [selectedStaffForAssign, setSelectedStaffForAssign] = useState<any>(null)
+  const [selectedScheduleForAssign, setSelectedScheduleForAssign] = useState<any>(null)
   const [selectedDateForAssign, setSelectedDateForAssign] = useState<Date | null>(null)
-  const [selectedShiftToAssign, setSelectedShiftToAssign] = useState<string>('')
+  const [selectedStaffsToAssign, setSelectedStaffsToAssign] = useState<string[]>([])
   const [isAssigning, setIsAssigning] = useState(false)
 
-  const handleOpenAssignModal = (staff: any, date: Date) => {
-    setSelectedStaffForAssign(staff)
+  const [selectedDetail, setSelectedDetail] = useState<{ date: Date, slot: string } | null>(null)
+  const [selectedStaffIds, setSelectedStaffIds] = useState<string[]>([])
+  const [isSavingStaffs, setIsSavingStaffs] = useState(false)
+
+  const handleSaveStaffs = async (scheduleId: string) => {
+    setIsSavingStaffs(true)
+    try {
+      await scheduleService.updateScheduleStaff(scheduleId, selectedStaffIds)
+      showSuccess('Cập nhật nhân viên thành công!')
+      await fetchSchedules()
+      // Tắt modal sau khi lưu thành công
+      setSelectedDetail(null)
+    } catch (error: any) {
+      showError(error?.response?.data?.message || 'Có lỗi xảy ra khi cập nhật nhân viên')
+    } finally {
+      setIsSavingStaffs(false)
+    }
+  }
+  const handleOpenAssignModal = (schedule: any, date: Date) => {
+    setSelectedScheduleForAssign(schedule)
     setSelectedDateForAssign(date)
-    setSelectedShiftToAssign('')
+    setSelectedStaffsToAssign([])
     setIsAssignShiftModalOpen(true)
   }
 
   const handleAssignShiftConfirm = async () => {
-    if (!selectedStaffForAssign || !selectedShiftToAssign) return
+    if (!selectedScheduleForAssign || selectedStaffsToAssign.length === 0) return
     setIsAssigning(true)
     try {
-      const staffId = selectedStaffForAssign._id || selectedStaffForAssign.user_id?._id || selectedStaffForAssign
-      await scheduleService.addStaffToSchedule(selectedShiftToAssign, staffId)
+      const existingIds = selectedScheduleForAssign.assigned_staff.map((st: any) => st._id || st.user_id?._id || st)
+      const combinedIds = [...existingIds, ...selectedStaffsToAssign]
+      await scheduleService.updateScheduleStaff(selectedScheduleForAssign._id, combinedIds)
       showSuccess('Đã phân ca cho nhân viên thành công!')
       setIsAssignShiftModalOpen(false)
-      setSelectedStaffForAssign(null)
+      setSelectedScheduleForAssign(null)
       setSelectedDateForAssign(null)
-      setSelectedShiftToAssign('')
+      setSelectedStaffsToAssign([])
       await fetchSchedules()
     } catch (error: any) {
       showError(error?.response?.data?.message || 'Có lỗi xảy ra khi phân ca')
@@ -113,9 +134,11 @@ export default function StaffSchedulePage() {
         const userBranchId = typeof user.branch_id === 'object' ? (user.branch_id as any)._id : user.branch_id
         if (userBranchId) params.branch_id = userBranchId
       }
-      const data = await staffManagerService.getAllStaff(params)
-      if (data && Array.isArray(data.items)) {
-        setAllStaff(data.items)
+      const res = await staffManagerService.getAllStaff(params)
+      if (res && Array.isArray(res.data)) {
+        setAllStaff(res.data)
+      } else if (res && Array.isArray(res)) {
+        setAllStaff(res)
       }
     } catch (error) {
       console.error('Failed to load staff list', error)
@@ -127,20 +150,13 @@ export default function StaffSchedulePage() {
     fetchStaff()
   }, [user])
 
-  const displayStaff = React.useMemo(() => {
-    if (allStaff.length > 0) return allStaff
-
-    const staffMap = new Map()
+  const distinctTimeSlots = React.useMemo(() => {
+    const slots = new Set<string>()
     schedules.forEach(s => {
-      s.assigned_staff.forEach((staff: any) => {
-        const staffId = staff._id || staff.user_id?._id || staff
-        if (!staffMap.has(staffId)) {
-          staffMap.set(staffId, staff)
-        }
-      })
+      slots.add(`${s.start_time} - ${s.end_time}`)
     })
-    return Array.from(staffMap.values())
-  }, [allStaff, schedules])
+    return Array.from(slots).sort()
+  }, [schedules])
 
   const weekDays = Array.from({ length: 7 }).map((_, i) => {
     const d = new Date(currentWeekStart)
@@ -198,6 +214,20 @@ export default function StaffSchedulePage() {
         </div>
       </div>
 
+      {isManager && (
+        <div className="flex gap-3 px-1 pt-2 pb-4 overflow-x-auto">
+          {[
+            { id: 'schedule', label: 'Lịch làm việc' },
+            { id: 'cron', label: 'Hệ thống Cron' }
+          ].map(tab => (
+            <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`font-medium text-sm px-4 py-1.5 rounded-full transition-colors whitespace-nowrap ${activeTab === tab.id ? 'bg-[#0ea5b7] text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {activeTab === 'schedule' && (
       <div style={{ background: '#fff', borderRadius: '0.75rem', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
         {/* Toolbar */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1.25rem', borderBottom: '1px solid #e2e8f0' }}>
@@ -239,12 +269,12 @@ export default function StaffSchedulePage() {
             <thead style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
               <tr>
                 <th style={{ padding: '1rem', borderRight: '1px solid #e2e8f0', width: '200px', position: 'sticky', left: 0, background: '#f8fafc', zIndex: 10, boxShadow: '2px 0 5px -2px rgba(0,0,0,0.1)' }}>
-                  <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#475569' }}>Nhân viên</span>
+                  <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#475569' }}>Ca làm việc</span>
                 </th>
                 {weekDays.map((date, index) => {
                   const isToday = new Date().toDateString() === date.toDateString()
                   return (
-                    <th key={index} style={{ padding: '0.75rem', borderRight: index < 6 ? '1px solid #e2e8f0' : 'none', minWidth: '130px', textAlign: 'center', background: isToday ? '#E1F5EE' : 'transparent' }}>
+                    <th key={index} style={{ padding: '0.75rem', borderRight: index < 6 ? '1px solid #e2e8f0' : 'none', minWidth: '150px', textAlign: 'center', background: isToday ? '#E1F5EE' : 'transparent' }}>
                       <div style={{ fontSize: '0.75rem', fontWeight: 600, color: isToday ? '#0F6E56' : '#64748b' }}>
                         {dayNames[index]}
                       </div>
@@ -259,60 +289,96 @@ export default function StaffSchedulePage() {
             <tbody>
               {loading ? (
                 <tr><td colSpan={8} style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>Đang tải...</td></tr>
-              ) : displayStaff.length === 0 ? (
-                <tr><td colSpan={8} style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>Không có dữ liệu nhân viên</td></tr>
+              ) : distinctTimeSlots.length === 0 ? (
+                <tr><td colSpan={8} style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>Không có dữ liệu ca làm việc</td></tr>
               ) : (
-                displayStaff.map((staff, sIndex) => {
-                  const staffId = staff._id || staff.user_id?._id || staff
-                  const staffName = staff.full_name || staff.user_id?.full_name || staff.email || staff.user_id?.email || 'Chưa cập nhật'
-
+                distinctTimeSlots.map((slot, sIndex) => {
                   return (
-                    <tr key={staffId} style={{ borderBottom: sIndex < displayStaff.length - 1 ? '1px solid #e2e8f0' : 'none' }}>
-                      {/* Staff Info Cell */}
+                    <tr key={slot} style={{ borderBottom: sIndex < distinctTimeSlots.length - 1 ? '1px solid #e2e8f0' : 'none' }}>
+                      {/* Shift Time Cell */}
                       <td style={{ padding: '0.75rem 1rem', borderRight: '1px solid #e2e8f0', position: 'sticky', left: 0, background: '#fff', zIndex: 10, boxShadow: '2px 0 5px -2px rgba(0,0,0,0.1)' }}>
-                        <div style={{ fontWeight: 600, color: '#334155', fontSize: '0.875rem', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }} title={staffName}>
-                          {staffName}
+                        <div style={{ fontWeight: 600, color: '#334155', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <Clock size={16} className="text-teal-600" />
+                          {slot}
                         </div>
                       </td>
 
                       {/* Days Cells */}
                       {weekDays.map((date, index) => {
-                        const daySchedules = getSchedulesForStaffOnDate(staffId, date)
                         const isToday = new Date().toDateString() === date.toDateString()
+                        const daySchedules = getSchedulesForDate(date)
+                        const matchingSchedules = daySchedules.filter(s => `${s.start_time} - ${s.end_time}` === slot)
+                        
+                        // Deduplicate staff across all matching schedules
+                        const uniqueStaffMap = new Map()
+                        let totalMaxStaff = 0
+                        let totalAssigned = 0
+                        let firstSchedule = matchingSchedules.length > 0 ? matchingSchedules[0] : null
+
+                        matchingSchedules.forEach(schedule => {
+                          totalMaxStaff += schedule.max_staff
+                          schedule.assigned_staff.forEach((st: any) => {
+                            const stId = st._id || st.user_id?._id || st
+                            if (!uniqueStaffMap.has(stId)) {
+                              uniqueStaffMap.set(stId, st)
+                              totalAssigned += 1
+                            }
+                          })
+                        })
+                        const uniqueStaffs = Array.from(uniqueStaffMap.values())
 
                         return (
                           <td key={index} style={{ padding: '0.5rem', borderRight: index < 6 ? '1px solid #e2e8f0' : 'none', verticalAlign: 'top', background: isToday ? '#f7fdfb' : 'transparent' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                              {daySchedules.map(shift => (
-                                <div key={shift._id} style={{
-                                  background: '#EAF3DE', border: '1px solid #97C459', borderRadius: '6px', padding: '0.5rem', textAlign: 'center'
-                                }}>
-                                  <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#27500A', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                                    <Clock size={12} />
-                                    {shift.start_time} - {shift.end_time}
-                                  </div>
+                            {matchingSchedules.length > 0 ? (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', position: 'relative' }}>
+                                <div className="flex justify-between items-center px-1">
+                                  <span className="text-[10px] font-semibold text-slate-400">{totalAssigned}/{totalMaxStaff} NV</span>
+                                  <button onClick={() => {
+                                    setSelectedDetail({ date, slot })
+                                    setSelectedStaffIds(uniqueStaffs.map((st: any) => st._id || st.user_id?._id || st))
+                                  }} className="text-indigo-400 hover:text-indigo-600 transition-colors" title="Xem chi tiết"><Eye size={14}/></button>
                                 </div>
-                              ))}
+                                {uniqueStaffs.map((st: any, idx: number) => {
+                                  const staffName = st.full_name || st.user_id?.full_name || st.email || 'NV'
+                                  const stId = st._id || st.user_id?._id || st || idx
+                                  return (
+                                    <div key={stId} style={{
+                                      background: '#EAF3DE', border: '1px solid #97C459', borderRadius: '6px', padding: '0.375rem 0.5rem', display: 'flex', alignItems: 'center', gap: '0.375rem'
+                                    }}>
+                                      <div className="w-5 h-5 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center text-[10px] font-bold shrink-0">
+                                        {staffName.charAt(0).toUpperCase()}
+                                      </div>
+                                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#27500A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                        {staffName}
+                                      </span>
+                                    </div>
+                                  )
+                                })}
 
-                              {isManager && (
-                                <button
-                                  onClick={() => handleOpenAssignModal(staff, date)}
-                                  style={{
-                                    width: '100%', padding: '0.375rem',
-                                    background: 'transparent',
-                                    border: '1px dashed #cbd5e1',
-                                    borderRadius: '6px', color: '#64748b',
-                                    fontSize: '0.6875rem', fontWeight: 600,
-                                    cursor: 'pointer', display: 'flex',
-                                    justifyContent: 'center', alignItems: 'center', gap: '3px'
-                                  }}
-                                  onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = '#3b82f6'; e.currentTarget.style.borderColor = '#93c5fd' }}
-                                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#64748b'; e.currentTarget.style.borderColor = '#cbd5e1' }}
-                                >
-                                  <Plus size={12} /> Thêm ca
-                                </button>
-                              )}
-                            </div>
+                                {isManager && firstSchedule && totalAssigned < totalMaxStaff && (
+                                  <button
+                                    onClick={() => handleOpenAssignModal(firstSchedule, date)}
+                                    style={{
+                                      width: '100%', padding: '0.375rem',
+                                      background: 'transparent',
+                                      border: '1px dashed #cbd5e1',
+                                      borderRadius: '6px', color: '#64748b',
+                                      fontSize: '0.6875rem', fontWeight: 600,
+                                      cursor: 'pointer', display: 'flex',
+                                      justifyContent: 'center', alignItems: 'center', gap: '3px'
+                                    }}
+                                    onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = '#3b82f6'; e.currentTarget.style.borderColor = '#93c5fd' }}
+                                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#64748b'; e.currentTarget.style.borderColor = '#cbd5e1' }}
+                                  >
+                                    <Plus size={12} /> Phân công NV
+                                  </button>
+                                )}
+                              </div>
+                            ) : (
+                              <div style={{ textAlign: 'center', padding: '1rem', color: '#cbd5e1', fontSize: '0.75rem', fontStyle: 'italic' }}>
+                                -
+                              </div>
+                            )}
                           </td>
                         )
                       })}
@@ -324,6 +390,15 @@ export default function StaffSchedulePage() {
           </table>
         </div>
       </div>
+
+      )}
+
+      {/* Terminal Cron Monitor */}
+      {isManager && activeTab === 'cron' && (
+        <div className="mt-4">
+          <TerminalCronMonitor />
+        </div>
+      )}
 
       {/* Swap Modal */}
       {isSwapModalOpen && (
@@ -385,7 +460,17 @@ export default function StaffSchedulePage() {
                         </div>
                         <div>
                           <label className="block text-sm font-semibold text-slate-700 mb-2">Ngày làm việc</label>
-                          <input type="date" className="w-full border border-slate-300 rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all shadow-sm" value={selectedDateA} onChange={e => { setSelectedDateA(e.target.value); setSelectedShiftA(''); setSelectedStaffA('') }} />
+                          <div className="relative">
+                            <style>{`
+                              .date-picker-overlay::-webkit-calendar-picker-indicator {
+                                position: absolute;
+                                top: 0; left: 0; width: 100%; height: 100%;
+                                opacity: 0; cursor: pointer;
+                              }
+                            `}</style>
+                            <input type="text" className="w-full border border-slate-300 rounded-lg p-3 outline-none transition-all shadow-sm bg-white" value={selectedDateA ? selectedDateA.split('-').reverse().join('/') : ''} placeholder="dd/mm/yyyy" readOnly />
+                            <input type="date" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer date-picker-overlay" value={selectedDateA} onChange={e => { setSelectedDateA(e.target.value); setSelectedShiftA(''); setSelectedStaffA('') }} />
+                          </div>
                         </div>
                         <div>
                           <label className="block text-sm font-semibold text-slate-700 mb-2">Khung giờ</label>
@@ -418,7 +503,10 @@ export default function StaffSchedulePage() {
                         </div>
                         <div>
                           <label className="block text-sm font-semibold text-slate-700 mb-2">Ngày làm việc</label>
-                          <input type="date" className="w-full border border-indigo-200 bg-white rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 outline-none disabled:bg-slate-100 disabled:border-slate-200 disabled:text-slate-400 transition-all shadow-sm" value={selectedDateB} onChange={e => { setSelectedDateB(e.target.value); setSelectedShiftB(''); setSelectedStaffB('') }} disabled={!selectedStaffA} />
+                          <div className="relative">
+                            <input type="text" className="w-full border border-indigo-200 bg-white rounded-lg p-3 outline-none disabled:bg-slate-100 disabled:border-slate-200 disabled:text-slate-400 transition-all shadow-sm" value={selectedDateB ? selectedDateB.split('-').reverse().join('/') : ''} placeholder="dd/mm/yyyy" disabled={!selectedStaffA} readOnly />
+                            <input type="date" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed date-picker-overlay" value={selectedDateB} onChange={e => { setSelectedDateB(e.target.value); setSelectedShiftB(''); setSelectedStaffB('') }} disabled={!selectedStaffA} />
+                          </div>
                         </div>
                         <div>
                           <label className="block text-sm font-semibold text-slate-700 mb-2">Khung giờ</label>
@@ -473,9 +561,9 @@ export default function StaffSchedulePage() {
       )}
 
       {/* Assign Shift Modal */}
-      {isAssignShiftModalOpen && selectedStaffForAssign && selectedDateForAssign && (
+      {isAssignShiftModalOpen && selectedScheduleForAssign && selectedDateForAssign && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-xl overflow-hidden">
             <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
               <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">
                 <Plus className="text-indigo-600" size={20} />
@@ -484,40 +572,66 @@ export default function StaffSchedulePage() {
             </div>
             <div className="p-6 space-y-6">
               <div className="space-y-2">
-                <p className="text-sm text-slate-600 font-medium">Thông tin:</p>
+                <p className="text-sm text-slate-600 font-medium">Thông tin ca làm việc:</p>
                 <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-2">
                   <div className="flex items-center gap-2 text-sm text-slate-800 font-semibold">
-                    <Users size={14} className="text-slate-500" />
-                    {selectedStaffForAssign.user_id?.full_name || selectedStaffForAssign.full_name || 'Chưa cập nhật'}
+                    <Clock size={14} className="text-slate-500" />
+                    {selectedScheduleForAssign.start_time} - {selectedScheduleForAssign.end_time}
                   </div>
                   <div className="flex items-center gap-2 text-sm text-slate-800 font-semibold">
                     <CalendarIcon size={14} className="text-slate-500" />
                     {selectedDateForAssign.toLocaleDateString('vi-VN')}
                   </div>
+                  <div className="flex items-center gap-2 text-sm text-slate-800 font-semibold">
+                    <Users size={14} className="text-slate-500" />
+                    Còn trống {selectedScheduleForAssign.max_staff - selectedScheduleForAssign.assigned_staff.length} vị trí
+                  </div>
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-slate-700">Chọn ca khả dụng</label>
-                <select className="w-full border border-slate-300 rounded-md p-2 focus:ring-2 focus:ring-indigo-500 outline-none" value={selectedShiftToAssign} onChange={e => setSelectedShiftToAssign(e.target.value)}>
-                  <option value="">-- Chọn ca làm việc --</option>
+                <div className="flex justify-between items-center">
+                  <label className="block text-sm font-medium text-slate-700">Chọn nhân viên ({selectedStaffsToAssign.length} đã chọn)</label>
+                  {selectedStaffsToAssign.length > 0 && (
+                    <button type="button" onClick={() => setSelectedStaffsToAssign([])} className="text-xs text-rose-600 hover:text-rose-700 font-medium">Bỏ chọn tất cả</button>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-3 mt-2 max-h-[300px] overflow-y-auto pr-2 pb-2">
                   {(() => {
-                    const dateSchedules = getSchedulesForDate(selectedDateForAssign);
-                    const staffId = selectedStaffForAssign._id || selectedStaffForAssign.user_id?._id || selectedStaffForAssign;
-                    const availableShifts = dateSchedules.filter(s =>
-                      !s.assigned_staff.some((st: any) => {
-                        const stId = st._id || st.user_id?._id || st;
-                        return stId === staffId;
-                      }) &&
-                      s.assigned_staff.length < s.max_staff
-                    );
+                    const assignedIds = selectedScheduleForAssign.assigned_staff.map((st: any) => st._id || st.user_id?._id || st);
+                    const availableStaffs = allStaff.filter(st => {
+                      const stId = st._id || st.user_id?._id || st;
+                      const isManager = st.staff_type === 'manager' || st.role === 'manager';
+                      return !assignedIds.includes(stId) && !isManager;
+                    });
 
-                    return availableShifts.map(shift => (
-                      <option key={shift._id} value={shift._id}>
-                        {shift.start_time} - {shift.end_time} (Còn {shift.max_staff - shift.assigned_staff.length} slot)
-                      </option>
-                    ))
+                    if (availableStaffs.length === 0) {
+                      return <p className="text-slate-500 text-sm italic col-span-2">Không còn nhân viên nào rảnh để phân ca.</p>
+                    }
+
+                    return availableStaffs.map(st => {
+                      const stId = st._id || st.user_id?._id || st;
+                      const staffName = st.full_name || st.user_id?.full_name || st.email || 'NV';
+                      const isChecked = selectedStaffsToAssign.includes(stId);
+                      return (
+                        <label key={stId} className={`flex items-center gap-3 border p-2 rounded-lg cursor-pointer transition-colors ${isChecked ? 'bg-indigo-50 border-indigo-200' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'}`}>
+                          <input 
+                            type="checkbox" 
+                            checked={isChecked} 
+                            onChange={(e) => {
+                              if (e.target.checked) setSelectedStaffsToAssign([...selectedStaffsToAssign, stId])
+                              else setSelectedStaffsToAssign(selectedStaffsToAssign.filter(id => id !== stId))
+                            }}
+                            className="w-4 h-4 text-indigo-600 rounded border-slate-300 cursor-pointer"
+                          />
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${isChecked ? 'bg-indigo-200 text-indigo-800' : 'bg-slate-200 text-slate-700'}`}>
+                            {staffName.charAt(0).toUpperCase()}
+                          </div>
+                          <span className={`font-medium text-sm truncate ${isChecked ? 'text-indigo-900' : 'text-slate-700'}`}>{staffName}</span>
+                        </label>
+                      )
+                    })
                   })()}
-                </select>
+                </div>
               </div>
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex gap-3 items-start">
                 <AlertTriangle className="text-blue-600 shrink-0 mt-0.5" size={18} />
@@ -528,7 +642,7 @@ export default function StaffSchedulePage() {
               <button onClick={() => setIsAssignShiftModalOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 rounded-md transition-colors" disabled={isAssigning}>
                 Hủy bỏ
               </button>
-              <button onClick={handleAssignShiftConfirm} disabled={!selectedShiftToAssign || isAssigning} className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+              <button onClick={handleAssignShiftConfirm} disabled={selectedStaffsToAssign.length === 0 || isAssigning} className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
                 {isAssigning && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
                 Xác nhận
               </button>
@@ -536,6 +650,148 @@ export default function StaffSchedulePage() {
           </div>
         </div>
       )}
+
+      {/* Detail Modal */}
+      {selectedDetail && (() => {
+        const dateSchedules = getSchedulesForDate(selectedDetail.date)
+        const slotSchedules = dateSchedules.filter(s => `${s.start_time} - ${s.end_time}` === selectedDetail.slot)
+        
+        // Find staff working in THIS slot
+        const workingStaffs = new Map()
+        slotSchedules.forEach(s => {
+          s.assigned_staff.forEach((st: any) => {
+            const stId = st._id || st.user_id?._id || st
+            if (!workingStaffs.has(stId)) workingStaffs.set(stId, st)
+          })
+        })
+
+        // Find staff working on THIS DAY (any slot)
+        const allWorkingStaffsToday = new Map()
+        dateSchedules.forEach(s => {
+          s.assigned_staff.forEach((st: any) => {
+            const stId = st._id || st.user_id?._id || st
+            if (!allWorkingStaffsToday.has(stId)) allWorkingStaffsToday.set(stId, st)
+          })
+        })
+
+        // Find staff who are NOT working in THIS slot (but might be working another slot today)
+        const availableForSlot = allStaff.filter(st => {
+          const stId = st._id || st.user_id?._id || st
+          const isManager = st.staff_type === 'manager' || st.role === 'manager'
+          return !workingStaffs.has(stId) && !isManager
+        })
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={(e) => e.target === e.currentTarget && setSelectedDetail(null)}>
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col">
+              <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <div>
+                  <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">
+                    Chi tiết ca {selectedDetail.slot}
+                  </h3>
+                  <p className="text-sm text-slate-500 mt-1">Ngày {selectedDetail.date.toLocaleDateString('vi-VN')}</p>
+                </div>
+                <button type="button" onClick={() => setSelectedDetail(null)} className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-200 transition-colors">
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="p-6 overflow-y-auto space-y-6">
+                <div>
+                  <h4 className="font-semibold text-teal-700 flex items-center gap-2 mb-3 border-b border-teal-100 pb-2">
+                    <Users size={16} /> Danh sách làm việc ({workingStaffs.size} nhân viên)
+                  </h4>
+                  {workingStaffs.size === 0 ? (
+                    <p className="text-slate-500 text-sm italic">Chưa có nhân viên nào trong ca này.</p>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-3">
+                      {Array.from(workingStaffs.values()).map((st: any) => {
+                        const staffName = st.full_name || st.user_id?.full_name || st.email || 'NV'
+                        const stId = st._id || st.user_id?._id || st
+                        const isChecked = selectedStaffIds.includes(stId)
+                        return (
+                          <label key={stId} className="flex items-center gap-3 bg-teal-50 border border-teal-100 p-2 rounded-lg cursor-pointer hover:bg-teal-100 transition-colors">
+                            {isManager && (
+                              <input 
+                                type="checkbox" 
+                                checked={isChecked} 
+                                onChange={(e) => {
+                                  if (e.target.checked) setSelectedStaffIds([...selectedStaffIds, stId])
+                                  else setSelectedStaffIds(selectedStaffIds.filter(id => id !== stId))
+                                }}
+                                className="w-4 h-4 text-teal-600 rounded border-teal-300 cursor-pointer"
+                              />
+                            )}
+                            <div className="w-8 h-8 rounded-full bg-teal-200 text-teal-800 flex items-center justify-center font-bold text-sm shrink-0">
+                              {staffName.charAt(0).toUpperCase()}
+                            </div>
+                            <span className="font-medium text-slate-700 text-sm truncate">{staffName}</span>
+                          </label>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <h4 className="font-semibold text-rose-600 flex items-center gap-2 mb-3 border-b border-rose-100 pb-2">
+                    <Users size={16} /> Nhân viên rảnh trong ca này ({availableForSlot.length} nhân viên)
+                  </h4>
+                  {availableForSlot.length === 0 ? (
+                    <p className="text-slate-500 text-sm italic">Không có nhân viên nào rảnh trong ca này.</p>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-3">
+                      {availableForSlot.map((st: any) => {
+                        const staffName = st.full_name || st.user_id?.full_name || st.email || 'NV'
+                        const stId = st._id || st.user_id?._id || st
+                        const isChecked = selectedStaffIds.includes(stId)
+                        const isWorkingAnotherShift = allWorkingStaffsToday.has(stId)
+                        return (
+                          <label key={stId} className={`flex items-center gap-3 border p-2 rounded-lg cursor-pointer transition-colors ${isWorkingAnotherShift ? 'bg-orange-50 border-orange-200 hover:bg-orange-100' : 'bg-rose-50 border-rose-100 hover:bg-rose-100 opacity-80'}`}>
+                            {isManager && (
+                              <input 
+                                type="checkbox" 
+                                checked={isChecked} 
+                                onChange={(e) => {
+                                  if (e.target.checked) setSelectedStaffIds([...selectedStaffIds, stId])
+                                  else setSelectedStaffIds(selectedStaffIds.filter(id => id !== stId))
+                                }}
+                                className={`w-4 h-4 rounded cursor-pointer ${isWorkingAnotherShift ? 'text-orange-500 border-orange-300' : 'text-rose-500 border-rose-300'}`}
+                              />
+                            )}
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${isWorkingAnotherShift ? 'bg-orange-200 text-orange-800' : 'bg-rose-200 text-rose-800'}`}>
+                              {staffName.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="flex flex-col overflow-hidden">
+                              <span className={`font-medium text-sm truncate ${isWorkingAnotherShift ? 'text-orange-900' : 'text-slate-600'}`}>{staffName}</span>
+                              {isWorkingAnotherShift && <span className="text-[10px] text-orange-600 font-semibold leading-tight">(Có làm ca khác)</span>}
+                            </div>
+                          </label>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {isManager && slotSchedules.length > 0 && (
+                <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3 rounded-b-xl">
+                  <button onClick={() => setSelectedDetail(null)} className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 rounded-lg transition-colors">
+                    Hủy
+                  </button>
+                  <button 
+                    onClick={() => handleSaveStaffs(slotSchedules[0]._id)}
+                    disabled={isSavingStaffs}
+                    className="px-4 py-2 text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-lg transition-colors flex items-center gap-2"
+                  >
+                    {isSavingStaffs ? 'Đang lưu...' : 'Lưu danh sách ca'}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
-}
+}

@@ -18,10 +18,17 @@ const TIER_LABEL: Record<string, string> = {
 }
 
 const TIER_CLASS: Record<string, string> = {
-  member: 'admin-table__badge--gray',
-  silver: 'admin-table__badge--blue',
-  gold: 'admin-table__badge--yellow',
-  platinum: 'admin-table__badge--purple',
+  member: 'bg-slate-100 text-slate-700 border-slate-200',
+  silver: 'bg-blue-50 text-blue-700 border-blue-200',
+  gold: 'bg-amber-50 text-amber-700 border-amber-200',
+  platinum: 'bg-purple-50 text-purple-700 border-purple-200',
+}
+
+const TIER_ICON_COLOR: Record<string, string> = {
+  member: 'text-slate-500',
+  silver: 'text-blue-500',
+  gold: 'text-amber-500',
+  platinum: 'text-purple-500',
 }
 
 // ─── Modal ────────────────────────────────────────────────────────────────────
@@ -159,7 +166,7 @@ export default function AdminTiersPage() {
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
   const [modal, setModal] = useState<'create' | Tier | null>(null)
-  const [deletingId, setDeletingId] = useState<string | null>(null)
+
 
   const fetchData = async (pg = page) => {
     setLoading(true)
@@ -182,20 +189,7 @@ export default function AdminTiersPage() {
   useEffect(() => { void fetchData(1); setPage(1) }, [search])
   useEffect(() => { void fetchData(page) }, [page])
 
-  const handleDelete = async (t: Tier) => {
-    if (!window.confirm(`Xoá cấp bậc "${TIER_LABEL[t.tier_name]}"? Hành động này không thể hoàn tác.`)) return
-    const id = getId(t)
-    setDeletingId(id)
-    try {
-      await adminTierService.remove(id)
-      showSuccess('Đã xoá cấp bậc')
-      void fetchData(page)
-    } catch (err) {
-      showError(getErrorMessage(err, 'Không thể xoá cấp bậc'))
-    } finally {
-      setDeletingId(null)
-    }
-  }
+
 
   return (
     <div className="admin-page">
@@ -243,7 +237,7 @@ export default function AdminTiersPage() {
               <th>Điểm yêu cầu</th>
               <th>Cửa sổ đặt trước</th>
               <th>Giảm giá</th>
-              <th className="text-right">Thao tác</th>
+              <th style={{ textAlign: 'center' }}>Thao tác</th>
             </tr>
           </thead>
           <tbody>
@@ -259,8 +253,8 @@ export default function AdminTiersPage() {
                 <tr key={id} className="admin-table__row">
                   <td>
                     <div className="admin-promo-code">
-                      <Award size={14} className="text-yellow-500" />
-                      <span className={`admin-table__badge ${TIER_CLASS[tier.tier_name] || 'admin-table__badge--gray'}`}>
+                      <Award size={14} className={TIER_ICON_COLOR[tier.tier_name] || 'text-slate-500'} />
+                      <span className={`admin-table__badge border ${TIER_CLASS[tier.tier_name] || 'bg-slate-100 text-slate-700 border-slate-200'}`}>
                         {TIER_LABEL[tier.tier_name] || tier.tier_name}
                       </span>
                     </div>
@@ -282,22 +276,14 @@ export default function AdminTiersPage() {
                       <Percent size={10} /> {tier.discount_percentage}%
                     </span>
                   </td>
-                  <td className="text-right">
-                    <div className="admin-action-group">
+                  <td style={{ textAlign: 'center' }}>
+                    <div className="flex items-center justify-center gap-2">
                       <button
                         className="admin-action-btn admin-action-btn--edit"
                         onClick={() => setModal(tier)}
                         title="Chỉnh sửa"
                       >
                         <Pencil size={14} />
-                      </button>
-                      <button
-                        className="admin-action-btn admin-action-btn--delete"
-                        onClick={() => void handleDelete(tier)}
-                        disabled={deletingId === id}
-                        title="Xoá"
-                      >
-                        {deletingId === id ? <RefreshCw size={14} className="animate-spin" /> : <Trash2 size={14} />}
                       </button>
                     </div>
                   </td>

@@ -20,12 +20,13 @@ import Toaster from './components/Toaster'
 // Admin
 import AdminLayout from './pages/admin/AdminLayout'
 import AdminDashboard from './pages/admin/AdminDashboard'
-import AdminBookingsPage from './pages/admin/AdminBookingsPage'
+
 import AdminBookingHistoryPage from './pages/admin/AdminBookingHistoryPage'
 import AdminServicesPage from './pages/admin/AdminServicesPage'
 import AdminServiceGroupsPage from './pages/admin/AdminServiceGroupsPage'
 import AdminServicePackagesPage from './pages/admin/AdminServicePackagesPage'
 import AdminStaffsPage from './pages/admin/AdminStaffsPage'
+import AdminManagersPage from './pages/admin/AdminManagersPage'
 import AdminTiersPage from './pages/admin/AdminTiersPage'
 import InternalProfilePage from './pages/shared/InternalProfilePage'
 
@@ -68,8 +69,8 @@ function StaffIndexRedirect() {
   if (user?.staff_type === 'technical') {
     return <Navigate to="/staff/technical/dashboard" replace />;
   }
-  const isManager = user?.role === 'admin' || user?.role === 'boss' || user?.staff_type === 'manager';
-  return <Navigate to={isManager ? "/staff/revenue" : "/staff/bookings"} replace />;
+  const isAdminOrBoss = user?.role === 'admin' || user?.role === 'boss';
+  return <Navigate to={isAdminOrBoss ? "/staff/revenue" : "/staff/bookings"} replace />;
 }
 
 function AppContent() {
@@ -170,11 +171,9 @@ function AppContent() {
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="customers" element={<SharedCustomersPage />} />
-          <Route
-            path="bookings"
-            element={<AdminBookingsPage />}
-          />
+
           <Route path="booking-history" element={<AdminBookingHistoryPage />} />
+          <Route path="managers" element={<AdminManagersPage />} />
           <Route path="staffs" element={<AdminStaffsPage />} />
           <Route path="services" element={<AdminServicesPage />} />
           <Route path="service-groups" element={<AdminServiceGroupsPage />} />
