@@ -63,16 +63,11 @@ export default function NavBar() {
         <>
             <Link
                 to="/login"
-                className="hidden md:inline-block rounded-lg border border-cyan-500/25 bg-white px-5 py-2 font-sans text-sm font-semibold text-slate-700 no-underline transition-all hover:border-cyan-500/50 hover:text-[#0ea5b7]"
+                className="hidden md:inline-block bg-[#0ea5b7] text-white px-5 py-2 rounded-lg font-sans text-sm font-semibold cursor-pointer transition-all hover:bg-[#0b8fa0] hover:-translate-y-0.5 no-underline nav-cta"
             >
                 Đăng nhập
             </Link>
-            <Link
-                className="hidden md:inline-block bg-[#0ea5b7] text-white px-5 py-2 rounded-lg font-sans text-sm font-semibold cursor-pointer transition-all hover:bg-[#0b8fa0] hover:-translate-y-0.5 no-underline nav-cta"
-                to="/register"
-            >
-                Đăng ký ngay
-            </Link>
+
         </>
     )
 

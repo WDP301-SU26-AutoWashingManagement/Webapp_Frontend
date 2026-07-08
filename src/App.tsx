@@ -54,6 +54,7 @@ import StaffTechnicalBookingsPage from './pages/staff/StaffTechnicalBookingsPage
 import StaffTechnicalNotesPage from './pages/staff/StaffTechnicalNotesPage'
 import StaffTechnicalHistoryPage from './pages/staff/StaffTechnicalHistoryPage'
 import StaffSchedulePage from './pages/staff/StaffSchedulePage'
+import StaffBookingListPage from './pages/staff/StaffBookingListPage'
 
 import { useAuth } from './hooks/useAuth'
 import './App.css'
@@ -237,6 +238,7 @@ function AppContent() {
           <Route path="customers" element={<SharedCustomersPage />} />
 
           <Route path="bookings" element={<StaffBookingsPage />} />
+          <Route path="booking-list" element={<StaffBookingListPage />} />
           <Route path="checkin" element={<StaffCheckinPage />} />
           <Route path="in-progress" element={<StaffInProgressPage />} />
           <Route path="payments" element={<StaffPaymentsPage />} />
@@ -259,6 +261,7 @@ function AppContent() {
         >
           <Route index element={<Navigate to="/staff/technical/dashboard" replace />} />
           <Route path="dashboard" element={<StaffTechnicalDashboard />} />
+          <Route path="booking-list" element={<StaffBookingListPage />} />
           <Route path="bookings" element={<StaffBookingsPage />} />
           <Route path="checkin" element={<StaffCheckinPage />} />
           <Route path="in-progress" element={<StaffInProgressPage />} />

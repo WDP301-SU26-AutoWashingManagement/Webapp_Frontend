@@ -206,7 +206,7 @@ export default function StaffSchedulePage() {
   }
 
   return (
-    <div className="admin-page">
+    <div className="admin-page max-w-full px-4 lg:px-8">
       <div className="admin-page__header">
         <div>
           <h1 className="admin-page__title">Lịch làm việc</h1>
