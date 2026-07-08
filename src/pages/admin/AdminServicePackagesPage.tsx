@@ -172,18 +172,7 @@ export default function AdminServicePackagesPage() {
   }
 
   return (
-    <div className="admin-page">
-      <div className="admin-page__header">
-        <div>
-          <h1 className="admin-page__title">Gói dịch vụ (Combo)</h1>
-          <p className="admin-page__subtitle">Quản lý các gói combo và chiết khấu để tăng doanh thu</p>
-        </div>
-        {!showForm && (
-          <button onClick={handleOpenCreate} className="admin-btn admin-btn--primary">
-            <Plus size={15} /> Thêm Gói mới
-          </button>
-        )}
-      </div>
+    <div className="animate-in fade-in duration-300">
 
       {showForm ? (
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
@@ -384,6 +373,11 @@ export default function AdminServicePackagesPage() {
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
               />
+            </div>
+            <div className="ml-auto flex gap-2">
+              <button onClick={handleOpenCreate} className="admin-btn admin-btn--primary">
+                <Plus size={15} /> Thêm Gói mới
+              </button>
             </div>
           </div>
 

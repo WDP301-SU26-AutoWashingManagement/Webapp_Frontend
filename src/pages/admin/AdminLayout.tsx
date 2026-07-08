@@ -71,19 +71,9 @@ const NAV_GROUPS = [
       },
 
       {
-        label: 'Nhóm dịch vụ',
-        icon: Layers,
-        to: '/admin/service-groups',
-      },
-      {
-        label: 'Dịch vụ lẻ',
-        icon: Wrench,
-        to: '/admin/services',
-      },
-      {
-        label: 'Gói dịch vụ (Combo)',
+        label: 'Dịch vụ & Combo',
         icon: Package,
-        to: '/admin/service-packages',
+        to: '/admin/services',
       },
       {
         label: 'Cấp bậc',
