@@ -1,29 +1,35 @@
-import { UserPlus, CalendarCheck, Sparkles, Gift } from 'lucide-react'
+import { UserPlus, CalendarCheck, Sparkles, Car } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 const steps = [
   {
     icon: UserPlus,
     num: '01',
+    title: 'Đăng ký tài khoản',
+    desc: 'Đăng nhập nhanh chóng bằng tài khoản Google để bắt đầu sử dụng dịch vụ.',
+    link: '/login'
+  },
+  {
+    icon: Car,
+    num: '02',
     title: 'Đăng ký thông tin xe',
     desc: 'Nhập thông tin xe và biển số xe. Vui lòng nhập chính xác thông tin xe để checkin tại cửa hàng.',
     link: '/vehicles'
   },
   {
     icon: CalendarCheck,
-    num: '02',
+    num: '03',
     title: 'Đặt lịch rửa xe',
     desc: 'Chọn ngày giờ phù hợp trong khung thời gian theo hạng ( 7-21 ngày ). Hệ thống xác nhận slot ngay.',
     link: '/bookings/new'
   },
   {
     icon: Sparkles,
-    num: '03',
+    num: '04',
     title: 'Rửa xe & tích điểm',
     desc: 'Admin xác nhận hoàn thành dịch vụ. Điểm được cộng tự động vào tài khoản của bạn.',
     link: '/profile'
   },
-
 ]
 
 export default function HowItWorks() {
@@ -32,14 +38,14 @@ export default function HowItWorks() {
       className="marketing-section page-section px-6 md:px-16 bg-white/35 backdrop-blur-md border-t border-b border-cyan-500/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)]"
       id="how"
     >
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         <div className="text-center mb-12">
           <div className="section-label mx-auto">Quy trình</div>
           <h2 className="section-title mb-4">Cách hoạt động</h2>
-          <p className="section-sub mb-0 mx-auto max-w-2xl">Từ đăng ký thông tin đến nhận dịch vụ — chỉ 3 bước đơn giản</p>
+          <p className="section-sub mb-0 mx-auto max-w-2xl">Từ đăng nhập đến nhận dịch vụ — chỉ 4 bước đơn giản</p>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
           {steps.map((s) => {
             const content = (
               <>
@@ -58,15 +64,17 @@ export default function HowItWorks() {
 
                 <p className="text-sm leading-relaxed text-slate-600">{s.desc}</p>
 
-                <div className="mt-6 h-px w-full bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent" />
-                <div className="mt-4 flex items-center justify-between text-xs font-medium text-slate-500">
-                  <span>AutoWash flow</span>
-                  <span className="text-cyan-700">Nhanh gọn</span>
+                <div className="mt-auto">
+                  <div className="mt-6 h-px w-full bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent" />
+                  <div className="mt-4 flex items-center justify-between text-xs font-medium text-slate-500">
+                    <span>AutoWash flow</span>
+                    <span className="text-cyan-700">Nhanh gọn</span>
+                  </div>
                 </div>
               </>
             )
 
-            const className = "group rounded-3xl border border-cyan-500/10 bg-white/75 p-6 shadow-sm backdrop-blur-sm transition-all duration-200 hover:-translate-y-1 hover:border-cyan-500/25 hover:shadow-lg hover:shadow-cyan-500/5 h-full"
+            const className = "group rounded-3xl border border-cyan-500/10 bg-white/75 p-6 shadow-sm backdrop-blur-sm transition-all duration-200 hover:-translate-y-1 hover:border-cyan-500/25 hover:shadow-lg hover:shadow-cyan-500/5 h-full flex flex-col"
 
             if (s.link) {
               return (

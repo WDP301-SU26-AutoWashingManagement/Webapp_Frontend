@@ -84,20 +84,6 @@ export default function NavBar() {
                 Thông tin cá nhân
             </Link>
             <Link
-                to="/vehicles"
-                onClick={() => setOpen(false)}
-                className="text-slate-700 font-medium no-underline"
-            >
-                Phương tiện
-            </Link>
-            <Link
-                to="/bookings/new"
-                onClick={() => setOpen(false)}
-                className="text-slate-700 font-medium no-underline"
-            >
-                Đặt lịch
-            </Link>
-            <Link
                 to="/bookings"
                 onClick={() => setOpen(false)}
                 className="text-slate-700 font-medium no-underline"
@@ -147,12 +133,17 @@ export default function NavBar() {
                 <Link to="/#how" className={`${linkClass} text-slate-700 hover:text-[#0ea5b7]`}>
                     Cách hoạt động
                 </Link>
-
                 <Link to="/#features" className={`${linkClass} text-slate-700 hover:text-[#0ea5b7]`}>
                     Tính năng
                 </Link>
                 <Link to="/#tiers" className={`${linkClass} text-slate-700 hover:text-[#0ea5b7]`}>
                     Hạng thành viên
+                </Link>
+                <Link to="/#services" className={`${linkClass} text-slate-700 hover:text-[#0ea5b7]`}>
+                    Dịch vụ
+                </Link>
+                <Link to="/bookings/new" className={`${linkClass} text-slate-700 hover:text-[#0ea5b7]`}>
+                    Đặt lịch
                 </Link>
             </div>
 
@@ -185,6 +176,12 @@ export default function NavBar() {
                         </Link>
                         <Link to="/#features" onClick={() => setOpen(false)} className="text-slate-700 font-medium no-underline">
                             Tính năng
+                        </Link>
+                        <Link to="/#services" onClick={() => setOpen(false)} className="text-slate-700 font-medium no-underline">
+                            Dịch vụ
+                        </Link>
+                        <Link to="/bookings/new" onClick={() => setOpen(false)} className="text-slate-700 font-medium no-underline">
+                            Đặt lịch
                         </Link>
                         {authActionsMobile}
                     </div>
