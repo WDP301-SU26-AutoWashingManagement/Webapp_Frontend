@@ -11,7 +11,8 @@ export default function StaffPaymentsPage() {
     const [loading, setLoading] = useState(true)
     const [detailModal, setDetailModal] = useState<WashBooking | null>(null)
     const [page, setPage] = useState(1)
-    const [selectedDate, setSelectedDate] = useState<string>('')
+    const today = new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]
+    const [selectedDate, setSelectedDate] = useState<string>(today)
     const [searchQuery, setSearchQuery] = useState('')
     const limit = 8
 

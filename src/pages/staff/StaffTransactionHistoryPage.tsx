@@ -17,7 +17,8 @@ export default function StaffTransactionHistoryPage() {
     const [loadingDetailId, setLoadingDetailId] = useState<string | null>(null)
     const [detailModal, setDetailModal] = useState<any | null>(null)
     const [page, setPage] = useState(1)
-    const [dateRange, setDateRange] = useState({ startDate: '', endDate: '' })
+    const today = new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]
+    const [dateRange, setDateRange] = useState({ startDate: today, endDate: today })
     const [searchQuery, setSearchQuery] = useState('')
     const limit = 8
 
@@ -61,10 +62,11 @@ export default function StaffTransactionHistoryPage() {
     const filteredItems = data.filter((b: any) => {
         if (searchQuery) {
             const q = searchQuery.toLowerCase().trim()
-            const plate = b.vehicle?.plate_number?.toLowerCase() || ''
-            const id = (b._id ?? b.id!)?.toLowerCase() || ''
-            const shortId = id.slice(-6)
-            if (!plate.includes(q) && !shortId.includes(q) && !id.includes(q)) return false
+            const plate = (b.vehicle?.license_plate || b.vehicle?.plate_number || '').toLowerCase()
+            const appointmentId = (b.appointment?._id ?? b._id ?? '').toLowerCase()
+            const shortAppointmentId = appointmentId.slice(-6)
+            
+            if (!plate.includes(q) && !appointmentId.includes(q) && !shortAppointmentId.includes(q)) return false
         }
         return true
     });

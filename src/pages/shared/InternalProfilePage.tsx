@@ -324,12 +324,7 @@ export default function InternalProfilePage() {
                   <div className="flex items-center gap-2"><Award size={16} className="text-cyan-500" /> Điểm thưởng</div>
                   <span className="font-bold">{Number(profile.role_data.reward_points ?? 0).toLocaleString('vi-VN')}</span>
                 </div> */}
-                {Boolean(profile.role_data.referral_code) && (
-                  <div className="flex items-center justify-between text-sm text-slate-700 bg-slate-50 p-3 rounded-lg border border-slate-100">
-                    <div className="flex items-center gap-2"><Share2 size={16} className="text-purple-500" /> Mã giới thiệu</div>
-                    <span className="font-mono font-bold text-slate-900">{String(profile.role_data.referral_code)}</span>
-                  </div>
-                )}
+                {/* Removed referral_code section */}
               </div>
             )}
           </div>

@@ -22,9 +22,7 @@ import AdminLayout from './pages/admin/AdminLayout'
 import AdminDashboard from './pages/admin/AdminDashboard'
 
 import AdminBookingHistoryPage from './pages/admin/AdminBookingHistoryPage'
-import AdminServicesPage from './pages/admin/AdminServicesPage'
-import AdminServiceGroupsPage from './pages/admin/AdminServiceGroupsPage'
-import AdminServicePackagesPage from './pages/admin/AdminServicePackagesPage'
+import AdminServiceManagementPage from './pages/admin/AdminServiceManagementPage'
 import AdminStaffsPage from './pages/admin/AdminStaffsPage'
 import AdminManagersPage from './pages/admin/AdminManagersPage'
 import AdminTiersPage from './pages/admin/AdminTiersPage'
@@ -42,11 +40,8 @@ import SharedCustomersPage from './pages/shared/SharedCustomersPage'
 // Staff
 import StaffLayout from './pages/staff/StaffLayout'
 import StaffDashboard from './pages/staff/StaffDashboard'
-import StaffBookingsPage from './pages/staff/StaffBookingsPage'
-import StaffCheckinPage from './pages/staff/StaffCheckinPage'
 import StaffPaymentsPage from './pages/staff/StaffPaymentsPage'
 import StaffTransactionHistoryPage from './pages/staff/StaffTransactionHistoryPage'
-import StaffInProgressPage from './pages/staff/StaffInProgressPage'
 import StaffLeaveRequestsPage from './pages/staff/StaffLeaveRequestsPage'
 import StaffTechnicalLayout from './pages/staff/StaffTechnicalLayout'
 import StaffTechnicalDashboard from './pages/staff/StaffTechnicalDashboard'
@@ -176,9 +171,7 @@ function AppContent() {
           <Route path="booking-history" element={<AdminBookingHistoryPage />} />
           <Route path="managers" element={<AdminManagersPage />} />
           <Route path="staffs" element={<AdminStaffsPage />} />
-          <Route path="services" element={<AdminServicesPage />} />
-          <Route path="service-groups" element={<AdminServiceGroupsPage />} />
-          <Route path="service-packages" element={<AdminServicePackagesPage />} />
+          <Route path="services" element={<AdminServiceManagementPage />} />
 
           <Route path="tiers" element={<AdminTiersPage />} />
           <Route
@@ -237,10 +230,7 @@ function AppContent() {
           <Route path="dashboard" element={<StaffDashboard />} />
           <Route path="customers" element={<SharedCustomersPage />} />
 
-          <Route path="bookings" element={<StaffBookingsPage />} />
-          <Route path="booking-list" element={<StaffBookingListPage />} />
-          <Route path="checkin" element={<StaffCheckinPage />} />
-          <Route path="in-progress" element={<StaffInProgressPage />} />
+          <Route path="bookings" element={<StaffBookingListPage />} />
           <Route path="payments" element={<StaffPaymentsPage />} />
           <Route path="transaction-history" element={<StaffTransactionHistoryPage />} />
           <Route path="leave-requests" element={<StaffLeaveRequestsPage />} />
@@ -259,12 +249,9 @@ function AppContent() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<Navigate to="/staff/technical/dashboard" replace />} />
+          <Route index element={<Navigate to="/staff/technical/bookings" replace />} />
           <Route path="dashboard" element={<StaffTechnicalDashboard />} />
-          <Route path="booking-list" element={<StaffBookingListPage />} />
-          <Route path="bookings" element={<StaffBookingsPage />} />
-          <Route path="checkin" element={<StaffCheckinPage />} />
-          <Route path="in-progress" element={<StaffInProgressPage />} />
+          <Route path="bookings" element={<StaffBookingListPage />} />
           <Route path="payments" element={<StaffPaymentsPage />} />
           <Route path="washing-status" element={<StaffWashingStatus />} />
           <Route path="notes" element={<StaffTechnicalNotesPage />} />

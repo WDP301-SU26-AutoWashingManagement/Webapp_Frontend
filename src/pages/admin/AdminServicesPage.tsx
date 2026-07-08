@@ -252,18 +252,7 @@ export default function AdminServicesPage() {
   }
 
   return (
-    <div className="admin-page">
-      {/* Header */}
-      <div className="admin-page__header">
-        <div>
-          <h1 className="admin-page__title">Dịch vụ lẻ</h1>
-          <p className="admin-page__subtitle">Quản lý các dịch vụ đơn (rửa xe, hút bụi...) · {total} dịch vụ</p>
-        </div>
-        <button className="admin-btn admin-btn--primary" onClick={() => setModal('create')}>
-          <Plus size={15} /> Thêm dịch vụ
-        </button>
-      </div>
-
+    <div className="animate-in fade-in duration-300">
       {/* Filters */}
       <div className="admin-filters">
         <div className="admin-search-wrap">
@@ -291,13 +280,18 @@ export default function AdminServicesPage() {
           ))}
         </div>
 
-        <button
-          className="admin-btn admin-btn--ghost ml-auto"
-          onClick={() => void fetchData(page)}
-          disabled={loading}
-        >
-          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-        </button>
+        <div className="ml-auto flex gap-2">
+          <button
+            className="admin-btn admin-btn--ghost"
+            onClick={() => void fetchData(page)}
+            disabled={loading}
+          >
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+          </button>
+          <button className="admin-btn admin-btn--primary" onClick={() => setModal('create')}>
+            <Plus size={15} /> Thêm dịch vụ
+          </button>
+        </div>
       </div>
 
       {/* Table */}

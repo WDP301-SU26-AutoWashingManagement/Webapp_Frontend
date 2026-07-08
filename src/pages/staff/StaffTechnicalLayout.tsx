@@ -3,8 +3,6 @@ import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import {
     LayoutDashboard,
     ClipboardList,
-    FileText,
-    History,
     Settings,
     LogOut,
     Menu,
@@ -12,9 +10,6 @@ import {
     ChevronRight,
     CalendarOff,
     CalendarDays,
-    Wallet,
-    CheckSquare,
-    PlayCircle,
     CreditCard,
     CircleEllipsis
 } from 'lucide-react'
@@ -25,30 +20,11 @@ const NAV_GROUPS = [
     {
         title: 'Lịch hẹn & Xử lý',
         items: [
-            {
-                label: 'Tổng quan',
-                icon: LayoutDashboard,
-                to: '/staff/technical/dashboard',
-            },
-            {
-                label: 'Quản lý lịch hẹn',
-                icon: ClipboardList,
-                to: '/staff/technical/bookings',
-            },
+
             {
                 label: 'Lịch hẹn',
                 icon: ClipboardList,
-                to: '/staff/technical/booking-list',
-            },
-            {
-                label: 'Checkin xe',
-                icon: CheckSquare,
-                to: '/staff/technical/checkin',
-            },
-            {
-                label: 'Đang xử lý',
-                icon: PlayCircle,
-                to: '/staff/technical/in-progress',
+                to: '/staff/technical/bookings',
             },
             {
                 label: 'Lịch hẹn hoàn thành',
@@ -109,7 +85,7 @@ export default function StaffTechnicalLayout() {
         <div className="admin-layout">
             <aside className={`admin-sidebar ${sidebarOpen ? 'admin-sidebar--open' : 'admin-sidebar--collapsed'}`}>
                 <div className="admin-sidebar__brand">
-                    <Link to="/staff/technical/dashboard" className="admin-sidebar__logo-link">
+                    <Link to="/staff/technical/bookings" className="admin-sidebar__logo-link">
                         <img src={logo2} alt="AutoWash" className="admin-sidebar__logo-img" />
                         {sidebarOpen && (
                             <span className="admin-sidebar__logo-text">

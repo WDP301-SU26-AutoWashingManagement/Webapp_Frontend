@@ -37,17 +37,7 @@ const NAV_GROUPS = [
             {
                 label: 'Lịch hẹn',
                 icon: CalendarCheck,
-                to: '/staff/booking-list',
-            },
-            {
-                label: 'Checkin xe',
-                icon: CheckSquare,
-                to: '/staff/checkin',
-            },
-            {
-                label: 'Đang xử lý',
-                icon: PlayCircle,
-                to: '/staff/in-progress',
+                to: '/staff/bookings',
             },
             {
                 label: 'Lịch hẹn hoàn thành',
