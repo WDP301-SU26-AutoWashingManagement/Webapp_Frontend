@@ -36,6 +36,11 @@ const NAV_GROUPS = [
                 to: '/staff/technical/bookings',
             },
             {
+                label: 'Lịch hẹn',
+                icon: ClipboardList,
+                to: '/staff/technical/booking-list',
+            },
+            {
                 label: 'Checkin xe',
                 icon: CheckSquare,
                 to: '/staff/technical/checkin',

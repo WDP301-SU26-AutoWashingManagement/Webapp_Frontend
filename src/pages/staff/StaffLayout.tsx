@@ -35,9 +35,9 @@ const NAV_GROUPS = [
                 to: '/staff/dashboard',
             },
             {
-                label: 'Quản lý lịch hẹn',
+                label: 'Lịch hẹn',
                 icon: CalendarCheck,
-                to: '/staff/bookings',
+                to: '/staff/booking-list',
             },
             {
                 label: 'Checkin xe',
