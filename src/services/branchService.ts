@@ -51,5 +51,10 @@ export const branchService = {
   async toggleActive(id: string): Promise<Branch> {
     const response = await apiClient.patch<ApiResponse<Branch>>(`/branches/${id}/activate`)
     return response.data as Branch
+  },
+
+  async getPublicStats(): Promise<{ customers: number; bookings: number; branches: number }> {
+    const response = await apiClient.get<ApiResponse<{ customers: number; bookings: number; branches: number }>>('/branches/public-stats')
+    return response.data as { customers: number; bookings: number; branches: number }
   }
 }

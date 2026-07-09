@@ -1,12 +1,26 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { branchService } from '../services/branchService'
 
 export default function Hero() {
   const videoRef = useRef<HTMLVideoElement>(null)
+  const [stats, setStats] = useState({ customers: 0, bookings: 0, branches: 0 })
 
   useEffect(() => {
     if (videoRef.current) {
       videoRef.current.play().catch(() => { })
     }
+
+    async function fetchStats() {
+      try {
+        const data = await branchService.getPublicStats()
+        if (data) {
+          setStats(data)
+        }
+      } catch (error) {
+        console.error('Lỗi khi tải thống kê:', error)
+      }
+    }
+    void fetchStats()
   }, [])
 
   return (
@@ -38,7 +52,7 @@ export default function Hero() {
         </h1>
 
         <h1
-          className="absolute left-[clamp(16px,5vw,28%)] top-[58%] text-[clamp(48px,8.7vw,120px)] font-sans font-extrabold three-d-heading leading-[0.9] tracking-[-0.05em] text-white opacity-0 animate-fadeUp [animation-delay:0.46s]"
+          className="absolute left-[clamp(16px,5vw,28%)] top-[70%] text-[clamp(48px,8.7vw,120px)] font-sans font-extrabold three-d-heading leading-[0.9] tracking-[-0.05em] text-white opacity-0 animate-fadeUp [animation-delay:0.46s]"
         >
           NHẬN ƯU ĐÃI
         </h1>
@@ -49,6 +63,7 @@ export default function Hero() {
           Đặt lịch, theo dõi điểm thưởng và nhận ưu đãi độc quyền theo hạng thành viên trong một ứng dụng duy nhất.
         </p>
 
+        {/* Top-Right Stat: Active Customers */}
         <div
           className="absolute right-[clamp(24px,6vw,96px)] top-[14%] opacity-0 animate-fadeUp [animation-delay:0.55s]"
         >
@@ -56,25 +71,32 @@ export default function Hero() {
             <div
               className="hidden h-px w-24 rotate-[20deg] bg-white/40 md:block"
             />
-            <span className="text-[clamp(36px,4.5vw,56px)] font-sans font-semibold tracking-[-0.03em] text-white">+65k</span>
+            <span className="text-[clamp(36px,4.5vw,56px)] font-sans font-semibold tracking-[-0.03em] text-white">
+              +{stats.customers}
+            </span>
           </div>
           <p className="mt-1 text-right text-[clamp(11px,1.1vw,14px)] text-white/70">khách hàng đang sử dụng</p>
         </div>
 
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-48 bg-gradient-to-b from-transparent to-black" />
 
+        {/* Bottom-Left Stat: Active Branches */}
         <div
-          className="absolute left-[clamp(24px,5vw,80px)] bottom-[clamp(80px,6vw,96px)] opacity-0 animate-fadeUp [animation-delay:0.65s]"
+          className="absolute left-[clamp(24px,5vw,80px)] bottom-[clamp(40px,4vw,56px)] opacity-0 animate-fadeUp [animation-delay:0.65s]"
         >
           <div className="flex items-center gap-3">
-            <span className="text-[clamp(36px,4.5vw,56px)] font-sans font-semibold tracking-[-0.03em] text-white">+1.5b</span>
+            <span className="text-[clamp(28px,4.5vw,56px)] font-sans font-semibold tracking-[-0.03em] text-white">
+              +{stats.branches}
+            </span>
             <div
               className="hidden h-px w-24 rotate-[-20deg] bg-white/40 md:block"
             />
           </div>
-          <p className="mt-1 text-[clamp(11px,1.1vw,14px)] text-white/70">lít nước được tiết kiệm</p>
+          <p className="mt-1 text-[clamp(11px,1.1vw,14px)] text-white/70">chi nhánh đang hoạt động</p>
         </div>
 
+
+        {/* Bottom-Right Stat: Total Bookings */}
         <div
           className="absolute right-[clamp(24px,5vw,80px)] bottom-[clamp(64px,5vw,80px)] opacity-0 animate-fadeUp [animation-delay:0.72s]"
         >
@@ -82,9 +104,11 @@ export default function Hero() {
             <div
               className="hidden h-px w-24 rotate-[-20deg] bg-white/40 md:block"
             />
-            <span className="text-[clamp(36px,4.5vw,56px)] font-sans font-semibold tracking-[-0.03em] text-white">+300k</span>
+            <span className="text-[clamp(36px,4.5vw,56px)] font-sans font-semibold tracking-[-0.03em] text-white">
+              +{stats.bookings}
+            </span>
           </div>
-          <p className="mt-1 text-right text-[clamp(11px,1.1vw,14px)] text-white/70">lượt đặt lịch</p>
+          <p className="mt-1 text-right text-[clamp(11px,1.1vw,14px)] text-white/70">lượt đặt lịch thành công</p>
         </div>
       </div>
     </section>
