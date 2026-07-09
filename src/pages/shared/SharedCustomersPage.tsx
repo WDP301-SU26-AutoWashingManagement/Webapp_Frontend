@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
-  Search, RefreshCw, X, ChevronLeft, ChevronRight, User, Star, Plus, Edit2, Ban
+  Search, RefreshCw, X, ChevronLeft, ChevronRight, User, Star, Plus, Edit2, Ban, Check
 } from 'lucide-react'
 import { adminCustomerService, type AdminCustomer, type CreateCustomerInput } from '../../services/adminCustomerService'
 import { adminTierService } from '../../services/adminTierService'
@@ -22,7 +22,7 @@ function CustomerModal({
 }) {
   const isEditing = !!initialData
   const [saving, setSaving] = useState(false)
-  
+
   const [form, setForm] = useState<Partial<CreateCustomerInput> & { is_active?: boolean }>({
     full_name: '',
     email: '',
@@ -98,55 +98,55 @@ function CustomerModal({
           <button type="button" className="admin-modal__close" onClick={onClose}><X size={20} /></button>
         </div>
         <form className="admin-modal__body space-y-4" onSubmit={handleSubmit}>
-          
+
           <div className="admin-form-row">
             <div className="admin-form-group">
               <label className="admin-form-label">Họ tên <span className="text-red-500">*</span></label>
-              <input 
-                className="admin-form-input" 
-                required 
-                value={form.full_name} 
-                onChange={e => setForm({...form, full_name: e.target.value})} 
+              <input
+                className="admin-form-input"
+                required
+                value={form.full_name}
+                onChange={e => setForm({ ...form, full_name: e.target.value })}
               />
             </div>
             <div className="admin-form-group">
               <label className="admin-form-label">Điện thoại</label>
-              <input 
-                className="admin-form-input" 
-                value={form.phone} 
-                onChange={e => setForm({...form, phone: e.target.value})} 
+              <input
+                className="admin-form-input"
+                value={form.phone}
+                onChange={e => setForm({ ...form, phone: e.target.value })}
               />
             </div>
           </div>
 
           <div className="admin-form-group">
             <label className="admin-form-label">Email <span className="text-red-500">*</span></label>
-            <input 
+            <input
               type="email"
-              className="admin-form-input" 
-              required 
-              value={form.email} 
-              onChange={e => setForm({...form, email: e.target.value})} 
+              className="admin-form-input"
+              required
+              value={form.email}
+              onChange={e => setForm({ ...form, email: e.target.value })}
             />
           </div>
 
           <div className="admin-form-group">
             <label className="admin-form-label">Mật khẩu {isEditing && '(Bỏ trống nếu không đổi)'} {!isEditing && <span className="text-red-500">*</span>}</label>
-            <input 
+            <input
               type="password"
-              className="admin-form-input" 
-              required={!isEditing} 
-              value={form.password || ''} 
-              onChange={e => setForm({...form, password: e.target.value})} 
+              className="admin-form-input"
+              required={!isEditing}
+              value={form.password || ''}
+              onChange={e => setForm({ ...form, password: e.target.value })}
             />
           </div>
 
           <div className="admin-form-group">
             <label className="admin-form-label">Hạng thành viên</label>
-            <select 
+            <select
               className="admin-form-input"
               value={form.tier_id}
-              onChange={e => setForm({...form, tier_id: e.target.value})}
+              onChange={e => setForm({ ...form, tier_id: e.target.value })}
             >
               <option value="">Thành viên thường</option>
               {tiers.map(t => (
@@ -155,51 +155,34 @@ function CustomerModal({
             </select>
           </div>
 
-          <div className="admin-form-row">
-            <div className="admin-form-group">
-              <label className="admin-form-label">Điểm tích lũy</label>
-              <input 
-                type="number"
-                min="0"
-                className="admin-form-input" 
-                value={form.membership_points} 
-                onChange={e => setForm({...form, membership_points: Number(e.target.value)})} 
-              />
-              {(() => {
-                if (!form.tier_id) return null;
-                const currentTier = tiers.find(t => (t._id === form.tier_id) || (t.id === form.tier_id));
-                if (!currentTier || !currentTier.max_membership_points || currentTier.max_membership_points >= 1000000) return <span className="text-xs text-slate-400 mt-1 block">Đã đạt hạng tối đa</span>;
-                const pts = form.membership_points || 0;
-                const max = currentTier.max_membership_points;
-                const percent = Math.min(100, Math.max(0, (pts / max) * 100));
-                return (
-                  <div className="w-full mt-2">
-                    <div className="flex justify-between text-[10px] text-slate-500 mb-1 font-medium">
-                      <span>Tiến độ lên hạng</span>
-                      <span>{pts}/{max}</span>
-                    </div>
-                    <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
-                      <div className="bg-gradient-to-r from-amber-400 to-amber-500 h-1.5 rounded-full transition-all duration-500" style={{ width: `${percent}%` }}></div>
-                    </div>
+          <div className="admin-form-group">
+            <label className="admin-form-label">Điểm tích lũy</label>
+            <input 
+              type="number"
+              min="0"
+              className="admin-form-input" 
+              value={form.membership_points} 
+              onChange={e => setForm({ ...form, membership_points: Number(e.target.value) })} 
+            />
+            {(() => {
+              if (!form.tier_id) return null;
+              const currentTier = tiers.find(t => (t._id === form.tier_id) || (t.id === form.tier_id));
+              if (!currentTier || !currentTier.max_membership_points || currentTier.max_membership_points >= 1000000) return <span className="text-xs text-slate-400 mt-1 block">Đã đạt hạng tối đa</span>;
+              const pts = form.membership_points || 0;
+              const max = currentTier.max_membership_points;
+              const percent = Math.min(100, Math.max(0, (pts / max) * 100));
+              return (
+                <div className="w-full mt-2">
+                  <div className="flex justify-between text-[10px] text-slate-500 mb-1 font-medium">
+                    <span>Tiến độ lên hạng</span>
+                    <span>{pts}/{max}</span>
                   </div>
-                );
-              })()}
-            </div>
-            {isEditing && (
-              <div className="admin-form-group">
-                <label className="admin-form-label">Trạng thái tài khoản</label>
-                <div className="mt-2 flex items-center gap-2">
-                  <input 
-                    type="checkbox" 
-                    id="is_active"
-                    checked={form.is_active}
-                    onChange={e => setForm({...form, is_active: e.target.checked})}
-                    className="w-4 h-4 text-cyan-600 rounded"
-                  />
-                  <label htmlFor="is_active">Đang hoạt động</label>
+                  <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                    <div className="bg-gradient-to-r from-amber-400 to-amber-500 h-1.5 rounded-full transition-all duration-500" style={{ width: `${percent}%` }}></div>
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
           </div>
 
           <div className="admin-modal__footer mt-6">
@@ -226,6 +209,7 @@ export default function SharedCustomersPage() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editingCustomer, setEditingCustomer] = useState<AdminCustomer | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [confirmLockData, setConfirmLockData] = useState<{ id: string; action: 'lock' | 'unlock' } | null>(null)
 
   const { user } = useAuth()
   const canManage = user?.role === 'admin' || user?.role === 'boss'
@@ -271,22 +255,8 @@ export default function SharedCustomersPage() {
     setModalOpen(true)
   }
 
-  const handleDeactivate = async (id: string, isActive: boolean) => {
-    if (!isActive) {
-      showError('Khách hàng này đã bị khóa')
-      return
-    }
-    if (!window.confirm('Bạn có chắc chắn muốn khóa tài khoản khách hàng này? Họ sẽ không thể đăng nhập vào hệ thống.')) return
-    setDeletingId(id)
-    try {
-      await adminCustomerService.update(id, { is_active: false })
-      showSuccess('Đã khóa khách hàng thành công')
-      fetchData(page)
-    } catch (err) {
-      showError(getErrorMessage(err, 'Khóa thất bại'))
-    } finally {
-      setDeletingId(null)
-    }
+  const handleToggleActive = (id: string, isActive: boolean) => {
+    setConfirmLockData({ id, action: isActive ? 'lock' : 'unlock' })
   }
 
   return (
@@ -422,20 +392,30 @@ export default function SharedCustomersPage() {
                   {canManage && (
                     <td>
                       <div className="flex items-center justify-end gap-2">
-                        <button 
-                          className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50/50 text-blue-500 hover:bg-blue-50 hover:text-blue-600 border border-transparent hover:border-blue-100 transition-all duration-200" 
+                        <button
+                          className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50/50 text-blue-500 hover:bg-blue-50 hover:text-blue-600 border border-transparent hover:border-blue-100 transition-all duration-200"
                           title="Sửa thông tin"
                           onClick={() => handleOpenEdit(customer)}
                         >
                           <Edit2 size={14} />
                         </button>
-                        <button 
-                          className="flex items-center justify-center w-8 h-8 rounded-lg bg-red-50/50 text-red-500 hover:bg-red-50 hover:text-red-600 border border-transparent hover:border-red-100 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed" 
-                          title={user.is_active ? "Khóa khách hàng" : "Khách hàng đã bị khóa"}
-                          disabled={deletingId === id || !user.is_active}
-                          onClick={() => void handleDeactivate(id, user.is_active)}
+                        <button
+                          className={`flex items-center justify-center w-8 h-8 rounded-lg border transition-all duration-200 ${
+                            user.is_active 
+                              ? "bg-red-50/50 text-red-500 hover:bg-red-50 hover:text-red-600 border-transparent hover:border-red-100" 
+                              : "bg-emerald-50/50 text-emerald-500 hover:bg-emerald-50 hover:text-emerald-600 border-transparent hover:border-emerald-100"
+                          }`}
+                          title={user.is_active ? "Khóa tài khoản" : "Mở khóa tài khoản"}
+                          disabled={deletingId === id}
+                          onClick={() => handleToggleActive(id, user.is_active)}
                         >
-                          {deletingId === id ? <RefreshCw size={14} className="animate-spin" /> : <Ban size={14} />}
+                          {deletingId === id ? (
+                            <RefreshCw size={14} className="animate-spin" />
+                          ) : user.is_active ? (
+                            <Ban size={14} />
+                          ) : (
+                            <Check size={14} />
+                          )}
                         </button>
                       </div>
                     </td>
@@ -484,10 +464,77 @@ export default function SharedCustomersPage() {
         </div>
       )}
 
-      <CustomerModal 
-        isOpen={modalOpen} 
-        onClose={() => setModalOpen(false)} 
-        onSuccess={() => fetchData(page)} 
+      {confirmLockData && (
+        <div className="admin-modal-overlay" onClick={() => setConfirmLockData(null)}>
+          <div className="admin-modal" style={{ maxWidth: 400 }}>
+            <div className="admin-modal__header">
+              {confirmLockData.action === 'lock' ? (
+                <h3 className="admin-modal__title text-rose-600 flex items-center gap-2">
+                  <Ban size={18} /> Khóa tài khoản?
+                </h3>
+              ) : (
+                <h3 className="admin-modal__title text-emerald-600 flex items-center gap-2">
+                  <Check size={18} /> Mở khóa tài khoản?
+                </h3>
+              )}
+              <button 
+                type="button" 
+                className="admin-modal__close" 
+                onClick={() => setConfirmLockData(null)}
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="admin-modal__body px-6 py-5">
+              <p className="text-slate-600 leading-relaxed text-sm">
+                {confirmLockData.action === 'lock' 
+                  ? 'Bạn có chắc chắn muốn khóa tài khoản khách hàng này? Họ sẽ không thể đăng nhập vào hệ thống.'
+                  : 'Bạn có chắc chắn muốn mở khóa tài khoản khách hàng này? Họ sẽ có thể đăng nhập lại vào hệ thống.'
+                }
+              </p>
+            </div>
+            <div className="admin-modal__footer flex justify-end gap-3 px-6 pb-6 pt-2">
+              <button 
+                type="button" 
+                className="px-4 py-2 text-sm font-semibold text-slate-500 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all duration-200" 
+                onClick={() => setConfirmLockData(null)}
+              >
+                Hủy
+              </button>
+              <button 
+                type="button" 
+                className={`px-4 py-2 text-sm font-semibold text-white rounded-xl transition-all duration-200 shadow-md ${
+                  confirmLockData.action === 'lock'
+                    ? 'bg-red-600 hover:bg-red-700 hover:shadow-red-600/20'
+                    : 'bg-emerald-600 hover:bg-emerald-700 hover:shadow-emerald-600/20'
+                }`}
+                onClick={async () => {
+                  const { id, action } = confirmLockData;
+                  setConfirmLockData(null);
+                  setDeletingId(id);
+                  try {
+                    const is_active = action === 'unlock';
+                    await adminCustomerService.update(id, { is_active });
+                    showSuccess(is_active ? 'Mở khóa tài khoản thành công' : 'Khóa tài khoản thành công');
+                    fetchData(page);
+                  } catch (err) {
+                    showError(getErrorMessage(err, action === 'lock' ? 'Khóa tài khoản thất bại' : 'Mở khóa tài khoản thất bại'));
+                  } finally {
+                    setDeletingId(null);
+                  }
+                }}
+              >
+                {confirmLockData.action === 'lock' ? 'Đồng ý khóa' : 'Đồng ý mở khóa'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <CustomerModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onSuccess={() => fetchData(page)}
         initialData={editingCustomer}
         tiers={tiers}
       />
