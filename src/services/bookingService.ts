@@ -227,4 +227,9 @@ export const bookingService = {
     const body = await apiClient.post<any>('/checkin/camera', formData)
     return body
   },
+
+  async activateWaterPump(plate: string): Promise<any> {
+    const body = await apiClient.post<any>('/wash/manual', { plate })
+    return body
+  },
 }

@@ -116,12 +116,19 @@ export default function StaffBookingListPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter, dateRange]);
 
-  const handleProceedAction = async () => {
+  const handleProceedAction = async (activatePump = false) => {
     if (!confirmModal.booking) return;
-    const id = confirmModal.booking._id || confirmModal.booking.id!;
+    const booking = confirmModal.booking;
+    const id = booking._id || booking.id!;
     try {
       if (confirmModal.action === 'confirm') await bookingService.confirm(id);
-      if (confirmModal.action === 'start') await bookingService.start(id);
+      if (confirmModal.action === 'start') {
+        if (activatePump && booking.vehicle?.plate_number) {
+          await bookingService.activateWaterPump(booking.vehicle.plate_number);
+        } else {
+          await bookingService.start(id);
+        }
+      }
       if (confirmModal.action === 'checkin_manual') await bookingService.checkin(id);
       if (confirmModal.action === 'washed') await bookingService.washed(id);
 
@@ -129,7 +136,7 @@ export default function StaffBookingListPage() {
       fetchBookings();
       setConfirmModal({ isOpen: false, action: '', booking: null });
     } catch (error: any) {
-      showError(error?.response?.data?.message || 'Lỗi khi cập nhật trạng thái');
+      showError(error?.response?.data?.message || error?.message || 'Lỗi khi cập nhật trạng thái');
     }
   };
 
@@ -480,15 +487,38 @@ export default function StaffBookingListPage() {
           <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
             <h2 className="text-xl font-bold text-slate-800 mb-2">Chuyển trạng thái</h2>
             <p className="text-slate-600 mb-6 text-sm">
-              Bạn có chắc chắn {confirmModal.action === 'checkin_manual' ? 'Check-in thủ công' : (confirmModal.action === 'washed' ? 'đánh dấu đã rửa xong' : 'chuyển tiếp trạng thái')} cho đơn
-              <span className="font-bold ml-1">#{(confirmModal.booking?._id || confirmModal.booking?.id)?.slice(-6).toUpperCase()}</span>?
+              {confirmModal.action === 'start' ? (
+                <>
+                  Bạn có thể chuyển tiếp trạng thái (nếu đã thực hiện rửa) hoặc kích hoạt bơm nước cho đơn
+                  <span className="font-bold ml-1">#{(confirmModal.booking?._id || confirmModal.booking?.id)?.slice(-6).toUpperCase()}</span>
+                </>
+              ) : (
+                <>
+                  Bạn có chắc chắn {confirmModal.action === 'checkin_manual' ? 'Check-in thủ công' : (confirmModal.action === 'washed' ? 'đánh dấu đã rửa xong' : 'chuyển tiếp trạng thái')} cho đơn
+                  <span className="font-bold ml-1">#{(confirmModal.booking?._id || confirmModal.booking?.id)?.slice(-6).toUpperCase()}</span>?
+                </>
+              )}
             </p>
-            <div className="flex justify-end gap-3">
-              <button onClick={() => setConfirmModal({ isOpen: false, action: '', booking: null })} className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors">Huỷ bỏ</button>
-              <button onClick={handleProceedAction} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 flex items-center gap-1 transition-colors">
-                <Check size={16} /> Đồng ý
-              </button>
-            </div>
+            {confirmModal.action === 'start' ? (
+              <div className="flex flex-col gap-3 mt-4">
+                <button onClick={() => handleProceedAction(false)} className="w-full px-4 py-2.5 text-sm font-medium text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200 flex items-center justify-center gap-2 transition-colors">
+                  <Play size={16} /> Xác nhận
+                </button>
+                <button onClick={() => handleProceedAction(true)} className="w-full px-4 py-2.5 text-sm font-medium text-white bg-[#0ea5b7] rounded-lg hover:bg-[#0b8fa0] flex items-center justify-center gap-2 transition-colors shadow-sm">
+                  <Play size={16} /> Bắt đầu rửa & Kích hoạt máy bơm
+                </button>
+                <button onClick={() => setConfirmModal({ isOpen: false, action: '', booking: null })} className="w-full mt-1 px-4 py-2 text-sm font-medium text-slate-500 hover:text-slate-700 underline underline-offset-2 transition-colors">
+                  Huỷ bỏ
+                </button>
+              </div>
+            ) : (
+              <div className="flex justify-end gap-3">
+                <button onClick={() => setConfirmModal({ isOpen: false, action: '', booking: null })} className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors">Huỷ bỏ</button>
+                <button onClick={() => handleProceedAction()} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 flex items-center gap-1 transition-colors">
+                  <Check size={16} /> Đồng ý
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
