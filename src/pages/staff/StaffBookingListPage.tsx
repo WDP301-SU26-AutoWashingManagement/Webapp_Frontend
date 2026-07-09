@@ -234,7 +234,7 @@ export default function StaffBookingListPage() {
     if (currentStatus === 'cancelled') {
       return (
         <div className="flex items-center text-red-500 font-medium bg-red-50 p-3 rounded-lg border border-red-100">
-          <XCircle className="w-5 h-5 mr-2" /> Đơn hàng đã bị hủy
+          <XCircle className="w-5 h-5 mr-2" /> Đơn đã bị hủy
         </div>
       );
     }
@@ -393,6 +393,7 @@ export default function StaffBookingListPage() {
                 <option value="in_progress">Đang rửa</option>
                 <option value="washed">Chờ thanh toán</option>
                 <option value="completed">Đã hoàn thành</option>
+                <option value="cancelled">Đã hủy</option>
               </select>
               <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"><ChevronDown size={14} /></div>
             </div>
