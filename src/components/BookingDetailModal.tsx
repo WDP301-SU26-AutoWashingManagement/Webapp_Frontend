@@ -28,7 +28,7 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onPay, hi
   const isBoss = user?.role === 'boss'
 
   const canCreateChecklist = !hideStaffActions && (isTechnical || isManager)
-  const canViewChecklist = isTechnical || isManager || isAdmin || isBoss
+  const canViewChecklist = true // Đã mở cho toàn bộ người dùng (kể cả Customer) có thể xem và tải biên bản của đơn hàng này
 
   const fetchChecklist = async () => {
     if (!booking) return
