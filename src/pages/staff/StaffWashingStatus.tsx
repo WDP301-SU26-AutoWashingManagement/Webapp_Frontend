@@ -18,23 +18,23 @@ export default function StaffWashingStatus() {
   const [washingStatus, setWashingStatus] =
     useState<NotificationWashingStatus | null>(null);
 
-  const { data } = useSSE<{ type: string; data: any }>(
+  const { data } = useSSE<NotificationWashingStatus>(
     `${env.serverBaseUrl}${env.apiBaseUrl}/sse-notifications`,
   );
 
   const plateRegex = /^\d{2}[A-Z]{1,2}\d{0,1}-\d{4,5}$/;
 
   useEffect(() => {
-    if (data && data.type === "washing_status") {
-      setWashingStatus(data.data);
+    if (data?.type === "washing_status") {
+      setWashingStatus(data);
       if (
-        data.data.action === ActionType.DONE ||
-        data.data.action === ActionType.ERROR ||
-        data.data.action === ActionType.WASHING
+        data.action === ActionType.DONE ||
+        data.action === ActionType.ERROR ||
+        data.action === ActionType.WASHING
       ) {
         setDetecting("Thiết bị đang được sử dụng");
       }
-      if (data.data.action === ActionType.PREPAIRING) {
+      if (data.action === ActionType.PREPAIRING) {
         setDetecting("");
       }
     }
@@ -101,7 +101,15 @@ export default function StaffWashingStatus() {
               <Droplets size={20} />
             </div>
           </div>
-          <h3 className="admin-stat-card__value">{washingStatus?.action}</h3>
+          <h3
+            className="admin-stat-card__value"
+            style={{
+              fontFamily: '"Google Sans", "Plus Jakarta Sans", sans-serif',
+              fontWeight: 700,
+            }}
+          >
+            {washingStatus?.action}
+          </h3>
           {/* <p className="admin-stat-card__trend-label">Hệ thống áp lực nước ổn định</p> */}
         </div>
       </div>

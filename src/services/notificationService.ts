@@ -1,5 +1,5 @@
 export interface NotificationWashingStatus {
-    id: number;
+    type: string;
     action: ActionType;
 }
 
