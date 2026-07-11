@@ -16,5 +16,9 @@ export const washService = {
      */
     async wash(plate: PlateInput): Promise<WashResponse> {
         return await apiClient.post<WashResponse>('/wash/manual', plate)
-    }
+    },
+
+    async stop() {
+        return await apiClient.post<WashResponse>('/wash/stop')
+    },
 }
