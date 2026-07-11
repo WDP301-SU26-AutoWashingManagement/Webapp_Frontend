@@ -13,28 +13,30 @@ import { useSSE } from "../../hooks/useSSE";
 export default function StaffWashingStatus() {
   const [plate, setPlate] = useState("");
   const [loading, setLoading] = useState(false);
+  const [stopping, setStopping] = useState(false);
   const [detecting, setDetecting] = useState<string>("");
 
   const [washingStatus, setWashingStatus] =
     useState<NotificationWashingStatus | null>(null);
 
-  const { data } = useSSE<{ type: string; data: any }>(
+  const { data } = useSSE<NotificationWashingStatus>(
     `${env.serverBaseUrl}${env.apiBaseUrl}/sse-notifications`,
   );
 
   const plateRegex = /^\d{2}[A-Z]{1,2}\d{0,1}-\d{4,5}$/;
+  const isBusy = loading || stopping;
 
   useEffect(() => {
-    if (data && data.type === "washing_status") {
-      setWashingStatus(data.data);
+    if (data?.type === "washing_status") {
+      setWashingStatus(data);
       if (
-        data.data.action === ActionType.DONE ||
-        data.data.action === ActionType.ERROR ||
-        data.data.action === ActionType.WASHING
+        data.action === ActionType.DONE ||
+        data.action === ActionType.ERROR ||
+        data.action === ActionType.WASHING
       ) {
         setDetecting("Thiết bị đang được sử dụng");
       }
-      if (data.data.action === ActionType.PREPAIRING) {
+      if (data.action === ActionType.PREPAIRING) {
         setDetecting("");
       }
     }
@@ -78,6 +80,22 @@ export default function StaffWashingStatus() {
     }
   };
 
+  const handleStop = async () => {
+    setStopping(true);
+    try {
+      const response = await washService.stop();
+      if (response.success) {
+        showSuccess(response.message || "Đã gửi yêu cầu dừng máy rửa xe!");
+      } else {
+        showError(response.message || "Dừng máy thất bại.");
+      }
+    } catch (error: any) {
+      showError(error.message || "Đã xảy ra lỗi khi gửi yêu cầu dừng máy.");
+    } finally {
+      setStopping(false);
+    }
+  };
+
   return (
     <div className="admin-page">
       <div className="admin-page__header">
@@ -101,7 +119,15 @@ export default function StaffWashingStatus() {
               <Droplets size={20} />
             </div>
           </div>
-          <h3 className="admin-stat-card__value">{washingStatus?.action}</h3>
+          <h3
+            className="admin-stat-card__value"
+            style={{
+              fontFamily: '"Google Sans", "Plus Jakarta Sans", sans-serif',
+              fontWeight: 700,
+            }}
+          >
+            {washingStatus?.action}
+          </h3>
           {/* <p className="admin-stat-card__trend-label">Hệ thống áp lực nước ổn định</p> */}
         </div>
       </div>
@@ -157,7 +183,7 @@ export default function StaffWashingStatus() {
                   className="admin-search-input"
                   placeholder="Nhập biển số xe (VD: 29A-12345 hoặc 29A1-12345)"
                   style={{ paddingLeft: "2.5rem", textTransform: "uppercase" }}
-                  disabled={loading}
+                  disabled={isBusy}
                 />
               </div>
               <span className="admin-form-hint">
@@ -177,29 +203,68 @@ export default function StaffWashingStatus() {
               )}
             </div>
 
-            <button
-              className="admin-btn admin-btn--primary"
-              onClick={handleWash}
-              disabled={loading || !plate.trim() || detecting !== ""}
+            <div
               style={{
+                display: "grid",
+                gridTemplateColumns: "85fr 15fr",
+                gap: "0.75rem",
                 width: "100%",
-                justifyContent: "center",
-                padding: "0.75rem",
-                fontSize: "0.9rem",
               }}
             >
-              {loading ? (
-                <>
-                  <Loader2 className="animate-spin" size={18} />
-                  Đang kích hoạt...
-                </>
-              ) : (
-                <>
-                  <Play size={18} />
-                  Kích hoạt Bơm Nước
-                </>
-              )}
-            </button>
+              <button
+                className="admin-btn admin-btn--primary"
+                onClick={handleWash}
+                disabled={
+                  loading || stopping || !plate.trim() || detecting !== ""
+                }
+                style={{
+                  width: "100%",
+                  justifyContent: "center",
+                  padding: "0.75rem",
+                  fontSize: "0.9rem",
+                }}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="animate-spin" size={18} />
+                    Đang kích hoạt...
+                  </>
+                ) : (
+                  <>
+                    <Play size={18} />
+                    Kích hoạt Bơm Nước
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleStop}
+                disabled={loading || stopping}
+                className="admin-btn"
+                style={{
+                  width: "100%",
+                  justifyContent: "center",
+                  padding: "0.75rem",
+                  fontSize: "0.9rem",
+                  background: "#dc2626",
+                  color: "#fff",
+                  borderColor: "#dc2626",
+                }}
+              >
+                {stopping ? (
+                  <>
+                    <Loader2 className="animate-spin" size={18} />
+                    Đang dừng...
+                  </>
+                ) : (
+                  <>
+                    <Info size={18} />
+                    Dừng máy
+                  </>
+                )}
+              </button>
+            </div>
           </div>
 
           {/* Card tình trạng xe */}
