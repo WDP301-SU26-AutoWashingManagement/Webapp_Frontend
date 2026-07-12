@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { RefreshCw, ChevronLeft, ChevronRight, Eye, Search } from 'lucide-react'
+import { RefreshCw, ChevronLeft, ChevronRight, Eye, Search, Check } from 'lucide-react'
 import { bookingService } from '../../services/bookingService'
 import type { BookingListResult } from '../../services/bookingService'
 import type { WashBooking } from '../../types/booking'
-import { showError } from '../../utils/toast'
+import { showError, showSuccess } from '../../utils/toast'
 import BookingDetailModal from '../../components/BookingDetailModal'
 
 export default function StaffPaymentsPage() {
@@ -19,7 +19,7 @@ export default function StaffPaymentsPage() {
     const fetchBookings = async (currentPage: number, dateStr: string) => {
         setLoading(true)
         try {
-            const params: any = { page: currentPage, limit, booking_status: 'completed' }
+            const params: any = { page: currentPage, limit, booking_status: 'washed' }
             if (dateStr) {
                 const start = new Date(dateStr);
                 start.setHours(0, 0, 0, 0);
@@ -34,6 +34,17 @@ export default function StaffPaymentsPage() {
             showError('Không thể tải danh sách booking')
         } finally {
             setLoading(false)
+        }
+    }
+
+    const handlePayment = async (id: string) => {
+        if (!window.confirm('Xác nhận đã thu tiền cho đơn hàng này?')) return;
+        try {
+            await bookingService.complete(id);
+            showSuccess('Thanh toán thành công!');
+            fetchBookings(page, selectedDate);
+        } catch (error) {
+            showError('Lỗi khi thanh toán đơn hàng');
         }
     }
 
@@ -79,8 +90,8 @@ export default function StaffPaymentsPage() {
         <div className="admin-page max-w-full px-4 lg:px-8">
             <div className="admin-page__header flex justify-between items-end">
                 <div>
-                    <h1 className="admin-page__title text-2xl">Lịch hẹn hoàn thành</h1>
-                    <p className="admin-page__subtitle">Danh sách các lịch hẹn đã hoàn thành và thanh toán.</p>
+                    <h1 className="admin-page__title text-2xl">Quản lý thanh toán</h1>
+                    <p className="admin-page__subtitle">Danh sách các lịch hẹn đang chờ thanh toán.</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <div className="relative">
@@ -116,11 +127,11 @@ export default function StaffPaymentsPage() {
                 </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col min-h-[500px] overflow-hidden">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col min-h-[500px] overflow-hidden mt-6">
                 <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-slate-50/50">
                     <h2 className="font-bold text-slate-800 text-lg">Danh sách giao dịch</h2>
                     <span className="text-xs font-semibold px-3 py-1 bg-blue-50 text-blue-600 rounded-full border border-blue-100">
-                        {data.total} giao dịch
+                        {data.total} lịch hẹn chưa thanh toán
                     </span>
                 </div>
 
@@ -144,7 +155,9 @@ export default function StaffPaymentsPage() {
                                 </tr>
                             ) : filteredItems.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="py-16 text-center text-slate-400 font-medium">Chưa có giao dịch nào hoàn thành.</td>
+                                    <td colSpan={7} className="py-16 text-center text-slate-400 font-medium">
+                                        Không có đơn nào chờ thanh toán.
+                                    </td>
                                 </tr>
                             ) : (
                                 filteredItems.map((b: WashBooking) => {
@@ -189,20 +202,26 @@ export default function StaffPaymentsPage() {
                                                 </div>
                                             </td>
                                             <td className="px-5 py-4">
-                                                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
-                                                    <span className="text-xs font-bold text-emerald-700 tracking-wide uppercase">
-                                                        Đã thu tiền
+                                                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-amber-500"></div>
+                                                    <span className="text-xs font-bold text-amber-700 tracking-wide uppercase">
+                                                        Chờ thanh toán
                                                     </span>
                                                 </div>
                                             </td>
                                             <td className="px-5 py-4">
-                                                <div className="flex justify-center items-center">
+                                                <div className="flex justify-center items-center gap-2">
                                                     <button
                                                         onClick={() => setDetailModal(b)}
                                                         className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition shadow-sm flex items-center gap-1.5"
                                                     >
                                                         <Eye size={14} /> Chi tiết
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handlePayment(b._id || b.id!)}
+                                                        className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition shadow-sm shadow-emerald-200 flex items-center gap-1.5"
+                                                    >
+                                                        <Check size={14} /> Thanh toán
                                                     </button>
                                                 </div>
                                             </td>
@@ -235,10 +254,10 @@ export default function StaffPaymentsPage() {
                                     onClick={() => typeof p === 'number' && setPage(p)}
                                     disabled={p === '...'}
                                     className={`min-w-[32px] h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-colors ${page === p
-                                            ? 'bg-blue-500 text-white shadow-sm'
-                                            : p === '...'
-                                                ? 'text-slate-400 cursor-default'
-                                                : 'text-slate-600 hover:bg-slate-100'
+                                        ? 'bg-blue-500 text-white shadow-sm'
+                                        : p === '...'
+                                            ? 'text-slate-400 cursor-default'
+                                            : 'text-slate-600 hover:bg-slate-100'
                                         }`}
                                 >
                                     {p}
