@@ -76,8 +76,6 @@ export default function NewBookingPage() {
     service_ids: [] as string[],
     scheduled_at: '',
     promotion_code: '',
-    vat_requested: false,
-    tax_code: '',
   })
 
   const [activeTab, setActiveTab] = useState<'combo' | 'single'>('combo')
@@ -427,12 +425,6 @@ export default function NewBookingPage() {
         return
       }
     }
-    if (step === 3) {
-      if (form.vat_requested && !form.tax_code.trim()) {
-        showError('Vui lòng nhập Mã số thuế khi yêu cầu xuất VAT')
-        return
-      }
-    }
     setStep(s => Math.min(s + 1, totalSteps))
   }
 
@@ -467,8 +459,6 @@ export default function NewBookingPage() {
         services: servicesPayload,
         booking_source: 'web',
         ...(promotionId ? { promotion_id: promotionId } : {}),
-        vat_requested: form.vat_requested,
-        tax_code: form.tax_code,
       })
       showSuccess('Đặt lịch thành công')
       navigate('/bookings')
@@ -932,7 +922,6 @@ export default function NewBookingPage() {
                             ))}
                           </div>
                         </li>
-                        {form.vat_requested && <li className="flex justify-between"><span className="text-slate-500">Xuất VAT:</span> <span className="font-semibold text-blue-600">Có (MST: {form.tax_code})</span></li>}
                       </ul>
                     </div>
 
@@ -966,33 +955,6 @@ export default function NewBookingPage() {
                           </div>
                         )}
                       </label>
-                    </div>
-
-                    <div className="border border-slate-200 rounded-xl p-5">
-                      <div className="flex items-start gap-3">
-                        <input
-                          type="checkbox"
-                          id="vat_req"
-                          checked={form.vat_requested}
-                          onChange={e => setForm(p => ({ ...p, vat_requested: e.target.checked }))}
-                          className="mt-1 w-5 h-5 rounded border-gray-300 text-cyan-600 focus:ring-cyan-600"
-                        />
-                        <div className="flex-1">
-                          <label htmlFor="vat_req" className="font-medium text-slate-700 cursor-pointer block">Tôi muốn xuất hóa đơn đỏ (VAT) cho dịch vụ này</label>
-                          {form.vat_requested && (
-                            <div className="mt-3 animate-in fade-in slide-in-from-top-2">
-                              <input
-                                type="text"
-                                placeholder="Nhập Mã số thuế công ty..."
-                                required={form.vat_requested}
-                                value={form.tax_code}
-                                onChange={e => setForm(p => ({ ...p, tax_code: e.target.value }))}
-                                className={AUTH_INPUT_CLASS}
-                              />
-                            </div>
-                          )}
-                        </div>
-                      </div>
                     </div>
                   </div>
 
