@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { ChevronLeft, ChevronRight, Users, Clock, Calendar as CalendarIcon, RefreshCcw, AlertTriangle, Plus, Eye, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Users, Clock, Calendar as CalendarIcon, RefreshCcw, AlertTriangle, Plus, Eye, X, Search } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { scheduleService, type Schedule } from '../../services/scheduleService'
 import { staffManagerService } from '../../services/staffManagerService'
@@ -48,12 +48,6 @@ export default function StaffSchedulePage() {
     }
   }
 
-  const [isAssignShiftModalOpen, setIsAssignShiftModalOpen] = useState(false)
-  const [selectedScheduleForAssign, setSelectedScheduleForAssign] = useState<any>(null)
-  const [selectedDateForAssign, setSelectedDateForAssign] = useState<Date | null>(null)
-  const [selectedStaffsToAssign, setSelectedStaffsToAssign] = useState<string[]>([])
-  const [isAssigning, setIsAssigning] = useState(false)
-
   const [selectedDetail, setSelectedDetail] = useState<{ date: Date, slot: string } | null>(null)
   const [selectedStaffIds, setSelectedStaffIds] = useState<string[]>([])
   const [isSavingStaffs, setIsSavingStaffs] = useState(false)
@@ -72,32 +66,7 @@ export default function StaffSchedulePage() {
       setIsSavingStaffs(false)
     }
   }
-  const handleOpenAssignModal = (schedule: any, date: Date) => {
-    setSelectedScheduleForAssign(schedule)
-    setSelectedDateForAssign(date)
-    setSelectedStaffsToAssign([])
-    setIsAssignShiftModalOpen(true)
-  }
 
-  const handleAssignShiftConfirm = async () => {
-    if (!selectedScheduleForAssign || selectedStaffsToAssign.length === 0) return
-    setIsAssigning(true)
-    try {
-      const existingIds = selectedScheduleForAssign.assigned_staff.map((st: any) => st._id || st.user_id?._id || st)
-      const combinedIds = [...existingIds, ...selectedStaffsToAssign]
-      await scheduleService.updateScheduleStaff(selectedScheduleForAssign._id, combinedIds)
-      showSuccess('Đã phân ca cho nhân viên thành công!')
-      setIsAssignShiftModalOpen(false)
-      setSelectedScheduleForAssign(null)
-      setSelectedDateForAssign(null)
-      setSelectedStaffsToAssign([])
-      await fetchSchedules()
-    } catch (error: any) {
-      showError(error?.response?.data?.message || 'Có lỗi xảy ra khi phân ca')
-    } finally {
-      setIsAssigning(false)
-    }
-  }
 
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(() => {
     const today = new Date()
@@ -105,6 +74,19 @@ export default function StaffSchedulePage() {
     return getStartOfWeek(today)
   })
   const [schedules, setSchedules] = useState<Schedule[]>([])
+  const [searchStaffName, setSearchStaffName] = useState('')
+
+  const displayedSchedules = React.useMemo(() => {
+    if (!searchStaffName.trim()) return schedules;
+    const lower = searchStaffName.toLowerCase();
+    return schedules.filter(s => 
+      s.assigned_staff.some((st: any) => {
+        const name = st.full_name || st.user_id?.full_name || st.email || '';
+        return name.toLowerCase().includes(lower);
+      })
+    );
+  }, [schedules, searchStaffName]);
+
   const [loading, setLoading] = useState(true)
   const [allStaff, setAllStaff] = useState<any[]>([])
 
@@ -152,11 +134,11 @@ export default function StaffSchedulePage() {
 
   const distinctTimeSlots = React.useMemo(() => {
     const slots = new Set<string>()
-    schedules.forEach(s => {
+    displayedSchedules.forEach(s => {
       slots.add(`${s.start_time} - ${s.end_time}`)
     })
     return Array.from(slots).sort()
-  }, [schedules])
+  }, [displayedSchedules])
 
   const weekDays = Array.from({ length: 7 }).map((_, i) => {
     const d = new Date(currentWeekStart)
@@ -168,7 +150,7 @@ export default function StaffSchedulePage() {
   const goNextWeek = () => setCurrentWeekStart(prev => { const n = new Date(prev); n.setDate(prev.getDate() + 7); return n })
 
   const getSchedulesForDate = (date: Date) =>
-    schedules.filter(s => {
+    displayedSchedules.filter(s => {
       const sd = new Date(s.shift_date)
       return sd.getDate() === date.getDate() && sd.getMonth() === date.getMonth() && sd.getFullYear() === date.getFullYear()
     }).sort((a, b) => a.start_time.localeCompare(b.start_time))
@@ -244,7 +226,17 @@ export default function StaffSchedulePage() {
             </button>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-
+            <div className="relative flex items-center">
+              <Search className="absolute left-2.5 text-slate-400" size={16} />
+              <input
+                type="text"
+                placeholder="Tìm nhân viên..."
+                value={searchStaffName}
+                onChange={(e) => setSearchStaffName(e.target.value)}
+                style={{ padding: '0.4rem 0.75rem 0.4rem 2rem', border: '1px solid #e2e8f0', borderRadius: '0.375rem', fontSize: '0.875rem', outline: 'none' }}
+                className="focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-shadow w-48 bg-white text-slate-700"
+              />
+            </div>
             <button className="admin-btn admin-btn--ghost" onClick={() => setCurrentWeekStart(getStartOfWeek(new Date()))}>
               Về tuần này
             </button>
@@ -326,6 +318,11 @@ export default function StaffSchedulePage() {
                           })
                         })
                         const uniqueStaffs = Array.from(uniqueStaffMap.values())
+                        const visibleStaffs = uniqueStaffs.filter((st: any) => {
+                          if (!searchStaffName.trim()) return true;
+                          const staffName = st.full_name || st.user_id?.full_name || st.email || '';
+                          return staffName.toLowerCase().includes(searchStaffName.toLowerCase());
+                        });
 
                         return (
                           <td key={index} style={{ padding: '0.5rem', borderRight: index < 6 ? '1px solid #e2e8f0' : 'none', verticalAlign: 'top', background: isToday ? '#f7fdfb' : 'transparent' }}>
@@ -338,7 +335,7 @@ export default function StaffSchedulePage() {
                                     setSelectedStaffIds(uniqueStaffs.map((st: any) => st._id || st.user_id?._id || st))
                                   }} className="text-indigo-400 hover:text-indigo-600 transition-colors" title="Xem chi tiết"><Eye size={14}/></button>
                                 </div>
-                                {uniqueStaffs.map((st: any, idx: number) => {
+                                {visibleStaffs.map((st: any, idx: number) => {
                                   const staffName = st.full_name || st.user_id?.full_name || st.email || 'NV'
                                   const stId = st._id || st.user_id?._id || st || idx
                                   return (
@@ -357,7 +354,10 @@ export default function StaffSchedulePage() {
 
                                 {isManager && firstSchedule && totalAssigned < totalMaxStaff && (
                                   <button
-                                    onClick={() => handleOpenAssignModal(firstSchedule, date)}
+                                    onClick={() => {
+                                      setSelectedDetail({ date, slot })
+                                      setSelectedStaffIds(uniqueStaffs.map((st: any) => st._id || st.user_id?._id || st))
+                                    }}
                                     style={{
                                       width: '100%', padding: '0.375rem',
                                       background: 'transparent',
@@ -560,96 +560,7 @@ export default function StaffSchedulePage() {
         </div>
       )}
 
-      {/* Assign Shift Modal */}
-      {isAssignShiftModalOpen && selectedScheduleForAssign && selectedDateForAssign && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-xl overflow-hidden">
-            <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">
-                <Plus className="text-indigo-600" size={20} />
-                Phân ca làm việc
-              </h3>
-            </div>
-            <div className="p-6 space-y-6">
-              <div className="space-y-2">
-                <p className="text-sm text-slate-600 font-medium">Thông tin ca làm việc:</p>
-                <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-2">
-                  <div className="flex items-center gap-2 text-sm text-slate-800 font-semibold">
-                    <Clock size={14} className="text-slate-500" />
-                    {selectedScheduleForAssign.start_time} - {selectedScheduleForAssign.end_time}
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-slate-800 font-semibold">
-                    <CalendarIcon size={14} className="text-slate-500" />
-                    {selectedDateForAssign.toLocaleDateString('vi-VN')}
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-slate-800 font-semibold">
-                    <Users size={14} className="text-slate-500" />
-                    Còn trống {selectedScheduleForAssign.max_staff - selectedScheduleForAssign.assigned_staff.length} vị trí
-                  </div>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <label className="block text-sm font-medium text-slate-700">Chọn nhân viên ({selectedStaffsToAssign.length} đã chọn)</label>
-                  {selectedStaffsToAssign.length > 0 && (
-                    <button type="button" onClick={() => setSelectedStaffsToAssign([])} className="text-xs text-rose-600 hover:text-rose-700 font-medium">Bỏ chọn tất cả</button>
-                  )}
-                </div>
-                <div className="grid grid-cols-2 gap-3 mt-2 max-h-[300px] overflow-y-auto pr-2 pb-2">
-                  {(() => {
-                    const assignedIds = selectedScheduleForAssign.assigned_staff.map((st: any) => st._id || st.user_id?._id || st);
-                    const availableStaffs = allStaff.filter(st => {
-                      const stId = st._id || st.user_id?._id || st;
-                      const isManager = st.staff_type === 'manager' || st.role === 'manager';
-                      return !assignedIds.includes(stId) && !isManager;
-                    });
 
-                    if (availableStaffs.length === 0) {
-                      return <p className="text-slate-500 text-sm italic col-span-2">Không còn nhân viên nào rảnh để phân ca.</p>
-                    }
-
-                    return availableStaffs.map(st => {
-                      const stId = st._id || st.user_id?._id || st;
-                      const staffName = st.full_name || st.user_id?.full_name || st.email || 'NV';
-                      const isChecked = selectedStaffsToAssign.includes(stId);
-                      return (
-                        <label key={stId} className={`flex items-center gap-3 border p-2 rounded-lg cursor-pointer transition-colors ${isChecked ? 'bg-indigo-50 border-indigo-200' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'}`}>
-                          <input 
-                            type="checkbox" 
-                            checked={isChecked} 
-                            onChange={(e) => {
-                              if (e.target.checked) setSelectedStaffsToAssign([...selectedStaffsToAssign, stId])
-                              else setSelectedStaffsToAssign(selectedStaffsToAssign.filter(id => id !== stId))
-                            }}
-                            className="w-4 h-4 text-indigo-600 rounded border-slate-300 cursor-pointer"
-                          />
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${isChecked ? 'bg-indigo-200 text-indigo-800' : 'bg-slate-200 text-slate-700'}`}>
-                            {staffName.charAt(0).toUpperCase()}
-                          </div>
-                          <span className={`font-medium text-sm truncate ${isChecked ? 'text-indigo-900' : 'text-slate-700'}`}>{staffName}</span>
-                        </label>
-                      )
-                    })
-                  })()}
-                </div>
-              </div>
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex gap-3 items-start">
-                <AlertTriangle className="text-blue-600 shrink-0 mt-0.5" size={18} />
-                <p className="text-xs text-blue-800">Hành động này sẽ phân công nhân viên vào ca đã chọn và gửi Email thông báo.</p>
-              </div>
-            </div>
-            <div className="p-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50">
-              <button onClick={() => setIsAssignShiftModalOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 rounded-md transition-colors" disabled={isAssigning}>
-                Hủy bỏ
-              </button>
-              <button onClick={handleAssignShiftConfirm} disabled={selectedStaffsToAssign.length === 0 || isAssigning} className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
-                {isAssigning && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-                Xác nhận
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Detail Modal */}
       {selectedDetail && (() => {

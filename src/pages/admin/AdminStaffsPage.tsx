@@ -16,6 +16,9 @@ interface StaffModalProps {
 }
 
 function StaffModal({ onClose, onSaved }: StaffModalProps) {
+  const { user } = useAuth()
+  const userBranchId = user?.branch_id ? (typeof user.branch_id === 'object' ? (user.branch_id as any)._id : user.branch_id) : ''
+
   const [form, setForm] = useState<CreateStaffPayload>({
     full_name: '',
     email: '',
@@ -23,7 +26,7 @@ function StaffModal({ onClose, onSaved }: StaffModalProps) {
     phone: '',
     role: 'staff',
     staff_type: 'technical',
-    branch_id: '',
+    branch_id: user?.role === 'admin' ? userBranchId : '',
   })
   const [saving, setSaving] = useState(false)
   const nameRef = useRef<HTMLInputElement>(null)
@@ -176,7 +179,7 @@ function StaffModal({ onClose, onSaved }: StaffModalProps) {
                 value={form.branch_id}
                 onChange={e => setForm(f => ({ ...f, branch_id: e.target.value }))}
                 required
-                disabled={loadingBranches}
+                disabled={loadingBranches || user?.role === 'admin'}
               >
                 <option value="">{loadingBranches ? 'Đang tải danh sách...' : '-- Chọn chi nhánh --'}</option>
                 {branches.map(b => {
