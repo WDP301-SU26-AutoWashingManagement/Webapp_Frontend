@@ -105,7 +105,7 @@ export default function Features() {
               <span className="block">Hệ sinh thái chăm sóc</span>
               <span className="mt-2 block sm:mt-3">dành riêng cho bạn</span>
             </h2>
-            <p className="section-sub mb-0 max-w-2xl">Hiểu rõ các tính năng của AutoWash giúp bạn lựa chọn dịch vụ tốt nhất và nhận tối đa ưu đãi.</p>
+            <p className="section-sub mb-0 max-w-2xl">Hiểu rõ các tính năng của HybridWash giúp bạn lựa chọn dịch vụ tốt nhất và nhận tối đa ưu đãi.</p>
           </div>
 
           <div className="rounded-3xl border border-cyan-500/15 bg-gradient-to-br from-cyan-500/10 via-white/85 to-white/95 p-5 shadow-sm backdrop-blur-sm">

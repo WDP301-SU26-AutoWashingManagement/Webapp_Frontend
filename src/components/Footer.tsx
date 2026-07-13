@@ -54,9 +54,9 @@ export default function Footer() {
             <div className="md:col-span-5 lg:col-span-4 flex flex-col justify-between">
               <div>
                 <div className="flex items-center gap-3 mb-4">
-                  <img src={logo} alt="AutoWash" className="h-10 w-10 rounded-xl object-cover shadow-md shadow-black/30" />
+                  <img src={logo} alt="HybridWash" className="h-10 w-10 rounded-xl object-cover shadow-md shadow-black/30" />
                   <div className="font-black text-xl text-white tracking-wide">
-                    Auto<span className="text-[#0ea5b7]">Wash</span>
+                    Hybrid<span className="text-[#0ea5b7]">Wash</span>
                   </div>
                 </div>
                 <p className="text-sm text-white/70 leading-relaxed mb-6 max-w-sm">
@@ -132,7 +132,7 @@ export default function Footer() {
 
           {/* Bottom copyright bar */}
           <div className="mt-12 pt-8 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-white/50">
-            <p>© {new Date().getFullYear()} AutoWash. Tất cả các quyền được bảo lưu.</p>
+            <p>© {new Date().getFullYear()} HybridWash. Tất cả các quyền được bảo lưu.</p>
             <div className="flex gap-5">
               <a href="#" className="hover:text-white transition-colors duration-200">Điều khoản sử dụng</a>
               <a href="#" className="hover:text-white transition-colors duration-200">Chính sách bảo mật</a>

@@ -120,10 +120,10 @@ export default function NavBar() {
     return (
         <nav className="sticky top-0 z-50 flex items-center justify-between px-6 md:px-12 py-2 md:py-3 text-slate-900 site-nav">
             <Link className="group flex items-center gap-3 leading-none no-underline text-slate-900" to="/" onClick={handleLogoClick}>
-                <img src={logo2} alt="AutoWash" className="h-14 w-14 rounded-2xl object-cover shrink-0 ring-1 ring-cyan-200 shadow-[0_10px_25px_rgba(14,165,183,0.18)] transition-transform duration-200 group-hover:scale-105 md:h-16 md:w-16" />
+                <img src={logo2} alt="HybridWash" className="h-14 w-14 rounded-2xl object-cover shrink-0 ring-1 ring-cyan-200 shadow-[0_10px_25px_rgba(14,165,183,0.18)] transition-transform duration-200 group-hover:scale-105 md:h-16 md:w-16" />
                 <span className="relative pb-1 font-sans text-xl font-black tracking-tight text-slate-900 md:text-2xl">
                     <span className="bg-gradient-to-r from-cyan-500 via-teal-500 to-sky-500 bg-clip-text text-transparent">
-                        AutoWash
+                        HybridWash
                     </span>
                     <span className="absolute left-0 bottom-0 h-1 w-full rounded-sm bg-gradient-to-r from-cyan-400 via-teal-400 to-sky-400 shadow-[0_0_12px_rgba(14,165,183,0.35)]"></span>
                 </span>

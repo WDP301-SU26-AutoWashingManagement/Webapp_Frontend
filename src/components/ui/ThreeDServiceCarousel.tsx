@@ -292,7 +292,7 @@ export const ThreeDServiceCarousel: React.FC<ThreeDServiceCarouselProps> = ({
 
                                         {/* Description */}
                                         <p className="text-xs text-slate-500 line-clamp-3 mb-4">
-                                            {svc.description || 'Dịch vụ chăm sóc chuyên nghiệp theo tiêu chuẩn chất lượng cao của AutoWash.'}
+                                            {svc.description || 'Dịch vụ chăm sóc chuyên nghiệp theo tiêu chuẩn chất lượng cao của HybridWash.'}
                                         </p>
                                     </div>
 
