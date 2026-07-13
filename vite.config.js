@@ -24,9 +24,15 @@ export default defineConfig(({ mode }) => {
   const server = { port }
 
   if (proxyTarget) {
+    // Prefer 127.0.0.1 — on Windows, "localhost" often resolves to ::1 and breaks proxy.
+    const target = proxyTarget.replace(/\/\/localhost\b/, '//127.0.0.1')
     server.proxy = {
       [proxyPath]: {
-        target: proxyTarget,
+        target,
+        changeOrigin: true,
+      },
+      '/uploads': {
+        target,
         changeOrigin: true,
       },
     }

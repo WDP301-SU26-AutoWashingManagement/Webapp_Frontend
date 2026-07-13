@@ -1,0 +1,79 @@
+import apiClient from './apiClient'
+import type { ApiResponse } from '../types/api'
+
+export interface StaffAbsentRequest {
+  _id?: string
+  id?: string
+  staff_id: string
+  from_date: string
+  to_date: string
+  reason: string
+  request_status: 'pending' | 'approved' | 'rejected'
+  reviewer_note?: string
+}
+
+export interface CreateStaffAbsentRequestPayload {
+  from_date: string
+  to_date: string
+  reason: string
+}
+
+export const staffManagerService = {
+  // Staff tạo đơn xin nghỉ
+  async createRequest(payload: CreateStaffAbsentRequestPayload): Promise<StaffAbsentRequest> {
+    const response = await apiClient.post<ApiResponse<StaffAbsentRequest>>('/staff-absent', payload)
+    return response.data as StaffAbsentRequest
+  },
+
+  // Staff xem danh sách đơn của chính mình
+  async getMyRequests(): Promise<StaffAbsentRequest[]> {
+    const response = await apiClient.get<ApiResponse<StaffAbsentRequest[]>>('/staff-absent/me')
+    return response.data as StaffAbsentRequest[]
+  },
+
+  // Quản lý xem các đơn đang chờ duyệt
+  async getPendingRequests(): Promise<StaffAbsentRequest[]> {
+    const response = await apiClient.get<ApiResponse<StaffAbsentRequest[]>>('/staff-absent/pending')
+    return response.data as StaffAbsentRequest[]
+  },
+
+  // Quản lý xem các đơn đã từ chối
+  async getRejectedRequests(): Promise<StaffAbsentRequest[]> {
+    const response = await apiClient.get<ApiResponse<StaffAbsentRequest[]>>('/staff-absent/rejected')
+    return response.data as StaffAbsentRequest[]
+  },
+
+  // Quản lý phê duyệt hoặc từ chối đơn
+  async reviewRequest(requestId: string, status: 'approved' | 'rejected', note?: string): Promise<StaffAbsentRequest> {
+    const response = await apiClient.patch<ApiResponse<StaffAbsentRequest>>(`/staff-absent/${requestId}/review`, { status, note })
+    return response.data as StaffAbsentRequest
+  },
+
+  // Lấy danh sách những nhân viên đang nghỉ phép
+  async getStaffOff(from_date?: string, to_date?: string): Promise<StaffAbsentRequest[]> {
+    const params: Record<string, string> = {}
+    if (from_date) params.from_date = from_date
+    if (to_date) params.to_date = to_date
+    
+    const response = await apiClient.get<ApiResponse<StaffAbsentRequest[]>>('/staff-absent/staff-off', { params })
+    return response.data as StaffAbsentRequest[]
+  },
+
+  // Lấy danh sách tất cả nhân viên (kèm ngày phép)
+  async getAllStaff(params?: any): Promise<any> {
+    const response = await apiClient.get<ApiResponse<any>>('/staff', { params })
+    return response.data
+  },
+
+  // Lấy thống kê ngày nghỉ của một nhân viên
+  async getLeaveSummary(staffId: string): Promise<any> {
+    const response = await apiClient.get<ApiResponse<any>>(`/staff/${staffId}/leave-summary`)
+    return response.data
+  },
+
+  // Quản lý cộng/trừ thêm ngày đã nghỉ phép (used_leave_days)
+  async addUsedLeaveDays(staffId: string, days: number): Promise<any> {
+    const response = await apiClient.post<ApiResponse<any>>(`/staff/${staffId}/leave`, { days })
+    return response.data
+  }
+}
