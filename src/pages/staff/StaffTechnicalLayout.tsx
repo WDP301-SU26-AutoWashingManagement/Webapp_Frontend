@@ -86,10 +86,10 @@ export default function StaffTechnicalLayout() {
             <aside className={`admin-sidebar ${sidebarOpen ? 'admin-sidebar--open' : 'admin-sidebar--collapsed'}`}>
                 <div className="admin-sidebar__brand">
                     <Link to="/staff/technical/bookings" className="admin-sidebar__logo-link">
-                        <img src={logo2} alt="AutoWash" className="admin-sidebar__logo-img" />
+                        <img src={logo2} alt="HybridWash" className="admin-sidebar__logo-img" />
                         {sidebarOpen && (
                             <span className="admin-sidebar__logo-text">
-                                Auto<span className="admin-sidebar__logo-accent">Wash</span>
+                                Hybrid<span className="admin-sidebar__logo-accent">Wash</span>
                             </span>
                         )}
                     </Link>

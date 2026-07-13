@@ -67,7 +67,7 @@ export default function HowItWorks() {
                 <div className="mt-auto">
                   <div className="mt-6 h-px w-full bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent" />
                   <div className="mt-4 flex items-center justify-between text-xs font-medium text-slate-500">
-                    <span>AutoWash flow</span>
+                    <span>HybridWash flow</span>
                     <span className="text-cyan-700">Nhanh gọn</span>
                   </div>
                 </div>

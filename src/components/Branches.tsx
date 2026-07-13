@@ -29,9 +29,9 @@ export default function Branches() {
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-12">
           <div className="section-label">Hệ thống</div>
-          <h2 className="section-title">Hệ thống chi nhánh AutoWash</h2>
+          <h2 className="section-title">Hệ thống chi nhánh HybridWash</h2>
           <p className="section-sub mx-auto max-w-2xl mt-4">
-            Với mạng lưới chi nhánh rộng khắp, AutoWash luôn sẵn sàng phục vụ và chăm sóc xế yêu của bạn một cách nhanh chóng và chuyên nghiệp nhất.
+            Với mạng lưới chi nhánh rộng khắp, HybridWash luôn sẵn sàng phục vụ và chăm sóc xế yêu của bạn một cách nhanh chóng và chuyên nghiệp nhất.
           </p>
         </div>
 
