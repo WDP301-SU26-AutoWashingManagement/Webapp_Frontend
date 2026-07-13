@@ -5,6 +5,7 @@ import { scheduleService, type Schedule } from '../../services/scheduleService'
 import { staffManagerService } from '../../services/staffManagerService'
 import { showSuccess, showError } from '../../utils/toast'
 import { TerminalCronMonitor } from '../../components/manager/TerminalCronMonitor'
+import { AttendanceReportTab } from '../../components/manager/AttendanceReportTab'
 
 function getStartOfWeek(date: Date) {
   const d = new Date(date)
@@ -18,7 +19,7 @@ function getStartOfWeek(date: Date) {
 export default function StaffSchedulePage() {
   const { user } = useAuth()
   const isManager = user?.role === 'admin' || user?.role === 'boss' || user?.staff_type === 'manager'
-  const [activeTab, setActiveTab] = useState<'schedule' | 'cron'>('schedule')
+  const [activeTab, setActiveTab] = useState<'schedule' | 'attendance' | 'cron'>('schedule')
 
   const [isSwapModalOpen, setIsSwapModalOpen] = useState(false)
   const [selectedDateA, setSelectedDateA] = useState<string>('')
@@ -200,6 +201,7 @@ export default function StaffSchedulePage() {
         <div className="flex gap-3 px-1 pt-2 pb-4 overflow-x-auto">
           {[
             { id: 'schedule', label: 'Lịch làm việc' },
+            { id: 'attendance', label: 'Báo cáo Điểm danh' },
             { id: 'cron', label: 'Hệ thống Cron' }
           ].map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`font-medium text-sm px-4 py-1.5 rounded-full transition-colors whitespace-nowrap ${activeTab === tab.id ? 'bg-[#0ea5b7] text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
@@ -391,6 +393,13 @@ export default function StaffSchedulePage() {
         </div>
       </div>
 
+      )}
+
+      {/* Attendance Report Tab */}
+      {isManager && activeTab === 'attendance' && user?.branch_id && (
+        <div className="mt-4">
+          <AttendanceReportTab branchId={typeof user.branch_id === 'object' ? (user.branch_id as any)._id : user.branch_id} schedules={schedules} />
+        </div>
       )}
 
       {/* Terminal Cron Monitor */}

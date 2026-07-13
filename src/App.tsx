@@ -250,7 +250,7 @@ function AppContent() {
           }
         >
           <Route index element={<Navigate to="/staff/technical/bookings" replace />} />
-          <Route path="dashboard" element={<StaffTechnicalDashboard />} />
+          <Route path="attendance" element={<StaffDashboard />} />
           <Route path="bookings" element={<StaffBookingListPage />} />
           <Route path="payments" element={<StaffPaymentsPage />} />
           <Route path="washing-status" element={<StaffWashingStatus />} />
