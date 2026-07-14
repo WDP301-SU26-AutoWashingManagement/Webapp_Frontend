@@ -114,8 +114,8 @@ export default function StaffDashboard() {
                         <div className="admin-card">
                             <div className="admin-card__header flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                 <h2 className="admin-card__title">Nhiệm vụ theo ngày</h2>
-                                <input 
-                                    type="date" 
+                                <input
+                                    type="date"
                                     value={selectedDate}
                                     onChange={(e) => setSelectedDate(e.target.value)}
                                     className="border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-teal-500 transition-colors w-full sm:w-auto"
