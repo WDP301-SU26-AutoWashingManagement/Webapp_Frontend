@@ -11,7 +11,11 @@ export default function StaffDashboard() {
 
     const isManager = user?.role === 'admin' || user?.role === 'boss' || user?.staff_type === 'manager'
 
-    const [todaySchedules, setTodaySchedules] = useState<Schedule[]>([])
+    const [rawSchedules, setRawSchedules] = useState<Schedule[]>([])
+    const [selectedDate, setSelectedDate] = useState<string>(() => {
+        const d = new Date()
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    })
     const [attendances, setAttendances] = useState<Record<string, AttendanceRecord>>({})
     const [loading, setLoading] = useState(false)
 
@@ -20,28 +24,7 @@ export default function StaffDashboard() {
         setLoading(true)
         try {
             const allSchedules = await scheduleService.getAllSchedules()
-            const today = new Date()
-
-            // Lọc ca làm việc của ngày hôm nay và của user hiện tại
-            const currentUserId = user?.user_id || (user as any)?._id || (user as any)?.id;
-            const staffSchedules = allSchedules.filter(s => {
-                const shiftDate = new Date(s.shift_date)
-                const isToday = shiftDate.getFullYear() === today.getFullYear() &&
-                    shiftDate.getMonth() === today.getMonth() &&
-                    shiftDate.getDate() === today.getDate()
-
-                const isAssigned = s.assigned_staff.some((st: any) => {
-                    if (!st) return false;
-                    const staffId = typeof st === 'object' ? st._id : st;
-                    const stUserId = typeof st === 'object' ? (st.user_id?._id || st.user_id) : null;
-
-                    return staffId === currentUserId || stUserId === currentUserId;
-                })
-
-                return isToday && isAssigned
-            }).sort((a, b) => a.start_time.localeCompare(b.start_time))
-
-            setTodaySchedules(staffSchedules)
+            setRawSchedules(allSchedules)
 
             // Lấy dữ liệu điểm danh
             const myAttendance = await attendanceService.getMyAttendance()
@@ -85,11 +68,31 @@ export default function StaffDashboard() {
         }
     }
 
+    const currentUserId = user?.user_id || (user as any)?._id || (user as any)?.id;
+    const filteredSchedules = React.useMemo(() => {
+        if (!rawSchedules) return []
+        const [year, month, day] = selectedDate.split('-').map(Number)
+        return rawSchedules.filter(s => {
+            const shiftDate = new Date(s.shift_date)
+            const isMatchDate = shiftDate.getFullYear() === year &&
+                shiftDate.getMonth() + 1 === month &&
+                shiftDate.getDate() === day
+
+            const isAssigned = s.assigned_staff.some((st: any) => {
+                if (!st) return false;
+                const staffId = typeof st === 'object' ? st._id : st;
+                const stUserId = typeof st === 'object' ? (st.user_id?._id || st.user_id) : null;
+                return staffId === currentUserId || stUserId === currentUserId;
+            })
+            return isMatchDate && isAssigned
+        }).sort((a, b) => a.start_time.localeCompare(b.start_time))
+    }, [rawSchedules, selectedDate, currentUserId])
+
     return (
         <div className="admin-page p-6 space-y-8 bg-slate-50 min-h-screen">
             <div className="admin-page__header">
                 <div>
-                    <h1 className="admin-page__title">Tổng quan {isManager ? 'Manager' : 'Staff'}</h1>
+                    <h1 className="admin-page__title">Tổng quan {isManager ? 'Staff Manager' : 'Staff'}</h1>
                     <p className="admin-page__subtitle">
                         {isManager ? 'Bảng điều khiển quản lý và phân ca làm việc.' : 'Bảng điều khiển dành cho nhân viên rửa xe.'}
                     </p>
@@ -109,19 +112,25 @@ export default function StaffDashboard() {
                 {!isManager && (
                     <div className="admin-content-grid">
                         <div className="admin-card">
-                            <div className="admin-card__header">
-                                <h2 className="admin-card__title">Nhiệm vụ hôm nay</h2>
+                            <div className="admin-card__header flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                <h2 className="admin-card__title">Nhiệm vụ theo ngày</h2>
+                                <input
+                                    type="date"
+                                    value={selectedDate}
+                                    onChange={(e) => setSelectedDate(e.target.value)}
+                                    className="border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-teal-500 transition-colors w-full sm:w-auto"
+                                />
                             </div>
 
                             <div className="p-5 space-y-4">
                                 {loading ? (
                                     <p className="text-center text-slate-400 py-4">Đang tải...</p>
-                                ) : todaySchedules.length === 0 ? (
+                                ) : filteredSchedules.length === 0 ? (
                                     <div className="text-center py-8 bg-slate-50 rounded-lg border border-dashed border-slate-200">
-                                        <p className="text-slate-500 font-medium">Hôm nay bạn không có ca làm việc nào.</p>
+                                        <p className="text-slate-500 font-medium">Bạn không có ca làm việc nào trong ngày {selectedDate.split('-').reverse().join('/')}.</p>
                                     </div>
                                 ) : (
-                                    todaySchedules.map(schedule => {
+                                    filteredSchedules.map(schedule => {
                                         const attendance = attendances[schedule._id]
                                         const status = attendance?.status || 'pending'
 
@@ -136,7 +145,9 @@ export default function StaffDashboard() {
                                                 <div className="flex flex-col gap-2">
                                                     <div className="flex items-center gap-2">
                                                         <Clock className="text-indigo-500" size={20} />
-                                                        <h3 className="font-bold text-lg text-slate-800">{schedule.start_time} - {schedule.end_time}</h3>
+                                                        <h3 className="font-bold text-lg text-slate-800">
+                                                            {schedule.start_time} - {schedule.end_time}
+                                                        </h3>
                                                     </div>
                                                     <span className={`w-max px-3 py-1 rounded-full text-xs font-bold ${statusColor}`}>
                                                         {statusText}

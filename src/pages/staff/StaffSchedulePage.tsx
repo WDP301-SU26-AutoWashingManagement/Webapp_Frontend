@@ -14,6 +14,14 @@ function getStartOfWeek(date: Date) {
   return new Date(d.setDate(diff))
 }
 
+function getTodayStr() {
+  const d = new Date()
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 
 
 export default function StaffSchedulePage() {
@@ -354,7 +362,12 @@ export default function StaffSchedulePage() {
                                   )
                                 })}
 
-                                {isManager && firstSchedule && totalAssigned < totalMaxStaff && (
+                                {isManager && firstSchedule && totalAssigned < totalMaxStaff && (() => {
+                                  const [sh, sm] = slot.split(' - ')[0].split(':')
+                                  const shiftStartTime = new Date(date)
+                                  shiftStartTime.setHours(parseInt(sh, 10), parseInt(sm, 10), 0, 0)
+                                  return shiftStartTime >= new Date()
+                                })() && (
                                   <button
                                     onClick={() => {
                                       setSelectedDetail({ date, slot })
@@ -478,7 +491,7 @@ export default function StaffSchedulePage() {
                               }
                             `}</style>
                             <input type="text" className="w-full border border-slate-300 rounded-lg p-3 outline-none transition-all shadow-sm bg-white" value={selectedDateA ? selectedDateA.split('-').reverse().join('/') : ''} placeholder="dd/mm/yyyy" readOnly />
-                            <input type="date" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer date-picker-overlay" value={selectedDateA} onChange={e => { setSelectedDateA(e.target.value); setSelectedShiftA(''); setSelectedStaffA('') }} />
+                            <input type="date" min={getTodayStr()} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer date-picker-overlay" value={selectedDateA} onChange={e => { setSelectedDateA(e.target.value); setSelectedShiftA(''); setSelectedStaffA('') }} />
                           </div>
                         </div>
                         <div>
@@ -487,7 +500,13 @@ export default function StaffSchedulePage() {
                             <option value="">-- Chọn khung giờ --</option>
                             {availableSchedulesA.length === 0 && selectedDateA
                               ? <option value="" disabled>Không có ca làm việc nào</option>
-                              : availableSchedulesA.map(s => <option key={s._id} value={s._id}>{s.start_time} - {s.end_time}</option>)}
+                              : availableSchedulesA.map(s => {
+                                  const [sh, sm] = s.start_time.split(':')
+                                  const stTime = new Date(s.shift_date)
+                                  stTime.setHours(parseInt(sh, 10), parseInt(sm, 10), 0, 0)
+                                  const isPast = stTime < new Date()
+                                  return <option key={s._id} value={s._id} disabled={isPast}>{s.start_time} - {s.end_time} {isPast ? '(Đã qua)' : ''}</option>
+                              })}
                           </select>
                         </div>
                         <div>
@@ -514,7 +533,7 @@ export default function StaffSchedulePage() {
                           <label className="block text-sm font-semibold text-slate-700 mb-2">Ngày làm việc</label>
                           <div className="relative">
                             <input type="text" className="w-full border border-indigo-200 bg-white rounded-lg p-3 outline-none disabled:bg-slate-100 disabled:border-slate-200 disabled:text-slate-400 transition-all shadow-sm" value={selectedDateB ? selectedDateB.split('-').reverse().join('/') : ''} placeholder="dd/mm/yyyy" disabled={!selectedStaffA} readOnly />
-                            <input type="date" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed date-picker-overlay" value={selectedDateB} onChange={e => { setSelectedDateB(e.target.value); setSelectedShiftB(''); setSelectedStaffB('') }} disabled={!selectedStaffA} />
+                            <input type="date" min={getTodayStr()} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed date-picker-overlay" value={selectedDateB} onChange={e => { setSelectedDateB(e.target.value); setSelectedShiftB(''); setSelectedStaffB('') }} disabled={!selectedStaffA} />
                           </div>
                         </div>
                         <div>
@@ -523,7 +542,13 @@ export default function StaffSchedulePage() {
                             <option value="">-- Chọn khung giờ --</option>
                             {availableSchedulesB.length === 0 && selectedDateB
                               ? <option value="" disabled>Không có ca làm việc nào</option>
-                              : availableSchedulesB.map(s => <option key={s._id} value={s._id}>{s.start_time} - {s.end_time}</option>)}
+                              : availableSchedulesB.map(s => {
+                                  const [sh, sm] = s.start_time.split(':')
+                                  const stTime = new Date(s.shift_date)
+                                  stTime.setHours(parseInt(sh, 10), parseInt(sm, 10), 0, 0)
+                                  const isPast = stTime < new Date()
+                                  return <option key={s._id} value={s._id} disabled={isPast}>{s.start_time} - {s.end_time} {isPast ? '(Đã qua)' : ''}</option>
+                              })}
                           </select>
                         </div>
                         <div>
@@ -601,6 +626,11 @@ export default function StaffSchedulePage() {
           return !workingStaffs.has(stId) && !isManager
         })
 
+        const [startHourStr, startMinStr] = selectedDetail.slot.split(' - ')[0].split(':')
+        const shiftStartTime = new Date(selectedDetail.date)
+        shiftStartTime.setHours(parseInt(startHourStr, 10), parseInt(startMinStr, 10), 0, 0)
+        const isPastDate = shiftStartTime < new Date()
+
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={(e) => e.target === e.currentTarget && setSelectedDetail(null)}>
             <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col">
@@ -609,7 +639,7 @@ export default function StaffSchedulePage() {
                   <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">
                     Chi tiết ca {selectedDetail.slot}
                   </h3>
-                  <p className="text-sm text-slate-500 mt-1">Ngày {selectedDetail.date.toLocaleDateString('vi-VN')}</p>
+                  <p className="text-sm text-slate-500 mt-1">Ngày {selectedDetail.date.toLocaleDateString('vi-VN')} {isPastDate && <span className="text-red-500 font-medium ml-2">(Đã qua)</span>}</p>
                 </div>
                 <button type="button" onClick={() => setSelectedDetail(null)} className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-200 transition-colors">
                   <X size={20} />
@@ -630,8 +660,8 @@ export default function StaffSchedulePage() {
                         const stId = st._id || st.user_id?._id || st
                         const isChecked = selectedStaffIds.includes(stId)
                         return (
-                          <label key={stId} className="flex items-center gap-3 bg-teal-50 border border-teal-100 p-2 rounded-lg cursor-pointer hover:bg-teal-100 transition-colors">
-                            {isManager && (
+                          <label key={stId} className={`flex items-center gap-3 bg-teal-50 border border-teal-100 p-2 rounded-lg ${isPastDate ? 'opacity-80 cursor-default' : 'cursor-pointer hover:bg-teal-100'} transition-colors`}>
+                            {isManager && !isPastDate && (
                               <input 
                                 type="checkbox" 
                                 checked={isChecked} 
@@ -641,6 +671,11 @@ export default function StaffSchedulePage() {
                                 }}
                                 className="w-4 h-4 text-teal-600 rounded border-teal-300 cursor-pointer"
                               />
+                            )}
+                            {isManager && isPastDate && (
+                              <div className="w-4 h-4 rounded bg-teal-200 border border-teal-300 flex items-center justify-center">
+                                <span className="text-[10px] text-teal-700">✓</span>
+                              </div>
                             )}
                             <div className="w-8 h-8 rounded-full bg-teal-200 text-teal-800 flex items-center justify-center font-bold text-sm shrink-0">
                               {staffName.charAt(0).toUpperCase()}
@@ -667,8 +702,8 @@ export default function StaffSchedulePage() {
                         const isChecked = selectedStaffIds.includes(stId)
                         const isWorkingAnotherShift = allWorkingStaffsToday.has(stId)
                         return (
-                          <label key={stId} className={`flex items-center gap-3 border p-2 rounded-lg cursor-pointer transition-colors ${isWorkingAnotherShift ? 'bg-orange-50 border-orange-200 hover:bg-orange-100' : 'bg-rose-50 border-rose-100 hover:bg-rose-100 opacity-80'}`}>
-                            {isManager && (
+                          <label key={stId} className={`flex items-center gap-3 border p-2 rounded-lg transition-colors ${isPastDate ? 'opacity-50 cursor-default bg-slate-50 border-slate-200' : isWorkingAnotherShift ? 'bg-orange-50 border-orange-200 hover:bg-orange-100 cursor-pointer' : 'bg-rose-50 border-rose-100 hover:bg-rose-100 cursor-pointer opacity-80'}`}>
+                            {isManager && !isPastDate && (
                               <input 
                                 type="checkbox" 
                                 checked={isChecked} 
@@ -679,7 +714,10 @@ export default function StaffSchedulePage() {
                                 className={`w-4 h-4 rounded cursor-pointer ${isWorkingAnotherShift ? 'text-orange-500 border-orange-300' : 'text-rose-500 border-rose-300'}`}
                               />
                             )}
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${isWorkingAnotherShift ? 'bg-orange-200 text-orange-800' : 'bg-rose-200 text-rose-800'}`}>
+                            {isManager && isPastDate && (
+                              <div className="w-4 h-4 rounded bg-slate-200 border border-slate-300"></div>
+                            )}
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${isPastDate ? 'bg-slate-200 text-slate-500' : isWorkingAnotherShift ? 'bg-orange-200 text-orange-800' : 'bg-rose-200 text-rose-800'}`}>
                               {staffName.charAt(0).toUpperCase()}
                             </div>
                             <div className="flex flex-col overflow-hidden">
@@ -696,16 +734,23 @@ export default function StaffSchedulePage() {
 
               {isManager && slotSchedules.length > 0 && (
                 <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3 rounded-b-xl">
+                  {isPastDate && (
+                    <span className="text-sm text-red-500 italic mr-auto self-center flex items-center gap-1">
+                      <AlertTriangle size={14} /> Không thể chỉnh sửa ca làm việc trong quá khứ
+                    </span>
+                  )}
                   <button onClick={() => setSelectedDetail(null)} className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 rounded-lg transition-colors">
-                    Hủy
+                    {isPastDate ? 'Đóng' : 'Hủy'}
                   </button>
-                  <button 
-                    onClick={() => handleSaveStaffs(slotSchedules[0]._id)}
-                    disabled={isSavingStaffs}
-                    className="px-4 py-2 text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-lg transition-colors flex items-center gap-2"
-                  >
-                    {isSavingStaffs ? 'Đang lưu...' : 'Lưu danh sách ca'}
-                  </button>
+                  {!isPastDate && (
+                    <button 
+                      onClick={() => handleSaveStaffs(slotSchedules[0]._id)}
+                      disabled={isSavingStaffs}
+                      className="px-4 py-2 text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-lg transition-colors flex items-center gap-2"
+                    >
+                      {isSavingStaffs ? 'Đang lưu...' : 'Lưu danh sách ca'}
+                    </button>
+                  )}
                 </div>
               )}
             </div>

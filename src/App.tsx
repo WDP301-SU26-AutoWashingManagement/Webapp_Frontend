@@ -91,18 +91,18 @@ function AppContent() {
 
   // Nếu là Staff, kiểm tra chéo vùng làm việc
   if (!loading && isAuthenticated && user?.role === 'staff') {
-    const isTechnical = user?.staff_type === 'technical';
+    const isManager = user?.staff_type === 'manager';
     const isTechnicalRoute = pathname.startsWith('/staff/technical');
 
     if (!isStaffPage) {
-      if (isTechnical) return <Navigate to="/staff/technical/bookings" replace />
-      return <Navigate to="/staff" replace />
+      if (isManager) return <Navigate to="/staff/bookings" replace />
+      return <Navigate to="/staff/technical/bookings" replace />
     } else {
       // Đang ở trong /staff, kiểm tra không cho đi lạc chéo vùng
-      if (isTechnical && !isTechnicalRoute) {
+      if (!isManager && !isTechnicalRoute) {
         return <Navigate to="/staff/technical/bookings" replace />
       }
-      if (!isTechnical && isTechnicalRoute) {
+      if (isManager && isTechnicalRoute) {
         return <Navigate to="/staff" replace />
       }
     }

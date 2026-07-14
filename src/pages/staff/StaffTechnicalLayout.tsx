@@ -21,7 +21,7 @@ const NAV_GROUPS = [
         title: 'Lịch hẹn & Xử lý',
         items: [
             {
-                label: 'Tổng quan',
+                label: 'Điểm danh',
                 icon: LayoutDashboard,
                 to: '/staff/technical/attendance',
             },
