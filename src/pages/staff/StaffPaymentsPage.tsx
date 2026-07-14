@@ -5,11 +5,13 @@ import type { BookingListResult } from '../../services/bookingService'
 import type { WashBooking } from '../../types/booking'
 import { showError, showSuccess } from '../../utils/toast'
 import BookingDetailModal from '../../components/BookingDetailModal'
+import PaymentModal from '../../components/PaymentModal'
 
 export default function StaffPaymentsPage() {
     const [data, setData] = useState<BookingListResult>({ items: [], total: 0 })
     const [loading, setLoading] = useState(true)
     const [detailModal, setDetailModal] = useState<WashBooking | null>(null)
+    const [paymentModal, setPaymentModal] = useState<{ isOpen: boolean, booking: WashBooking | null }>({ isOpen: false, booking: null })
     const [page, setPage] = useState(1)
     const today = new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]
     const [selectedDate, setSelectedDate] = useState<string>(today)
@@ -34,17 +36,6 @@ export default function StaffPaymentsPage() {
             showError('Không thể tải danh sách booking')
         } finally {
             setLoading(false)
-        }
-    }
-
-    const handlePayment = async (id: string) => {
-        if (!window.confirm('Xác nhận đã thu tiền cho đơn hàng này?')) return;
-        try {
-            await bookingService.complete(id);
-            showSuccess('Thanh toán thành công!');
-            fetchBookings(page, selectedDate);
-        } catch (error) {
-            showError('Lỗi khi thanh toán đơn hàng');
         }
     }
 
@@ -218,7 +209,7 @@ export default function StaffPaymentsPage() {
                                                         <Eye size={14} /> Chi tiết
                                                     </button>
                                                     <button
-                                                        onClick={() => handlePayment(b._id || b.id!)}
+                                                        onClick={() => setPaymentModal({ isOpen: true, booking: b })}
                                                         className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition shadow-sm shadow-emerald-200 flex items-center gap-1.5"
                                                     >
                                                         <Check size={14} /> Thanh toán
@@ -281,6 +272,18 @@ export default function StaffPaymentsPage() {
                 isOpen={!!detailModal}
                 onClose={() => setDetailModal(null)}
             />
+
+            {paymentModal.booking && (
+                <PaymentModal
+                    isOpen={paymentModal.isOpen}
+                    onClose={() => setPaymentModal({ isOpen: false, booking: null })}
+                    booking={paymentModal.booking}
+                    onSuccess={() => {
+                        setPaymentModal({ isOpen: false, booking: null });
+                        fetchBookings(page, selectedDate);
+                    }}
+                />
+            )}
         </div>
     )
 }
