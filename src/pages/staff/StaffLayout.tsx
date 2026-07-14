@@ -202,7 +202,7 @@ export default function StaffLayout() {
                             <div className="admin-sidebar__user-info">
                                 <p className="admin-sidebar__user-name">{displayName}</p>
                                 <p className="admin-sidebar__user-role">
-                                    {user?.staff_type === 'manager' ? 'Manager' : user?.staff_type === 'technical' ? 'Technical' : 'Staff'}
+                                    {user?.staff_type === 'manager' ? 'Staff Manager' : user?.staff_type === 'technical' ? 'Technical' : 'Staff'}
                                 </p>
                             </div>
                         )}

@@ -47,7 +47,7 @@ function EditStaffModal({ staff, onClose, onSaved }: { staff: any, onClose: () =
           <div className="admin-form-group">
             <label className="admin-form-label">Loại nhân viên</label>
             <div className="admin-form-input bg-slate-50 text-slate-500 flex items-center">
-              Quản lý chi nhánh (Manager)
+              Quản lý chi nhánh (Staff Manager)
             </div>
           </div>
 
@@ -156,7 +156,7 @@ function DetailStaffModal({ staffId, onClose }: { staffId: string, onClose: () =
                   <p className="text-slate-500">{detail.staff_code} &bull; <span className="capitalize">{detail.staff_type}</span></p>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-slate-400 mb-1">Email</p>
@@ -283,7 +283,7 @@ export default function AdminManagersPage() {
       <div className="admin-page__header">
         <div>
           <h1 className="admin-page__title">Quản lý chi nhánh</h1>
-          <p className="admin-page__subtitle">Danh sách quản lý chi nhánh (Manager).</p>
+          <p className="admin-page__subtitle">Danh sách quản lý chi nhánh (Staff Manager).</p>
         </div>
       </div>
 
@@ -377,21 +377,21 @@ export default function AdminManagersPage() {
                   <td>{staff.hire_date ? new Date(staff.hire_date).toLocaleDateString('vi-VN') : '---'}</td>
                   <td className="text-right">
                     <div className="flex justify-end gap-2">
-                      <button 
+                      <button
                         onClick={() => setDetailStaffId(staff._id)}
                         className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
                         title="Xem chi tiết"
                       >
                         <Eye size={16} />
                       </button>
-                      <button 
+                      <button
                         onClick={() => setEditingStaff(staff)}
                         className="p-1.5 text-amber-600 hover:bg-amber-50 rounded"
                         title="Sửa"
                       >
                         <Edit size={16} />
                       </button>
-                      <button 
+                      <button
                         onClick={() => handleDeleteStaff(staff._id)}
                         className="p-1.5 text-rose-600 hover:bg-rose-50 rounded"
                         title="Xóa"
@@ -415,8 +415,8 @@ export default function AdminManagersPage() {
               key={i}
               onClick={() => setPage(i + 1)}
               className={`px-3 py-1 rounded text-sm font-medium ${page === i + 1
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                ? 'bg-blue-600 text-white'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
             >
               {i + 1}

@@ -55,7 +55,7 @@ const NAV_GROUPS = [
         to: '/admin/managers',
       },
       {
-        label: 'Kỹ thuật viên',
+        label: 'Nhân viên',
         icon: HardHat,
         to: '/admin/staffs',
       },
