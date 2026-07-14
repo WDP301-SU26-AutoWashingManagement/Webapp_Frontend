@@ -92,7 +92,7 @@ export default function StaffDashboard() {
         <div className="admin-page p-6 space-y-8 bg-slate-50 min-h-screen">
             <div className="admin-page__header">
                 <div>
-                    <h1 className="admin-page__title">Tổng quan {isManager ? 'Manager' : 'Staff'}</h1>
+                    <h1 className="admin-page__title">Tổng quan {isManager ? 'Staff Manager' : 'Staff'}</h1>
                     <p className="admin-page__subtitle">
                         {isManager ? 'Bảng điều khiển quản lý và phân ca làm việc.' : 'Bảng điều khiển dành cho nhân viên rửa xe.'}
                     </p>
