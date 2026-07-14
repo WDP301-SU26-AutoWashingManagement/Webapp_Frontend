@@ -190,7 +190,7 @@ export default function InternalProfilePage() {
               </div>
               <h3 className="mt-4 text-lg font-bold text-slate-800">{profile.full_name}</h3>
               <p className="text-sm font-medium text-cyan-600 uppercase tracking-wide flex items-center gap-1 mt-1">
-                <Briefcase size={14} /> {user?.role}
+                <Briefcase size={14} /> {user?.role === 'staff' ? (user?.staff_type === 'manager' ? 'manager' : user?.staff_type === 'technical' ? 'technical' : user?.role) : user?.role}
               </p>
             </div>
 
