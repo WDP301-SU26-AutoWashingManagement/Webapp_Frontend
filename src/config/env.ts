@@ -10,7 +10,7 @@ function requireEnv(name: keyof ImportMetaEnv): string {
 
 export const env = {
   apiBaseUrl: requireEnv('VITE_API_BASE_URL'),
-  serverBaseUrl: requireEnv('VITE_API_PROXY_TARGET'),
+  serverBaseUrl: import.meta.env.VITE_API_PROXY_TARGET || '',
   /** Google OAuth Web client ID — cùng GOOGLE_CLIENT_ID trên backend */
   googleClientId: import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '',
 }

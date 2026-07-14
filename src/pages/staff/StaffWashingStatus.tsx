@@ -20,7 +20,7 @@ export default function StaffWashingStatus() {
     useState<NotificationWashingStatus | null>(null);
 
   const { data } = useSSE<NotificationWashingStatus>(
-    `${env.serverBaseUrl}${env.apiBaseUrl}/sse-notifications`,
+    `${env.apiBaseUrl}/sse-notifications`,
   );
 
   const plateRegex = /^\d{2}[A-Z]{1,2}\d{0,1}-\d{4,5}$/;
