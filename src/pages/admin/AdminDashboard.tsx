@@ -96,16 +96,17 @@ function HourlyBookingChart({ branchId }: { branchId: string }) {
               value={dateRange.startDate}
               max={fmt(new Date())}
               onChange={(e) => {
+                const newStart = e.target.value;
+                if (!newStart) return;
                 setPreset('custom');
                 setDateRange(r => {
-                  const newStart = e.target.value;
                   if (newStart > r.endDate) {
                     return { startDate: newStart, endDate: newStart };
                   }
                   return { ...r, startDate: newStart };
                 });
               }}
-              className="px-2 py-1 text-xs bg-slate-50 border border-slate-200 rounded-md outline-none focus:ring-2 focus:ring-indigo-100"
+              className="px-2 py-1 text-xs bg-slate-50 border border-slate-200 rounded-md outline-none focus:ring-2 focus:ring-indigo-100 [&::-webkit-clear-button]:hidden"
             />
             <span className="text-slate-400 text-xs">→</span>
             <input
@@ -113,8 +114,13 @@ function HourlyBookingChart({ branchId }: { branchId: string }) {
               value={dateRange.endDate}
               min={dateRange.startDate}
               max={fmt(new Date())}
-              onChange={(e) => { setPreset('custom'); setDateRange(r => ({ ...r, endDate: e.target.value })) }}
-              className="px-2 py-1 text-xs bg-slate-50 border border-slate-200 rounded-md outline-none focus:ring-2 focus:ring-indigo-100"
+              onChange={(e) => {
+                const newEnd = e.target.value;
+                if (!newEnd) return;
+                setPreset('custom');
+                setDateRange(r => ({ ...r, endDate: newEnd }));
+              }}
+              className="px-2 py-1 text-xs bg-slate-50 border border-slate-200 rounded-md outline-none focus:ring-2 focus:ring-indigo-100 [&::-webkit-clear-button]:hidden"
             />
           </div>
         </div>
@@ -531,9 +537,10 @@ export default function AdminDashboard() {
               value={dateRange.startDate}
               max={fmt(new Date())}
               onChange={(e) => {
+                const newStart = e.target.value;
+                if (!newStart) return;
                 setPreset('custom');
                 setDateRange(r => {
-                  const newStart = e.target.value;
                   // If new start date is greater than current end date, update end date too
                   if (newStart > r.endDate) {
                     return { startDate: newStart, endDate: newStart };
@@ -541,7 +548,7 @@ export default function AdminDashboard() {
                   return { ...r, startDate: newStart };
                 });
               }}
-              className="px-2 py-1.5 text-sm bg-slate-50 border border-slate-200 rounded-md outline-none focus:ring-2 focus:ring-blue-100"
+              className="px-2 py-1.5 text-sm bg-slate-50 border border-slate-200 rounded-md outline-none focus:ring-2 focus:ring-blue-100 [&::-webkit-clear-button]:hidden"
             />
             <span className="text-slate-400 text-sm">→</span>
             <input
@@ -549,8 +556,13 @@ export default function AdminDashboard() {
               value={dateRange.endDate}
               min={dateRange.startDate}
               max={fmt(new Date())}
-              onChange={(e) => { setPreset('custom'); setDateRange(r => ({ ...r, endDate: e.target.value })) }}
-              className="px-2 py-1.5 text-sm bg-slate-50 border border-slate-200 rounded-md outline-none focus:ring-2 focus:ring-blue-100"
+              onChange={(e) => {
+                const newEnd = e.target.value;
+                if (!newEnd) return;
+                setPreset('custom');
+                setDateRange(r => ({ ...r, endDate: newEnd }))
+              }}
+              className="px-2 py-1.5 text-sm bg-slate-50 border border-slate-200 rounded-md outline-none focus:ring-2 focus:ring-blue-100 [&::-webkit-clear-button]:hidden"
             />
           </div>
 

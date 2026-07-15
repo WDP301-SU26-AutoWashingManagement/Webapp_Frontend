@@ -9,11 +9,11 @@ import CreateChecklistModal from '../../components/CreateChecklistModal';
 import { bookingChecklistService } from '../../services/bookingChecklistService';
 
 const STEPS = [
-  { id: 'pending', label: 'Chờ xác nhận' },
-  { id: 'confirmed', label: 'Chờ Check-in' },
-  { id: 'checked_in', label: 'Chờ rửa' },
-  { id: 'in_progress', label: 'Rửa xong' },
-  { id: 'washed', label: 'Thanh toán' }
+  { id: 'pending', label: 'Đã xác nhận' },
+  { id: 'confirmed', label: 'Đã check-in ' },
+  { id: 'checked_in', label: 'Đang rửa' },
+  { id: 'in_progress', label: 'Đang rửa' },
+  { id: 'washed', label: 'Chờ thanh toán' }
 ];
 
 export default function StaffBookingListPage() {
@@ -174,9 +174,28 @@ export default function StaffBookingListPage() {
       const canvas = canvasRef.current;
       const context = canvas.getContext('2d');
       if (context) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const videoWidth = video.videoWidth;
+        const videoHeight = video.videoHeight;
+
+        // Crop 90% width and 75% height in the center
+        const cropRatioW = 0.9;
+        const cropRatioH = 0.75;
+
+        const cropWidth = videoWidth * cropRatioW;
+        const cropHeight = videoHeight * cropRatioH;
+
+        const cropX = (videoWidth - cropWidth) / 2;
+        const cropY = (videoHeight - cropHeight) / 2;
+
+        canvas.width = cropWidth;
+        canvas.height = cropHeight;
+
+        context.drawImage(
+          video,
+          cropX, cropY, cropWidth, cropHeight,
+          0, 0, cropWidth, cropHeight
+        );
+
         canvas.toBlob((blob) => {
           if (blob) setCapturedFile(new File([blob], 'camera-capture.jpg', { type: 'image/jpeg' }));
         }, 'image/jpeg', 0.95);
@@ -194,10 +213,7 @@ export default function StaffBookingListPage() {
       const res = await bookingService.checkinWithCamera(fileToUpload);
       setScanResult(res);
       if (res.success) {
-        if (res.license_plate) {
-          await bookingService.activateWaterPump(res.license_plate);
-        }
-        showSuccess('Check-in xe thành công và máy bơm đã được kích hoạt!');
+        showSuccess('Check-in xe thành công!');
         fetchBookings();
       } else {
         setManualPlate(res.license_plate || '');
@@ -221,13 +237,8 @@ export default function StaffBookingListPage() {
         b.booking_status === 'confirmed' && b.vehicle?.plate_number?.toLowerCase() === plateToSearch
       );
       if (foundBooking) {
-        if (foundBooking.vehicle?.plate_number) {
-          await bookingService.activateWaterPump(foundBooking.vehicle.plate_number);
-          showSuccess('Check-in thủ công thành công và máy bơm đã được kích hoạt!');
-        } else {
-          await bookingService.checkin(foundBooking._id || foundBooking.id!);
-          showSuccess('Check-in thủ công thành công!');
-        }
+        await bookingService.checkin(foundBooking._id || foundBooking.id!);
+        showSuccess('Check-in thủ công thành công!');
         setScanResult({ success: true, message: 'Check-in thành công qua biển số nhập tay', license_plate: foundBooking.vehicle?.plate_number });
         fetchBookings();
       } else {
@@ -606,7 +617,9 @@ export default function StaffBookingListPage() {
                       {!capturedFile ? (
                         <>
                           <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
-                          <div className="absolute inset-0 border-2 border-dashed border-cyan-400/40 m-4 rounded-lg"></div>
+                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <div className="w-[90%] h-[75%] border-2 border-dashed border-cyan-400 rounded-lg shadow-[0_0_0_9999px_rgba(0,0,0,0.5)]"></div>
+                          </div>
                           <button onClick={capturePhoto} className="absolute bottom-4 left-1/2 -translate-x-1/2 w-14 h-14 bg-white rounded-full border-4 border-cyan-200 flex items-center justify-center hover:scale-105 transition-transform">
                             <div className="w-10 h-10 bg-cyan-600 rounded-full flex items-center justify-center text-white"><Camera size={20} /></div>
                           </button>
