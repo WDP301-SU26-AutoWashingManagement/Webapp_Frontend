@@ -194,10 +194,7 @@ export default function StaffBookingListPage() {
       const res = await bookingService.checkinWithCamera(fileToUpload);
       setScanResult(res);
       if (res.success) {
-        if (res.license_plate) {
-          await bookingService.activateWaterPump(res.license_plate);
-        }
-        showSuccess('Check-in xe thành công và máy bơm đã được kích hoạt!');
+        showSuccess('Check-in xe thành công!');
         fetchBookings();
       } else {
         setManualPlate(res.license_plate || '');
@@ -221,13 +218,8 @@ export default function StaffBookingListPage() {
         b.booking_status === 'confirmed' && b.vehicle?.plate_number?.toLowerCase() === plateToSearch
       );
       if (foundBooking) {
-        if (foundBooking.vehicle?.plate_number) {
-          await bookingService.activateWaterPump(foundBooking.vehicle.plate_number);
-          showSuccess('Check-in thủ công thành công và máy bơm đã được kích hoạt!');
-        } else {
-          await bookingService.checkin(foundBooking._id || foundBooking.id!);
-          showSuccess('Check-in thủ công thành công!');
-        }
+        await bookingService.checkin(foundBooking._id || foundBooking.id!);
+        showSuccess('Check-in thủ công thành công!');
         setScanResult({ success: true, message: 'Check-in thành công qua biển số nhập tay', license_plate: foundBooking.vehicle?.plate_number });
         fetchBookings();
       } else {
