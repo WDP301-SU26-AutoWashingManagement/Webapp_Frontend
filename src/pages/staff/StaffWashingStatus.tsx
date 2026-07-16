@@ -29,14 +29,13 @@ export default function StaffWashingStatus() {
   useEffect(() => {
     if (data?.type === "washing_status") {
       setWashingStatus(data);
+      if (data.action === ActionType.PREPAIRING) {
+        setDetecting("Thiết bị chưa được sử dụng");
+      }
       if (
         data.action === ActionType.DONE ||
-        data.action === ActionType.ERROR ||
         data.action === ActionType.WASHING
       ) {
-        setDetecting("Thiết bị đang được sử dụng");
-      }
-      if (data.action === ActionType.PREPAIRING) {
         setDetecting("");
       }
     }
@@ -102,14 +101,14 @@ export default function StaffWashingStatus() {
         <div>
           <h1 className="admin-page__title">Hệ thống Điều khiển Rửa xe</h1>
           <p className="admin-page__subtitle">
-            Kích hoạt vòi phun nước tự động và theo dõi trạng thái thiết bị.
+            Theo dõi trạng thái thiết bị và dừng khẩn cấp.
           </p>
         </div>
       </div>
 
-      {/* Stat Summary Panel */}
-      <div className="admin-stat-grid">
-        <div className="admin-stat-card">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+        {/* Card 1: Trạng thái Bơm */}
+        <div className="admin-stat-card md:col-span-6 lg:col-span-3 flex flex-col justify-between">
           <div className="admin-stat-card__header">
             <span className="admin-stat-card__label">Trạng thái Bơm</span>
             <div
@@ -120,7 +119,7 @@ export default function StaffWashingStatus() {
             </div>
           </div>
           <h3
-            className="admin-stat-card__value"
+            className="admin-stat-card__value mt-auto"
             style={{
               fontFamily: '"Google Sans", "Plus Jakarta Sans", sans-serif',
               fontWeight: 700,
@@ -130,157 +129,61 @@ export default function StaffWashingStatus() {
           </h3>
           {/* <p className="admin-stat-card__trend-label">Hệ thống áp lực nước ổn định</p> */}
         </div>
-      </div>
 
-      <div className="admin-content-grid">
-        {/* Cột chính: Điều khiển */}
-        <div
-          style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}
-        >
-          <div className="admin-card">
-            <div
-              className="admin-card__header"
+        {/* Card 2: Dừng khẩn cấp */}
+        <div className="admin-card md:col-span-6 lg:col-span-3 flex flex-col justify-between">
+          <div
+            className="admin-card__header"
+            style={{
+              marginBottom: "1.25rem",
+              borderBottom: "1px solid #f1f5f9",
+              paddingBottom: "0.75rem",
+            }}
+          >
+            <h2
+              className="admin-card__title"
               style={{
-                marginBottom: "1.25rem",
-                borderBottom: "1px solid #f1f5f9",
-                paddingBottom: "0.75rem",
+                display: "flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                fontSize: "1rem",
               }}
             >
-              <h2
-                className="admin-card__title"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  fontSize: "1rem",
-                }}
-              >
-                <Droplets className="text-[#0ea5b7]" size={20} />
-                Kích hoạt chu kỳ rửa
-              </h2>
-            </div>
-
-            <div
-              className="admin-form-group"
-              style={{ marginBottom: "1.25rem" }}
-            >
-              <label
-                className="admin-form-label"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.25rem",
-                }}
-              >
-                Biển số xe cần rửa
-              </label>
-              <div className="admin-search-wrap" style={{ maxWidth: "100%" }}>
-                <Car className="admin-search-icon" size={16} />
-                <input
-                  type="text"
-                  value={plate}
-                  onChange={handlePlateChange}
-                  className="admin-search-input"
-                  placeholder="Nhập biển số xe (VD: 29A-12345 hoặc 29A1-12345)"
-                  style={{ paddingLeft: "2.5rem", textTransform: "uppercase" }}
-                  disabled={isBusy}
-                />
-              </div>
-              <span className="admin-form-hint">
-                Vui lòng kiểm tra kỹ biển số xe trước khi kích hoạt máy bơm.
-              </span>
-              {detecting && (
-                <span
-                  className="text-danger text-danger--strong"
-                  style={{
-                    display: "block",
-                    textAlign: "left",
-                    color: "#ec3434ff",
-                  }}
-                >
-                  {detecting}
-                </span>
-              )}
-            </div>
-
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "85fr 15fr",
-                gap: "0.75rem",
-                width: "100%",
-              }}
-            >
-              <button
-                className="admin-btn admin-btn--primary"
-                onClick={handleWash}
-                disabled={
-                  loading || stopping || !plate.trim() || detecting !== ""
-                }
-                style={{
-                  width: "100%",
-                  justifyContent: "center",
-                  padding: "0.75rem",
-                  fontSize: "0.9rem",
-                }}
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="animate-spin" size={18} />
-                    Đang kích hoạt...
-                  </>
-                ) : (
-                  <>
-                    <Play size={18} />
-                    Kích hoạt Bơm Nước
-                  </>
-                )}
-              </button>
-
-              <button
-                type="button"
-                onClick={handleStop}
-                disabled={loading || stopping}
-                className="admin-btn"
-                style={{
-                  width: "100%",
-                  justifyContent: "center",
-                  padding: "0.75rem",
-                  fontSize: "0.9rem",
-                  background: "#dc2626",
-                  color: "#fff",
-                  borderColor: "#dc2626",
-                }}
-              >
-                {stopping ? (
-                  <>
-                    <Loader2 className="animate-spin" size={18} />
-                    Đang dừng...
-                  </>
-                ) : (
-                  <>
-                    <Info size={18} />
-                    Dừng máy
-                  </>
-                )}
-              </button>
-            </div>
+              <Droplets className="text-[#0ea5b7]" size={20} />
+              Dừng khẩn cấp
+            </h2>
           </div>
 
-          {/* Card tình trạng xe */}
-          {/* <div className="admin-card">
-                        <div className="admin-card__header pb-2" style={{ borderBottom: '1px solid #f1f5f9', marginBottom: '0.75rem' }}>
-                            <h2 className="admin-card__title">Nhật ký hoạt động rửa xe gần đây</h2>
-                        </div>
-                        <div className="admin-empty-text" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
-                            <CheckCircle size={32} className="text-[#94a3b8]" />
-                            <span>Tình trạng rửa xe sẽ hiển thị tại đây khi kết nối dữ liệu thời gian thực.</span>
-                        </div>
-                    </div> */}
+          <button
+            type="button"
+            onClick={handleStop}
+            disabled={loading || stopping || detecting !== ""}
+            className="admin-btn admin-btn--primary w-full mt-auto"
+            style={{
+              justifyContent: "center",
+              padding: "0.75rem",
+              fontSize: "0.9rem",
+              background: "#dc2626",
+              color: "#fff",
+              borderColor: "#dc2626",
+            }}
+          >
+            {stopping ? (
+              <>
+                <Loader2 className="animate-spin" size={18} />
+                Đang dừng...
+              </>
+            ) : (
+              <>
+                <Info size={18} />
+                Dừng máy
+              </>
+            )}
+          </button>
         </div>
 
-        {/* Cột phụ: Hướng dẫn an toàn & quy trình */}
-        <div className="admin-card" style={{ height: "fit-content" }}>
+        {/* Card 3: Hướng dẫn an toàn */}
+        <div className="admin-card md:col-span-12 lg:col-span-6">
           <div
             className="admin-card__header"
             style={{
@@ -325,7 +228,8 @@ export default function StaffWashingStatus() {
                 1
               </span>
               <span>
-                Đưa xe của khách vào đúng vị trí của băng chuyền rửa xe tự động.
+                Đưa xe của khách vào đúng vị trí của băng chuyền rửa xe tự
+                động.
               </span>
             </div>
             <div style={{ display: "flex", gap: "0.5rem" }}>
@@ -366,8 +270,8 @@ export default function StaffWashingStatus() {
                 3
               </span>
               <span>
-                Đảm bảo không có người hoặc vật cản đứng gần khu vực vòi phun áp
-                lực cao.
+                Đảm bảo không có người hoặc vật cản đứng gần khu vực vòi phun
+                áp lực cao.
               </span>
             </div>
             <div style={{ display: "flex", gap: "0.5rem" }}>
