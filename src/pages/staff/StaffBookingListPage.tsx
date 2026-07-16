@@ -7,6 +7,7 @@ import PaymentModal from '../../components/PaymentModal';
 import BookingDetailModal from '../../components/BookingDetailModal';
 import CreateChecklistModal from '../../components/CreateChecklistModal';
 import { bookingChecklistService } from '../../services/bookingChecklistService';
+import { washService } from '../../services/staffWashingStatusService';
 
 const STEPS = [
   { id: 'pending', label: 'Đã xác nhận' },
@@ -22,11 +23,12 @@ export default function StaffBookingListPage() {
 
   // Modal states
   const [paymentModal, setPaymentModal] = useState<{ isOpen: boolean, booking: WashBooking | null }>({ isOpen: false, booking: null });
-  const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean, action: 'confirm' | 'start' | 'checkin_manual' | 'washed' | '', booking: WashBooking | null }>({ isOpen: false, action: '', booking: null });
+  const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean, action: 'confirm' | 'start' | 'start_iot' | 'checkin_manual' | 'washed' | '', booking: WashBooking | null }>({ isOpen: false, action: '', booking: null });
   const [detailModal, setDetailModal] = useState<WashBooking | null>(null);
 
   const [createChecklistModalBooking, setCreateChecklistModalBooking] = useState<WashBooking | null>(null);
   const [checkinMethodModal, setCheckinMethodModal] = useState<WashBooking | null>(null);
+  const [startWashMethodModal, setStartWashMethodModal] = useState<WashBooking | null>(null);
   const [missingChecklistIds, setMissingChecklistIds] = useState<Set<string>>(new Set());
   const [loadingChecklists, setLoadingChecklists] = useState<Set<string>>(new Set());
 
@@ -124,6 +126,17 @@ export default function StaffBookingListPage() {
       if (confirmModal.action === 'confirm') await bookingService.confirm(id);
       if (confirmModal.action === 'start') {
         await bookingService.start(id);
+      }
+      if (confirmModal.action === 'start_iot') {
+        const plateNumber = booking.vehicle?.plate_number;
+        if (plateNumber) {
+          const response = await washService.wash({ plate: plateNumber });
+          if (!response.success) {
+            throw new Error(response.message || 'Kích hoạt máy bơm thất bại');
+          }
+        } else {
+          throw new Error('Không tìm thấy biển số xe để kích hoạt IoT');
+        }
       }
       if (confirmModal.action === 'checkin_manual') {
         await bookingService.checkin(id);
@@ -341,7 +354,7 @@ export default function StaffBookingListPage() {
       }
       case 'checked_in':
         return (
-          <button onClick={() => setConfirmModal({ isOpen: true, action: 'start', booking })} className="flex items-center px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors shadow-sm font-medium">
+          <button onClick={() => setStartWashMethodModal(booking)} className="flex items-center px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors shadow-sm font-medium">
             <Play className="w-4 h-4 mr-2" /> Bắt đầu rửa
           </button>
         );
@@ -505,7 +518,7 @@ export default function StaffBookingListPage() {
           <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
             <h2 className="text-xl font-bold text-slate-800 mb-2">Chuyển trạng thái</h2>
             <p className="text-slate-600 mb-6 text-sm">
-              Bạn có chắc chắn {confirmModal.action === 'checkin_manual' ? 'Check-in thủ công' : (confirmModal.action === 'start' ? 'bắt đầu rửa' : (confirmModal.action === 'washed' ? 'đánh dấu đã rửa xong' : 'chuyển tiếp trạng thái'))} cho đơn
+              Bạn có chắc chắn {confirmModal.action === 'checkin_manual' ? 'Check-in thủ công' : (confirmModal.action === 'start' ? 'bắt đầu rửa xe ' : (confirmModal.action === 'start_iot' ? 'kích hoạt máy bơm' : (confirmModal.action === 'washed' ? 'đánh dấu đã rửa xong' : 'chuyển tiếp trạng thái')))} cho đơn
               <span className="font-bold ml-1">#{(confirmModal.booking?._id || confirmModal.booking?.id)?.slice(-6).toUpperCase()}</span>?
             </p>
             <div className="flex justify-end gap-3">
@@ -566,6 +579,41 @@ export default function StaffBookingListPage() {
                 <CheckCircle size={18} /> Check-in thủ công
               </button>
               <button onClick={() => setCheckinMethodModal(null)} className="mt-2 text-sm text-slate-500 hover:text-slate-700 underline underline-offset-2">Huỷ bỏ</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CHỌN PHƯƠNG THỨC BẮT ĐẦU RỬA MODAL */}
+      {startWashMethodModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
+            <h2 className="text-xl font-bold text-slate-800 mb-2">Phương thức Bắt đầu</h2>
+            <p className="text-slate-600 mb-6 text-sm">
+              Chọn phương thức bắt đầu rửa cho đơn <span className="font-bold">#{(startWashMethodModal._id || startWashMethodModal.id!)?.slice(-6).toUpperCase()}</span>:
+            </p>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => {
+                  const booking = startWashMethodModal;
+                  setStartWashMethodModal(null);
+                  setConfirmModal({ isOpen: true, action: 'start_iot', booking });
+                }}
+                className="w-full px-4 py-3 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-xl flex items-center justify-center gap-2 transition-colors shadow-sm"
+              >
+                <Play size={18} /> Kích hoạt máy bơm
+              </button>
+              <button
+                onClick={() => {
+                  const booking = startWashMethodModal;
+                  setStartWashMethodModal(null);
+                  setConfirmModal({ isOpen: true, action: 'start', booking });
+                }}
+                className="w-full px-4 py-3 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl flex items-center justify-center gap-2 transition-colors"
+              >
+                <CheckCircle size={18} /> Rửa thủ công
+              </button>
+              <button onClick={() => setStartWashMethodModal(null)} className="mt-2 text-sm text-slate-500 hover:text-slate-700 underline underline-offset-2">Huỷ bỏ</button>
             </div>
           </div>
         </div>
