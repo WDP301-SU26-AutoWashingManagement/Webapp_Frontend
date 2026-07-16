@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { ChangeEvent } from "react";
 import { washService } from "../../services/staffWashingStatusService";
 import { showError, showSuccess } from "../../utils/toast";
-import { Play, Car, Droplets, Info, Loader2 } from "lucide-react";
+import { Play, Car, Droplets, Info, Loader2, Siren } from "lucide-react";
 import {
   ActionType,
   type NotificationWashingStatus,
@@ -11,7 +11,6 @@ import { env } from "../../config/env";
 import { useSSE } from "../../hooks/useSSE";
 
 export default function StaffWashingStatus() {
-  const [plate, setPlate] = useState("");
   const [loading, setLoading] = useState(false);
   const [stopping, setStopping] = useState(false);
   const [detecting, setDetecting] = useState<string>("");
@@ -19,12 +18,9 @@ export default function StaffWashingStatus() {
   const [washingStatus, setWashingStatus] =
     useState<NotificationWashingStatus | null>(null);
 
-  const { data } = useSSE<NotificationWashingStatus>(
+  const { data, status } = useSSE<NotificationWashingStatus>(
     `${env.apiBaseUrl}/sse-notifications`,
   );
-
-  const plateRegex = /^\d{2}[A-Z]{1,2}\d{0,1}-\d{4,5}$/;
-  const isBusy = loading || stopping;
 
   useEffect(() => {
     if (data?.type === "washing_status") {
@@ -41,57 +37,24 @@ export default function StaffWashingStatus() {
     }
   }, [data]);
 
-  const handlePlateChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.toUpperCase();
-
-    setPlate(value);
-
-    if (plateRegex.test(value)) {
-      setDetecting("");
-    } else {
-      setDetecting("Biển số xe không đúng định dạng");
-    }
-  };
-
-  const handleWash = async () => {
-    if (!plate) {
-      showError("Vui lòng nhập biển số xe trước khi kích hoạt!");
-      return;
-    }
-    if (!plateRegex.test(plate)) {
-      setDetecting("Biển số xe không đúng định dạng");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const response = await washService.wash({ plate: plate });
-      if (response.success) {
-        showSuccess(response.message || "Kích hoạt máy bơm nước thành công!");
-        setPlate(""); // clear input after success
-      } else {
-        showError(response.message || "Kích hoạt thất bại.");
-      }
-    } catch (error: any) {
-      showError(error.message || "Đã xảy ra lỗi khi gửi yêu cầu rửa xe.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleStop = async () => {
     setStopping(true);
     try {
+      setLoading(true);
       const response = await washService.stop();
       if (response.success) {
         showSuccess(response.message || "Đã gửi yêu cầu dừng máy rửa xe!");
+        setStopping(false);
+        setLoading(false);
       } else {
         showError(response.message || "Dừng máy thất bại.");
+        setStopping(false);
+        setLoading(false);
       }
     } catch (error: any) {
-      showError(error.message || "Đã xảy ra lỗi khi gửi yêu cầu dừng máy.");
-    } finally {
       setStopping(false);
+      setLoading(false);
+      showError(error.message || "Đã xảy ra lỗi khi gửi yêu cầu dừng máy.");
     }
   };
 
@@ -107,83 +70,77 @@ export default function StaffWashingStatus() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-        {/* Card 1: Trạng thái Bơm */}
-        <div className="admin-stat-card md:col-span-6 lg:col-span-3 flex flex-col justify-between">
-          <div className="admin-stat-card__header">
-            <span className="admin-stat-card__label">Trạng thái Bơm</span>
-            <div
-              className="admin-stat-card__icon-wrap"
-              style={{ background: "#ecfdf5", color: "#10b981" }}
-            >
-              <Droplets size={20} />
+        {/* Card 1: Trạng thái & Điều khiển Bơm */}
+        <div className="admin-card md:col-span-6 lg:col-span-5 flex flex-col justify-between">
+          {/* Phần trên: Trạng thái Bơm */}
+          <div className="flex flex-col border-b border-slate-100">
+            <div className="flex items-center gap-2 mb-5">
+              <Droplets className="text-[#0ea5b7]" size={20} />
+              <span className="admin-stat-card__label" style={{ fontSize: "1rem" }}>
+                Trạng thái Bơm
+              </span>
+            </div>
+
+            <div>
+              {washingStatus === null || status === "connecting" ? (
+                <div className="flex items-center gap-2 text-slate-500">
+                  <Loader2 className="animate-spin text-[#10b981]" size={18} />
+                  <span className="text-sm font-semibold">Đang kết nối...</span>
+                </div>
+              ) : (
+                <h3
+                  className="admin-stat-card__value"
+                  style={{
+                    fontFamily: '"Google Sans", "Plus Jakarta Sans", sans-serif',
+                    fontWeight: 800,
+                  }}
+                >
+                  {washingStatus.action}
+                </h3>
+              )}
             </div>
           </div>
-          <h3
-            className="admin-stat-card__value mt-auto"
-            style={{
-              fontFamily: '"Google Sans", "Plus Jakarta Sans", sans-serif',
-              fontWeight: 700,
-            }}
-          >
-            {washingStatus?.action}
-          </h3>
-          {/* <p className="admin-stat-card__trend-label">Hệ thống áp lực nước ổn định</p> */}
-        </div>
 
-        {/* Card 2: Dừng khẩn cấp */}
-        <div className="admin-card md:col-span-6 lg:col-span-3 flex flex-col justify-between">
-          <div
-            className="admin-card__header"
-            style={{
-              marginBottom: "1.25rem",
-              borderBottom: "1px solid #f1f5f9",
-              paddingBottom: "0.75rem",
-            }}
-          >
-            <h2
-              className="admin-card__title"
+          {/* Phần dưới: Dừng khẩn cấp */}
+          <div className="flex flex-col gap-4 pt-5 mt-auto">
+            <div className="flex items-center gap-2">
+              <Siren className="text-[#dc2626]" size={20} />
+              <h2 className="admin-card__title" style={{ fontSize: "1rem" }}>
+                Dừng khẩn cấp
+              </h2>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleStop}
+              disabled={loading || stopping || detecting !== ""}
+              className="admin-btn admin-btn--primary w-full"
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-                fontSize: "1rem",
+                justifyContent: "center",
+                padding: "0.75rem",
+                fontSize: "0.9rem",
+                background: "#dc2626",
+                color: "#fff",
+                borderColor: "#dc2626",
               }}
             >
-              <Droplets className="text-[#0ea5b7]" size={20} />
-              Dừng khẩn cấp
-            </h2>
+              {stopping ? (
+                <>
+                  <Loader2 className="animate-spin" size={18} />
+                  Đang dừng...
+                </>
+              ) : (
+                <>
+                  <Info size={18} />
+                  Dừng máy
+                </>
+              )}
+            </button>
           </div>
-
-          <button
-            type="button"
-            onClick={handleStop}
-            disabled={loading || stopping || detecting !== ""}
-            className="admin-btn admin-btn--primary w-full mt-auto"
-            style={{
-              justifyContent: "center",
-              padding: "0.75rem",
-              fontSize: "0.9rem",
-              background: "#dc2626",
-              color: "#fff",
-              borderColor: "#dc2626",
-            }}
-          >
-            {stopping ? (
-              <>
-                <Loader2 className="animate-spin" size={18} />
-                Đang dừng...
-              </>
-            ) : (
-              <>
-                <Info size={18} />
-                Dừng máy
-              </>
-            )}
-          </button>
         </div>
 
-        {/* Card 3: Hướng dẫn an toàn */}
-        <div className="admin-card md:col-span-12 lg:col-span-6">
+        {/* Card 2: Hướng dẫn an toàn */}
+        <div className="admin-card md:col-span-6 lg:col-span-7">
           <div
             className="admin-card__header"
             style={{
