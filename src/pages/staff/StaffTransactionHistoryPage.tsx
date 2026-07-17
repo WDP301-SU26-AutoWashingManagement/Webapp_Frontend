@@ -20,6 +20,7 @@ export default function StaffTransactionHistoryPage() {
     const today = new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]
     const [dateRange, setDateRange] = useState({ startDate: today, endDate: today })
     const [searchQuery, setSearchQuery] = useState('')
+    const [searchType, setSearchType] = useState<'code' | 'plate'>('code')
     const limit = 8
 
     useEffect(() => {
@@ -63,10 +64,13 @@ export default function StaffTransactionHistoryPage() {
         if (searchQuery) {
             const q = searchQuery.toLowerCase().trim()
             const plate = (b.vehicle?.license_plate || b.vehicle?.plate_number || '').toLowerCase()
-            const appointmentId = (b.appointment?._id ?? b._id ?? '').toLowerCase()
-            const shortAppointmentId = appointmentId.slice(-6)
+            const displayId = (b.appointment?.appointment_code || b.appointment_code || '').toLowerCase()
             
-            if (!plate.includes(q) && !appointmentId.includes(q) && !shortAppointmentId.includes(q)) return false
+            const matchPlate = plate.includes(q);
+            const matchCode = displayId.includes(q);
+
+            if (searchType === 'code' && !matchCode) return false;
+            if (searchType === 'plate' && !matchPlate) return false;
         }
         return true
     });
@@ -119,14 +123,25 @@ export default function StaffTransactionHistoryPage() {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                         <input
                             type="text"
-                            placeholder="Tìm mã đơn, biển số xe..."
+                            placeholder={searchType === 'code' ? "Tìm mã đơn..." : "Tìm biển số xe..."}
                             value={searchQuery}
                             onChange={(e) => {
                                 setSearchQuery(e.target.value);
                                 setPage(1);
                             }}
-                            className="pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 outline-none focus:border-blue-500 bg-white shadow-sm min-w-[220px]"
+                            className="pl-9 pr-4 py-2 border border-slate-200 rounded-l-xl text-sm font-medium text-slate-700 outline-none focus:border-blue-500 bg-white shadow-sm min-w-[200px]"
                         />
+                        <select
+                            value={searchType}
+                            onChange={(e) => {
+                                setSearchType(e.target.value as any);
+                                setPage(1);
+                            }}
+                            className="px-2 py-2 border-y border-r border-slate-200 rounded-r-xl text-sm font-medium text-slate-700 outline-none focus:border-blue-500 bg-white cursor-pointer"
+                        >
+                            <option value="code">Mã đơn</option>
+                            <option value="plate">Biển số</option>
+                        </select>
                     </div>
                     <div className="flex items-center gap-2">
                         <input
@@ -194,7 +209,7 @@ export default function StaffTransactionHistoryPage() {
                                 </tr>
                             ) : (
                                 paginatedItems.map((b: any) => {
-                                    const id = (b.appointment?._id ?? b._id ?? '').slice(-6).toUpperCase()
+                                    const id = b.appointment?.appointment_code || b.appointment_code || 'N/A'
                                     const paidAt = b.paid_at ? new Date(b.paid_at) : null;
                                     const scheduledAt = b.appointment?.scheduled_at ? new Date(b.appointment.scheduled_at) : null;
 

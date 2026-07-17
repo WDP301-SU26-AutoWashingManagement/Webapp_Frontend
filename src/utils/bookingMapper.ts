@@ -115,6 +115,7 @@ export function normalizeWashBooking(raw: Record<string, unknown>): WashBooking 
     applied_promotion_discount: typeof raw.applied_promotion_discount === 'number' ? raw.applied_promotion_discount : undefined,
     final_price: typeof raw.final_price === 'number' ? raw.final_price : undefined,
     payment_method: typeof raw.payment_method === 'string' ? raw.payment_method : undefined,
+    appointment_code: typeof raw.appointment_code === 'string' ? raw.appointment_code : undefined,
     vehicle,
     service_package,
     customer,
