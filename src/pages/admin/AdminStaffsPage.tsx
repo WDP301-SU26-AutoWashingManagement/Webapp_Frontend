@@ -589,7 +589,7 @@ export default function AdminStaffsPage() {
                 <th>Giờ/Tuần</th>
                 <th>Nghỉ phép</th>
                 <th>Ngày vào làm</th>
-                <th className="text-right">Hành động</th>
+                <th className={isManager ? "text-right" : "text-center"}>Hành động</th>
               </tr>
             </thead>
             <tbody>
@@ -619,8 +619,8 @@ export default function AdminStaffsPage() {
                     <span className="text-slate-400"> / {staff.annual_leave_days ?? 12}</span>
                   </td>
                   <td>{staff.hire_date ? new Date(staff.hire_date).toLocaleDateString('vi-VN') : '---'}</td>
-                  <td className="text-right">
-                    <div className="flex justify-end gap-2">
+                  <td className={isManager ? "text-right" : "text-center"}>
+                    <div className={`flex gap-2 ${isManager ? 'justify-end' : 'justify-center'}`}>
                       <button
                         onClick={() => setDetailStaffId(staff._id)}
                         className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
