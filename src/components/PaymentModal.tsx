@@ -50,7 +50,7 @@ export default function PaymentModal({ isOpen, onClose, booking, onSuccess }: Pa
   const [selectedPromotionId, setSelectedPromotionId] = useState<string | null>(null)
   const [loadingPromotions, setLoadingPromotions] = useState(false)
   const [isCreatingInvoice, setIsCreatingInvoice] = useState(false)
-  const [bankInfo, setBankInfo] = useState<{ accountName: string, accountNumber: string, bankName: string } | null>(null)
+  const [bankInfo, setBankInfo] = useState<{ accountName: string, accountNumber: string, bankName: string, addInfo?: string } | null>(null)
 
   // Phân tích mã QR VietQR để lấy thông tin ngân hàng
   useEffect(() => {
@@ -64,14 +64,16 @@ export default function PaymentModal({ isOpen, onClose, booking, onSuccess }: Pa
             setBankInfo({
               accountName: parsed.accountName,
               accountNumber: parsed.accountNumber,
-              bankName: bank ? bank.shortName : parsed.bin
+              bankName: bank ? bank.shortName : parsed.bin,
+              addInfo: parsed.addInfo
             });
           })
           .catch(() => {
             setBankInfo({
               accountName: parsed.accountName,
               accountNumber: parsed.accountNumber,
-              bankName: parsed.bin
+              bankName: parsed.bin,
+              addInfo: parsed.addInfo
             });
           });
       }
@@ -636,10 +638,10 @@ export default function PaymentModal({ isOpen, onClose, booking, onSuccess }: Pa
                           <div className="flex items-center justify-between">
                             <div>
                               <p className="text-xs text-slate-500 mb-0.5">Nội dung:</p>
-                              <p className="font-bold text-slate-800 text-base">{invoice.order_code}</p>
+                              <p className="font-bold text-slate-800 text-base">{bankInfo.addInfo || invoice.order_code}</p>
                             </div>
                             <button
-                              onClick={() => { navigator.clipboard.writeText(invoice.order_code!.toString()); showSuccess('Đã copy nội dung') }}
+                              onClick={() => { navigator.clipboard.writeText((bankInfo.addInfo || invoice.order_code!).toString()); showSuccess('Đã copy nội dung') }}
                               className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-md transition-colors"
                             >
                               Sao chép
@@ -659,7 +661,7 @@ export default function PaymentModal({ isOpen, onClose, booking, onSuccess }: Pa
                   {/* Footer Lưu ý */}
                   <div className="bg-orange-50/50 p-4 border-t border-slate-100 text-center">
                     <p className="text-sm text-slate-700">
-                      Lưu ý: Nhập chính xác số tiền <strong className="text-slate-900">{invoice.total.toLocaleString('vi-VN')}</strong>, nội dung <strong className="text-slate-900">{invoice.order_code}</strong> khi chuyển khoản
+                      Lưu ý: Nhập chính xác số tiền <strong className="text-slate-900">{invoice.total.toLocaleString('vi-VN')}</strong>, nội dung <strong className="text-slate-900">{bankInfo?.addInfo || invoice.order_code}</strong> khi chuyển khoản
                     </p>
                   </div>
                 </div>
