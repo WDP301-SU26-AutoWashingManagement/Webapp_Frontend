@@ -10,6 +10,7 @@ export type BookingStatus =
 export interface WashBooking {
   _id?: string
   id?: string
+  appointment_code?: string
   customer_id?: string
   vehicle_id: string
   service_package_id?: string

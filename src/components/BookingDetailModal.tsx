@@ -54,7 +54,7 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onPay, hi
 
   if (!isOpen || !booking) return null
 
-  const id = (booking._id ?? booking.id!)?.slice(-6).toUpperCase()
+  const id = booking.appointment_code || 'N/A'
 
   const getStatusBadge = (status: string) => {
     switch (status) {
