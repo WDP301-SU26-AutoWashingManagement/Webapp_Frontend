@@ -252,13 +252,24 @@ export default function NewBookingPage() {
     // Auto-fill combo/services
     let comboId = '';
     const sIds: string[] = [];
-    recommendation.recommended_items.forEach(item => {
-      if (item.service_package_id) {
-        comboId = item.service_package_id;
-      } else {
-        sIds.push(item.service_id);
-      }
-    });
+    
+    if (recommendation.suggested_combo) {
+      comboId = recommendation.suggested_combo.package_id;
+      const matchedIds = recommendation.suggested_combo.matched_service_ids || [];
+      recommendation.recommended_items.forEach(item => {
+        if (!matchedIds.includes(item.service_id)) {
+          sIds.push(item.service_id);
+        }
+      });
+    } else {
+      recommendation.recommended_items.forEach(item => {
+        if (item.service_package_id) {
+          comboId = item.service_package_id;
+        } else {
+          sIds.push(item.service_id);
+        }
+      });
+    }
 
     // Auto-fill promotion
     let promoCode = form.promotion_code;
@@ -604,9 +615,9 @@ export default function NewBookingPage() {
                             <p className="text-xs text-indigo-700 italic leading-relaxed mb-3">"{recommendation.reason}"</p>
 
                             <div className="bg-white/60 rounded-lg p-3 border border-indigo-100 mb-3 space-y-2">
-                              <div className="flex justify-between items-center text-xs">
-                                <span className="font-semibold text-slate-700">Dịch vụ:</span>
-                                <span className="text-right text-indigo-900 font-bold max-w-[150px] truncate">
+                              <div className="flex justify-between items-start text-xs gap-2">
+                                <span className="font-semibold text-slate-700 whitespace-nowrap">Dịch vụ:</span>
+                                <span className="text-right text-indigo-900 font-bold">
                                   {recommendation.recommended_items.map(i => i.name).join(', ')}
                                 </span>
                               </div>

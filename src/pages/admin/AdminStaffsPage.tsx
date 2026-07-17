@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import {
-  Plus, Search, RefreshCw, X, Check, Users, Mail, Phone, Lock, Building, Wrench, Edit, Trash2, Eye
+  Plus, Search, RefreshCw, X, Check, Users, Mail, Phone, Lock, Building, Wrench, Edit, Trash2, Eye, Ban
 } from 'lucide-react'
 import { showError, showSuccess } from '../../utils/toast'
 import { getErrorMessage } from '../../utils/errors'
@@ -422,6 +422,9 @@ export default function AdminStaffsPage() {
 
   const [editingStaff, setEditingStaff] = useState<any | null>(null)
   const [detailStaffId, setDetailStaffId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [showTrash, setShowTrash] = useState(false)
+  const [confirmActionData, setConfirmActionData] = useState<{ staff: any, action: 'delete' | 'restore' } | null>(null)
 
   useEffect(() => {
     if (user?.role === 'boss') {
@@ -447,10 +450,15 @@ export default function AdminStaffsPage() {
 
       params.staff_type = 'technical'
 
-      const res = await adminStaffService.getStaffList(params)
+      const res = await (showTrash ? adminStaffService.getStaffTrash(params) : adminStaffService.getStaffList(params))
       if (res.success && res.data) {
-        setStaffs(res.data.data || [])
-        setTotalPages(res.data.pagination?.total_pages || 1)
+        if (showTrash) {
+          setStaffs(res.data || [])
+          setTotalPages(1)
+        } else {
+          setStaffs(res.data.data || [])
+          setTotalPages(res.data.pagination?.total_pages || 1)
+        }
       } else {
         setStaffs([])
       }
@@ -461,20 +469,30 @@ export default function AdminStaffsPage() {
     }
   }
 
-  const handleDeleteStaff = async (id: string) => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa nhân viên này không?')) return;
+  const handleConfirmAction = async () => {
+    if (!confirmActionData) return;
+    const { staff, action } = confirmActionData;
+    setConfirmActionData(null);
+    setDeletingId(staff._id);
     try {
-      await adminStaffService.deleteStaff(id);
-      showSuccess('Xóa nhân viên thành công');
+      if (action === 'delete') {
+        await adminStaffService.deleteStaff(staff._id);
+        showSuccess('Đã chuyển nhân viên vào mục đã xóa');
+      } else {
+        await adminStaffService.restoreStaff(staff._id);
+        showSuccess('Khôi phục nhân viên thành công');
+      }
       fetchStaffs();
     } catch (error) {
-      showError(getErrorMessage(error, 'Lỗi khi xóa nhân viên'));
+      showError(getErrorMessage(error, action === 'delete' ? 'Lỗi khi xóa nhân viên' : 'Lỗi khi khôi phục nhân viên'));
+    } finally {
+      setDeletingId(null);
     }
   }
 
   useEffect(() => {
     fetchStaffs()
-  }, [page, search, selectedBranch])
+  }, [page, search, selectedBranch, showTrash])
 
   return (
     <div className="admin-page">
@@ -484,11 +502,28 @@ export default function AdminStaffsPage() {
           <h1 className="admin-page__title">Nhân viên</h1>
           <p className="admin-page__subtitle">Quản lý và cấp quyền tài khoản cho nhân viên phổ thông.</p>
         </div>
-        {user?.role === 'admin' && (
-          <button className="admin-btn admin-btn--primary" onClick={() => setModalOpen(true)}>
-            <Plus size={15} /> Thêm nhân viên
-          </button>
-        )}
+        <div className="flex gap-3">
+          {isManager && (
+            <button 
+              className={`admin-btn ${showTrash ? 'admin-btn--ghost text-rose-600' : 'admin-btn--ghost'}`}
+              onClick={() => {
+                setShowTrash(!showTrash)
+                setPage(1)
+              }}
+            >
+              {showTrash ? (
+                <><RefreshCw size={15} /> Quay lại danh sách</>
+              ) : (
+                <><Trash2 size={15} /> Tài khoản đã xóa</>
+              )}
+            </button>
+          )}
+          {!showTrash && user?.role === 'admin' && (
+            <button className="admin-btn admin-btn--primary" onClick={() => setModalOpen(true)}>
+              <Plus size={15} /> Thêm nhân viên
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Filters */}
@@ -554,7 +589,7 @@ export default function AdminStaffsPage() {
                 <th>Giờ/Tuần</th>
                 <th>Nghỉ phép</th>
                 <th>Ngày vào làm</th>
-                <th className="text-right">Hành động</th>
+                <th className={isManager ? "text-right" : "text-center"}>Hành động</th>
               </tr>
             </thead>
             <tbody>
@@ -566,7 +601,12 @@ export default function AdminStaffsPage() {
                         {staff.full_name?.charAt(0)?.toUpperCase() || 'S'}
                       </div>
                       <div>
-                        <div className="font-semibold text-slate-800">{staff.full_name || 'Không xác định'}</div>
+                        <div className="font-semibold text-slate-800 flex items-center gap-2">
+                          {staff.full_name || 'Không xác định'}
+                          {staff.is_active === false && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-700">Bị khoá</span>
+                          )}
+                        </div>
                         <div className="text-xs text-slate-500">{staff.email || 'Không có email'}</div>
                       </div>
                     </div>
@@ -579,8 +619,8 @@ export default function AdminStaffsPage() {
                     <span className="text-slate-400"> / {staff.annual_leave_days ?? 12}</span>
                   </td>
                   <td>{staff.hire_date ? new Date(staff.hire_date).toLocaleDateString('vi-VN') : '---'}</td>
-                  <td className="text-right">
-                    <div className="flex justify-end gap-2">
+                  <td className={isManager ? "text-right" : "text-center"}>
+                    <div className={`flex gap-2 ${isManager ? 'justify-end' : 'justify-center'}`}>
                       <button
                         onClick={() => setDetailStaffId(staff._id)}
                         className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
@@ -588,23 +628,36 @@ export default function AdminStaffsPage() {
                       >
                         <Eye size={16} />
                       </button>
+                      {!showTrash && isManager && (
+                        <button
+                          onClick={() => setEditingStaff(staff)}
+                          className="p-1.5 text-amber-600 hover:bg-amber-50 rounded"
+                          title="Sửa"
+                        >
+                          <Edit size={16} />
+                        </button>
+                      )}
+                      
                       {isManager && (
-                        <>
+                        showTrash ? (
                           <button
-                            onClick={() => setEditingStaff(staff)}
-                            className="p-1.5 text-amber-600 hover:bg-amber-50 rounded"
-                            title="Sửa"
+                            onClick={() => setConfirmActionData({ staff, action: 'restore' })}
+                            disabled={deletingId === staff._id}
+                            className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded disabled:opacity-50"
+                            title="Khôi phục"
                           >
-                            <Edit size={16} />
+                            <RefreshCw size={16} />
                           </button>
+                        ) : (
                           <button
-                            onClick={() => handleDeleteStaff(staff._id)}
-                            className="p-1.5 text-rose-600 hover:bg-rose-50 rounded"
-                            title="Xóa"
+                            onClick={() => setConfirmActionData({ staff, action: 'delete' })}
+                            disabled={deletingId === staff._id}
+                            className="p-1.5 text-rose-600 hover:bg-rose-50 rounded disabled:opacity-50"
+                            title="Xóa vào mục đã xóa"
                           >
                             <Trash2 size={16} />
                           </button>
-                        </>
+                        )
                       )}
                     </div>
                   </td>
@@ -659,6 +712,44 @@ export default function AdminStaffsPage() {
           staffId={detailStaffId}
           onClose={() => setDetailStaffId(null)}
         />
+      )}
+
+      {confirmActionData && (
+        <div className="admin-modal-overlay" onClick={() => setConfirmActionData(null)}>
+          <div className="admin-modal" style={{ maxWidth: 400 }}>
+            <div className="admin-modal__header">
+              <h3 className={`admin-modal__title flex items-center gap-2 ${confirmActionData.action === 'delete' ? 'text-rose-600' : 'text-emerald-600'}`}>
+                {confirmActionData.action === 'delete' ? <Trash2 size={18} /> : <RefreshCw size={18} />}
+                {confirmActionData.action === 'delete' ? 'Xóa nhân viên?' : 'Khôi phục nhân viên?'}
+              </h3>
+              <button type="button" className="admin-modal__close" onClick={() => setConfirmActionData(null)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className="admin-modal__body px-6 py-5">
+              <p className="text-slate-600 leading-relaxed text-sm">
+                {confirmActionData.action === 'delete'
+                  ? `Bạn có chắc chắn muốn xóa nhân viên ${confirmActionData.staff?.user_id?.full_name || confirmActionData.staff?.full_name || 'này'}? Tài khoản này sẽ được chuyển vào mục Tài khoản đã xóa.`
+                  : `Bạn có chắc chắn muốn khôi phục nhân viên ${confirmActionData.staff?.user_id?.full_name || confirmActionData.staff?.full_name || 'này'}?`
+                }
+              </p>
+            </div>
+            <div className="admin-modal__footer flex justify-end gap-3 px-6 pb-6 pt-2">
+              <button type="button" className="px-4 py-2 text-sm font-semibold text-slate-500 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all duration-200" onClick={() => setConfirmActionData(null)}>
+                Hủy
+              </button>
+              <button
+                type="button"
+                className={`px-4 py-2 text-sm font-semibold text-white rounded-xl transition-all duration-200 shadow-md ${
+                  confirmActionData.action === 'delete' ? 'bg-rose-600 hover:bg-rose-700 hover:shadow-rose-600/20' : 'bg-emerald-600 hover:bg-emerald-700 hover:shadow-emerald-600/20'
+                }`}
+                onClick={handleConfirmAction}
+              >
+                {confirmActionData.action === 'delete' ? 'Đồng ý xóa' : 'Đồng ý khôi phục'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

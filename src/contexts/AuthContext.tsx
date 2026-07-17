@@ -89,11 +89,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const login = useCallback(async (email: string, password: string) => {
     await authService.login(email, password)
-    const currentUser = authService.getCurrentUser()
-    if (!currentUser) {
-      throw new Error('Đăng nhập thất bại. Không nhận được thông tin phiên.')
-    }
-    setUser(currentUser)
     await refreshUserFromProfile()
   }, [refreshUserFromProfile])
 
@@ -105,11 +100,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const code = await requestGoogleAuthCode(env.googleClientId)
     await authService.googleLoginByCode(code, 'postmessage')
 
-    const currentUser = authService.getCurrentUser()
-    if (!currentUser) {
-      throw new Error('Đăng nhập Google thất bại. Không nhận được thông tin phiên.')
-    }
-    setUser(currentUser)
     await refreshUserFromProfile()
   }, [refreshUserFromProfile])
 

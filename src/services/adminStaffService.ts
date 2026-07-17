@@ -30,5 +30,13 @@ export const adminStaffService = {
 
   deleteStaff: async (id: string): Promise<ApiResponse<any>> => {
     return apiClient.delete(`/staff/${id}`)
+  },
+
+  getStaffTrash: async (params?: any): Promise<ApiResponse<any>> => {
+    return apiClient.get('/staff/trash', { params })
+  },
+
+  restoreStaff: async (id: string): Promise<ApiResponse<any>> => {
+    return apiClient.put(`/staff/${id}/restore`, {})
   }
 }

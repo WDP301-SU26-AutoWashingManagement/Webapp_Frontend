@@ -59,8 +59,8 @@ function TierModal({ initial, onClose, onSaved }: TierModalProps) {
       showError('Số ngày đặt trước tối thiểu phải là 1')
       return
     }
-    if (form.discount_percentage < 0 || form.discount_percentage > 100) {
-      showError('Phần trăm giảm giá phải từ 0 - 100')
+    if (form.discount_percentage < 0 || form.discount_percentage > 60) {
+      showError('Phần trăm giảm giá phải từ 0 - 60')
       return
     }
 
@@ -108,7 +108,7 @@ function TierModal({ initial, onClose, onSaved }: TierModalProps) {
           </div>
 
           <div className="admin-form-group">
-            <label className="admin-form-label">Điểm tích luỹ tối thiểu <span className="text-red-500">*</span></label>
+            <label className="admin-form-label">Điểm tích luỹ tối thiểu <span className="text-red-500"></span></label>
             <input
               type="number"
               className="admin-form-input"
@@ -136,9 +136,17 @@ function TierModal({ initial, onClose, onSaved }: TierModalProps) {
                 className="admin-form-input"
                 value={form.discount_percentage}
                 min={0}
-                max={100}
-                onChange={e => setForm(f => ({ ...f, discount_percentage: Number(e.target.value) }))}
+                max={60}
+                onChange={e => {
+                  let val = Number(e.target.value)
+                  if (val > 60) val = 60
+                  if (val < 0) val = 0
+                  setForm(f => ({ ...f, discount_percentage: val }))
+                }}
               />
+              <p className="admin-form-hint text-[11px] text-amber-600 mt-1.5 font-medium italic">
+                * Lưu ý: Giảm tối đa 60% khi có chương trình và phải có sự chấp nhận của Boss.
+              </p>
             </div>
           </div>
 
@@ -260,8 +268,7 @@ export default function AdminTiersPage() {
                     </div>
                   </td>
                   <td>
-                    <div className="admin-table__meta">
-                      <Hash size={12} />
+                    <div className={`font-bold ${TIER_ICON_COLOR[tier.tier_name] || 'text-slate-600'}`}>
                       {tier.min_membership_points.toLocaleString('vi-VN')} điểm
                     </div>
                   </td>

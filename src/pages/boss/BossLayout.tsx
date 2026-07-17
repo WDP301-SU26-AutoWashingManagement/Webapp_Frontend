@@ -32,7 +32,7 @@ const NAV_GROUPS = [
     ]
   },
   {
-    title: 'Nội bộ',
+    title: 'Tài khoản',
     items: [
       {
         label: 'Khách hàng',
@@ -49,6 +49,11 @@ const NAV_GROUPS = [
         icon: Users,
         to: '/boss/staffs',
       },
+    ]
+  },
+  {
+    title: 'Cửa hàng',
+    items: [
       {
         label: 'Quản lý Chi nhánh',
         icon: Building,
@@ -59,6 +64,11 @@ const NAV_GROUPS = [
         icon: Tag,
         to: '/boss/promotions',
       },
+    ]
+  },
+  {
+    title: 'Hồ sơ',
+    items: [
       {
         label: 'Cài đặt',
         icon: Settings,
