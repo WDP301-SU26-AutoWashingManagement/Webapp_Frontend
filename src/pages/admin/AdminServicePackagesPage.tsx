@@ -69,7 +69,8 @@ export default function AdminServicePackagesPage() {
   }, [formServiceIds, allServices])
 
   const discountedPrice = useMemo(() => {
-    return totalOriginalPrice * (1 - formDiscount / 100)
+    const validDiscount = Math.max(0, Math.min(100, formDiscount))
+    return totalOriginalPrice * (1 - validDiscount / 100)
   }, [totalOriginalPrice, formDiscount])
 
   const handleOpenCreate = () => {
@@ -107,6 +108,10 @@ export default function AdminServicePackagesPage() {
     e.preventDefault()
     if (!formGroup || !formName) {
       showError('Vui lòng điền đủ thông tin bắt buộc')
+      return
+    }
+    if (formDiscount < 0 || formDiscount > 100) {
+      showError('Phần trăm giảm giá phải nằm trong khoảng từ 0 đến 100')
       return
     }
     if (formServiceIds.length < 2) {
@@ -237,7 +242,12 @@ export default function AdminServicePackagesPage() {
                       max={100}
                       className="w-full pl-3 pr-10 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                       value={formDiscount}
-                      onChange={e => setFormDiscount(Number(e.target.value))}
+                      onChange={e => {
+                        let val = Number(e.target.value);
+                        if (val > 100) val = 100;
+                        if (val < 0) val = 0;
+                        setFormDiscount(val);
+                      }}
                     />
                     <Percent size={16} className="absolute right-3 top-2.5 text-slate-400" />
                   </div>

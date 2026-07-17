@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import {
-  Plus, Search, RefreshCw, X, Check, Users, Mail, Phone, Lock, Building, UserSquare, Edit, Trash2, Eye
+  Plus, Search, RefreshCw, X, Check, Users, Mail, Phone, Lock, Building, UserSquare, Edit, Trash2, Eye, Ban
 } from 'lucide-react'
 import { showError, showSuccess } from '../../utils/toast'
 import { getErrorMessage } from '../../utils/errors'
@@ -216,7 +216,7 @@ function AccountModal({ onClose, onSaved }: AccountModalProps) {
 }
 
 function EditAdminModal({ admin, branches, onClose, onSaved }: { admin: any, branches: Branch[], onClose: () => void, onSaved: () => void }) {
-  const defaultBranchId = admin.branch_id?._id || admin.branch_id?.id || admin.user_id?.branch_id || ''
+  const defaultBranchId = typeof admin.branch_id === 'string' ? admin.branch_id : (admin.branch_id?._id || admin.branch_id?.id || admin.user_id?.branch_id || '')
   const [form, setForm] = useState({
     branch_id: defaultBranchId,
   })
@@ -255,8 +255,8 @@ function EditAdminModal({ admin, branches, onClose, onSaved }: { admin: any, bra
               className="admin-form-input"
               value={form.branch_id}
               onChange={(e) => setForm((f) => ({ ...f, branch_id: e.target.value }))}
+              required
             >
-              <option value="">-- Chọn chi nhánh --</option>
               {branches.map(b => (
                 <option key={b._id ?? b.id} value={b._id ?? b.id}>
                   {b.branch_address ? `${b.branch_address.street}, ${b.branch_address.district}` : 'Chi nhánh'}
@@ -399,28 +399,43 @@ export default function BossAccountsPage() {
 
   const [editingAdmin, setEditingAdmin] = useState<any | null>(null)
   const [detailAdmin, setDetailAdmin] = useState<any | null>(null)
+  const [confirmLockData, setConfirmLockData] = useState<{ admin: any; action: 'lock' | 'unlock' } | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [confirmActionData, setConfirmActionData] = useState<{ admin: any, action: 'delete' | 'restore' } | null>(null)
+
+  const [showTrash, setShowTrash] = useState(false)
 
   const loadData = async () => {
     setLoading(true)
     try {
-      const [branchRes, adminRes, managerRes] = await Promise.all([
-        branchService.list(),
-        bossAccountService.getAdmins(selectedBranch),
-        adminStaffService.getStaffList({ staff_type: 'manager', branch_id: selectedBranch, limit: 100 })
-      ])
+      const branchRes = await branchService.list()
       setBranches(branchRes)
 
+      let adminRes, managerRes;
+      if (showTrash) {
+        [adminRes, managerRes] = await Promise.all([
+          bossAccountService.getAdminTrash(selectedBranch),
+          adminStaffService.getStaffTrash({ branch_id: selectedBranch })
+        ])
+      } else {
+        [adminRes, managerRes] = await Promise.all([
+          bossAccountService.getAdmins(selectedBranch),
+          adminStaffService.getStaffList({ staff_type: 'manager', branch_id: selectedBranch, limit: 100 })
+        ])
+      }
+
       const adminData = adminRes.data || adminRes || []
-      const managerData = (managerRes.data?.data || []).map((m: any) => ({
+      const managerData = (managerRes.data?.data || managerRes.data || managerRes || []).map((m: any) => ({
         _id: m._id,
         is_manager: true,
         branch_id: m.branch_id,
         user_id: {
-          _id: m.user_id,
-          full_name: m.full_name,
-          email: m.email,
-          phone: m.phone,
+          _id: m.user_id?._id || m.user_id,
+          full_name: m.user_id?.full_name || m.full_name,
+          email: m.user_id?.email || m.email,
+          phone: m.user_id?.phone || m.phone,
           role: 'staff',
+          is_active: m.user_id?.is_active !== undefined ? m.user_id.is_active : m.is_active,
           createdAt: m.hire_date || m.created_at
         }
       }))
@@ -435,7 +450,7 @@ export default function BossAccountsPage() {
 
   useEffect(() => {
     loadData()
-  }, [selectedBranch])
+  }, [selectedBranch, showTrash])
 
   const filteredAdmins = admins.filter(admin => {
     const user = admin.user_id || {}
@@ -453,18 +468,32 @@ export default function BossAccountsPage() {
     return (nameMatch || emailMatch) && roleMatch
   })
 
-  const handleDeleteAdmin = async (admin: any) => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa tài khoản này không?')) return;
+  const handleConfirmAction = async () => {
+    if (!confirmActionData) return;
+    const { admin, action } = confirmActionData;
+    setConfirmActionData(null);
+    setDeletingId(admin._id);
     try {
-      if (admin.is_manager) {
-        await adminStaffService.deleteStaff(admin._id);
+      if (action === 'delete') {
+        if (admin.is_manager) {
+          await adminStaffService.deleteStaff(admin._id);
+        } else {
+          await bossAccountService.deleteAdmin(admin._id);
+        }
+        showSuccess('Đã chuyển tài khoản vào mục đã xóa');
       } else {
-        await bossAccountService.deleteAdmin(admin._id);
+        if (admin.is_manager) {
+          await adminStaffService.restoreStaff(admin._id);
+        } else {
+          await bossAccountService.restoreAdmin(admin._id);
+        }
+        showSuccess('Khôi phục tài khoản thành công');
       }
-      showSuccess('Xóa tài khoản thành công');
       loadData();
     } catch (error) {
-      showError(getErrorMessage(error, 'Lỗi khi xóa tài khoản'));
+      showError(getErrorMessage(error, action === 'delete' ? 'Lỗi khi xóa tài khoản' : 'Lỗi khi khôi phục tài khoản'));
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -482,43 +511,53 @@ export default function BossAccountsPage() {
       </div>
 
       {/* Filters */}
-      <div className="admin-filters flex items-center gap-4">
-        <div className="admin-search-wrap">
-          <Search size={15} className="admin-search-icon" />
-          <input
-            className="admin-search-input"
-            placeholder="Tìm theo tên/email..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-          {search && (
-            <button className="admin-search-clear" onClick={() => setSearch('')}><X size={13} /></button>
-          )}
-        </div>
+      <div className="admin-filters flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="admin-search-wrap">
+            <Search size={15} className="admin-search-icon" />
+            <input
+              className="admin-search-input"
+              placeholder="Tìm theo tên/email..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+            {search && (
+              <button className="admin-search-clear" onClick={() => setSearch('')}><X size={13} /></button>
+            )}
+          </div>
 
-        <div className="flex gap-4">
-          <select
-            className="admin-form-input w-48"
-            value={roleFilter}
-            onChange={e => setRoleFilter(e.target.value)}
-          >
-            <option value="">Tất cả vai trò</option>
-            <option value="admin">Quản lý hệ thống </option>
-            <option value="manager">Quản lý chi nhánh </option>
-          </select>
-          <select
-            className="admin-form-input w-48"
-            value={selectedBranch}
-            onChange={e => setSelectedBranch(e.target.value)}
-          >
-            <option value="">Tất cả chi nhánh</option>
-            {branches.map(b => (
-              <option key={b._id || b.id} value={b._id || b.id}>
-                {b.branch_address ? `${b.branch_address.street}, ${b.branch_address.district}` : 'Chi nhánh'}
-              </option>
-            ))}
-          </select>
+          <div className="flex gap-4">
+            <select
+              className="admin-form-input w-48"
+              value={roleFilter}
+              onChange={e => setRoleFilter(e.target.value)}
+            >
+              <option value="">Tất cả vai trò</option>
+              <option value="admin">Quản lý hệ thống </option>
+              <option value="manager">Quản lý chi nhánh </option>
+            </select>
+            <select
+              className="admin-form-input w-48"
+              value={selectedBranch}
+              onChange={e => setSelectedBranch(e.target.value)}
+            >
+              <option value="">Tất cả chi nhánh</option>
+              {branches.map(b => (
+                <option key={b._id || b.id} value={b._id || b.id}>
+                  {b.branch_address ? `${b.branch_address.street}, ${b.branch_address.district}` : 'Chi nhánh'}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
+        
+        <button 
+          onClick={() => setShowTrash(!showTrash)} 
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${showTrash ? 'bg-rose-50 text-rose-600 border-rose-200' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
+        >
+          <Trash2 size={16} />
+          {showTrash ? 'Quay lại danh sách' : 'Tài khoản đã xóa'}
+        </button>
       </div>
 
       {/* Table */}
@@ -551,10 +590,14 @@ export default function BossAccountsPage() {
               {filteredAdmins.map((admin, idx) => {
                 const user = admin.user_id || {}
                 let branch = admin.branch_id
-                if (!branch && user.branch_id) {
-                  branch = branches.find(b => b._id === user.branch_id || b.id === user.branch_id)
+                if (typeof branch === 'string') {
+                  branch = branches.find(b => b._id === branch || b.id === branch)
                 }
-                const branchAddress = branch?.branch_address ? `${branch.branch_address.street}, ${branch.branch_address.district}` : 'Tất cả chi nhánh'
+                if (!branch && user.branch_id) {
+                  const uBranch = typeof user.branch_id === 'string' ? user.branch_id : (user.branch_id._id || user.branch_id.id)
+                  branch = branches.find(b => b._id === uBranch || b.id === uBranch)
+                }
+                const branchAddress = branch?.branch_address ? `${branch.branch_address.street}, ${branch.branch_address.district}` : 'Chưa phân công chi nhánh'
 
                 return (
                   <tr key={admin._id || idx}>
@@ -564,7 +607,12 @@ export default function BossAccountsPage() {
                           {user.full_name?.charAt(0)?.toUpperCase() || 'A'}
                         </div>
                         <div>
-                          <div className="font-semibold text-slate-800">{user.full_name || 'Không có tên'}</div>
+                          <div className="font-semibold text-slate-800 flex items-center gap-2">
+                            {user.full_name || 'Không có tên'}
+                            {user.is_active === false && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-700">Bị khoá</span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </td>
@@ -593,27 +641,41 @@ export default function BossAccountsPage() {
                     </td>
                     <td className="text-right">
                       <div className="flex justify-end gap-2">
-                        <button
-                          onClick={() => setDetailAdmin(admin)}
-                          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
-                          title="Xem chi tiết"
-                        >
-                          <Eye size={16} />
-                        </button>
-                        <button
-                          onClick={() => setEditingAdmin(admin)}
-                          className="p-1.5 text-amber-600 hover:bg-amber-50 rounded"
-                          title="Sửa"
-                        >
-                          <Edit size={16} />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteAdmin(admin)}
-                          className="p-1.5 text-rose-600 hover:bg-rose-50 rounded"
-                          title="Xóa"
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                        {showTrash ? (
+                          <button
+                            onClick={() => setConfirmActionData({ admin, action: 'restore' })}
+                            disabled={deletingId === admin._id}
+                            className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded disabled:opacity-50"
+                            title="Khôi phục"
+                          >
+                            <RefreshCw size={16} />
+                          </button>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => setDetailAdmin(admin)}
+                              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
+                              title="Xem chi tiết"
+                            >
+                              <Eye size={16} />
+                            </button>
+                            <button
+                              onClick={() => setEditingAdmin(admin)}
+                              className="p-1.5 text-amber-600 hover:bg-amber-50 rounded"
+                              title="Sửa"
+                            >
+                              <Edit size={16} />
+                            </button>
+                            <button
+                              onClick={() => setConfirmActionData({ admin, action: 'delete' })}
+                              disabled={deletingId === admin._id}
+                              className="p-1.5 text-rose-600 hover:bg-rose-50 rounded disabled:opacity-50"
+                              title="Xóa tài khoản"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -646,6 +708,44 @@ export default function BossAccountsPage() {
         />
       )}
 
+      {confirmActionData && (
+        <div className="admin-modal-overlay" onClick={() => setConfirmActionData(null)}>
+          <div className="admin-modal" style={{ maxWidth: 400 }}>
+            <div className="admin-modal__header">
+              <h3 className={`admin-modal__title flex items-center gap-2 ${confirmActionData.action === 'delete' ? 'text-rose-600' : 'text-emerald-600'}`}>
+                {confirmActionData.action === 'delete' ? <Trash2 size={18} /> : <RefreshCw size={18} />}
+                {confirmActionData.action === 'delete' ? 'Xóa tài khoản?' : 'Khôi phục tài khoản?'}
+              </h3>
+              <button type="button" className="admin-modal__close" onClick={() => setConfirmActionData(null)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className="admin-modal__body px-6 py-5">
+              <p className="text-slate-600 leading-relaxed text-sm">
+                {confirmActionData.action === 'delete'
+                  ? `Bạn có chắc chắn muốn xóa tài khoản ${confirmActionData.admin?.user_id?.full_name || confirmActionData.admin?.full_name || 'này'}? Tài khoản này sẽ được chuyển vào mục Tài khoản đã xóa.`
+                  : `Bạn có chắc chắn muốn khôi phục tài khoản ${confirmActionData.admin?.user_id?.full_name || confirmActionData.admin?.full_name || 'này'}?`
+                }
+              </p>
+            </div>
+            <div className="admin-modal__footer flex justify-end gap-3 px-6 pb-6 pt-2">
+              <button type="button" className="px-4 py-2 text-sm font-semibold text-slate-500 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all duration-200" onClick={() => setConfirmActionData(null)}>
+                Hủy
+              </button>
+              <button
+                type="button"
+                className={`px-4 py-2 text-sm font-semibold text-white rounded-xl transition-all duration-200 shadow-md ${
+                  confirmActionData.action === 'delete' ? 'bg-rose-600 hover:bg-rose-700 hover:shadow-rose-600/20' : 'bg-emerald-600 hover:bg-emerald-700 hover:shadow-emerald-600/20'
+                }`}
+                onClick={handleConfirmAction}
+              >
+                {confirmActionData.action === 'delete' ? 'Đồng ý xóa' : 'Đồng ý khôi phục'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {detailAdmin && (
         <DetailAdminModal
           admin={detailAdmin}
@@ -653,6 +753,7 @@ export default function BossAccountsPage() {
           onClose={() => setDetailAdmin(null)}
         />
       )}
+
     </div>
   )
 }

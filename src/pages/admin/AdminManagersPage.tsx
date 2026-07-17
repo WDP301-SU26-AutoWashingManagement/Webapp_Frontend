@@ -224,6 +224,9 @@ export default function AdminManagersPage() {
 
   const [editingStaff, setEditingStaff] = useState<any | null>(null)
   const [detailStaffId, setDetailStaffId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [showTrash, setShowTrash] = useState(false)
+  const [confirmActionData, setConfirmActionData] = useState<{ staff: any, action: 'delete' | 'restore' } | null>(null)
 
   useEffect(() => {
     if (user?.role === 'boss') {
@@ -248,10 +251,15 @@ export default function AdminManagersPage() {
       }
       params.staff_type = 'manager'
 
-      const res = await adminStaffService.getStaffList(params)
+      const res = await (showTrash ? adminStaffService.getStaffTrash(params) : adminStaffService.getStaffList(params))
       if (res.success && res.data) {
-        setStaffs(res.data.data || [])
-        setTotalPages(res.data.pagination?.total_pages || 1)
+        if (showTrash) {
+          setStaffs(res.data || [])
+          setTotalPages(1)
+        } else {
+          setStaffs(res.data.data || [])
+          setTotalPages(res.data.pagination?.total_pages || 1)
+        }
       } else {
         setStaffs([])
       }
@@ -262,20 +270,30 @@ export default function AdminManagersPage() {
     }
   }
 
-  const handleDeleteStaff = async (id: string) => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa nhân viên này không?')) return;
+  const handleConfirmAction = async () => {
+    if (!confirmActionData) return;
+    const { staff, action } = confirmActionData;
+    setConfirmActionData(null);
+    setDeletingId(staff._id);
     try {
-      await adminStaffService.deleteStaff(id);
-      showSuccess('Xóa nhân viên thành công');
+      if (action === 'delete') {
+        await adminStaffService.deleteStaff(staff._id);
+        showSuccess('Đã chuyển nhân viên vào mục đã xóa');
+      } else {
+        await adminStaffService.restoreStaff(staff._id);
+        showSuccess('Khôi phục nhân viên thành công');
+      }
       fetchStaffs();
     } catch (error) {
-      showError(getErrorMessage(error, 'Lỗi khi xóa nhân viên'));
+      showError(getErrorMessage(error, action === 'delete' ? 'Lỗi khi xóa nhân viên' : 'Lỗi khi khôi phục nhân viên'));
+    } finally {
+      setDeletingId(null);
     }
   }
 
   useEffect(() => {
     fetchStaffs()
-  }, [page, search, selectedBranch])
+  }, [page, search, selectedBranch, showTrash])
 
   return (
     <div className="admin-page">
@@ -284,6 +302,23 @@ export default function AdminManagersPage() {
         <div>
           <h1 className="admin-page__title">Quản lý chi nhánh</h1>
           <p className="admin-page__subtitle">Danh sách quản lý chi nhánh (Staff Manager).</p>
+        </div>
+        <div className="flex gap-3">
+          {user?.role === 'admin' && (
+            <button 
+              className={`admin-btn ${showTrash ? 'admin-btn--ghost text-rose-600' : 'admin-btn--ghost'}`}
+              onClick={() => {
+                setShowTrash(!showTrash)
+                setPage(1)
+              }}
+            >
+              {showTrash ? (
+                <><RefreshCw size={15} /> Quay lại danh sách</>
+              ) : (
+                <><Trash2 size={15} /> Tài khoản đã xóa</>
+              )}
+            </button>
+          )}
         </div>
       </div>
 
@@ -384,20 +419,36 @@ export default function AdminManagersPage() {
                       >
                         <Eye size={16} />
                       </button>
-                      <button
-                        onClick={() => setEditingStaff(staff)}
-                        className="p-1.5 text-amber-600 hover:bg-amber-50 rounded"
-                        title="Sửa"
-                      >
-                        <Edit size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteStaff(staff._id)}
-                        className="p-1.5 text-rose-600 hover:bg-rose-50 rounded"
-                        title="Xóa"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                      {!showTrash && (
+                        <button
+                          onClick={() => setEditingStaff(staff)}
+                          className="p-1.5 text-amber-600 hover:bg-amber-50 rounded"
+                          title="Sửa"
+                        >
+                          <Edit size={16} />
+                        </button>
+                      )}
+                      {user?.role === 'admin' && (
+                        showTrash ? (
+                          <button
+                            onClick={() => setConfirmActionData({ staff, action: 'restore' })}
+                            disabled={deletingId === staff._id}
+                            className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded disabled:opacity-50"
+                            title="Khôi phục"
+                          >
+                            <RefreshCw size={16} />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => setConfirmActionData({ staff, action: 'delete' })}
+                            disabled={deletingId === staff._id}
+                            className="p-1.5 text-rose-600 hover:bg-rose-50 rounded disabled:opacity-50"
+                            title="Xóa vào thùng rác"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -442,6 +493,44 @@ export default function AdminManagersPage() {
           staffId={detailStaffId}
           onClose={() => setDetailStaffId(null)}
         />
+      )}
+
+      {confirmActionData && (
+        <div className="admin-modal-overlay" onClick={() => setConfirmActionData(null)}>
+          <div className="admin-modal" style={{ maxWidth: 400 }}>
+            <div className="admin-modal__header">
+              <h3 className={`admin-modal__title flex items-center gap-2 ${confirmActionData.action === 'delete' ? 'text-rose-600' : 'text-emerald-600'}`}>
+                {confirmActionData.action === 'delete' ? <Trash2 size={18} /> : <RefreshCw size={18} />}
+                {confirmActionData.action === 'delete' ? 'Xóa nhân viên?' : 'Khôi phục nhân viên?'}
+              </h3>
+              <button type="button" className="admin-modal__close" onClick={() => setConfirmActionData(null)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className="admin-modal__body px-6 py-5">
+              <p className="text-slate-600 leading-relaxed text-sm">
+                {confirmActionData.action === 'delete'
+                  ? `Bạn có chắc chắn muốn xóa nhân viên ${confirmActionData.staff?.user_id?.full_name || confirmActionData.staff?.full_name || 'này'}? Tài khoản này sẽ được chuyển vào mục Tài khoản đã xóa.`
+                  : `Bạn có chắc chắn muốn khôi phục nhân viên ${confirmActionData.staff?.user_id?.full_name || confirmActionData.staff?.full_name || 'này'}?`
+                }
+              </p>
+            </div>
+            <div className="admin-modal__footer flex justify-end gap-3 px-6 pb-6 pt-2">
+              <button type="button" className="px-4 py-2 text-sm font-semibold text-slate-500 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all duration-200" onClick={() => setConfirmActionData(null)}>
+                Hủy
+              </button>
+              <button
+                type="button"
+                className={`px-4 py-2 text-sm font-semibold text-white rounded-xl transition-all duration-200 shadow-md ${
+                  confirmActionData.action === 'delete' ? 'bg-rose-600 hover:bg-rose-700 hover:shadow-rose-600/20' : 'bg-emerald-600 hover:bg-emerald-700 hover:shadow-emerald-600/20'
+                }`}
+                onClick={handleConfirmAction}
+              >
+                {confirmActionData.action === 'delete' ? 'Đồng ý xóa' : 'Đồng ý khôi phục'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

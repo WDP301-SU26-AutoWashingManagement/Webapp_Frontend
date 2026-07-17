@@ -237,6 +237,17 @@ export default function StaffTransactionHistoryPage() {
                                                 <div className="font-black text-rose-500 text-base">
                                                     {(b.total || 0).toLocaleString('vi-VN')} đ
                                                 </div>
+                                                {b.payment_method && (
+                                                    <div className="mt-1">
+                                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                                                            b.payment_method === 'cash' 
+                                                                ? 'bg-emerald-50 text-emerald-600 border-emerald-200' 
+                                                                : 'bg-indigo-50 text-indigo-600 border-indigo-200'
+                                                        }`}>
+                                                            {b.payment_method === 'cash' ? 'Tiền mặt' : 'Chuyển khoản'}
+                                                        </span>
+                                                    </div>
+                                                )}
                                             </td>
                                             <td className="px-5 py-4">
                                                 <div className="flex justify-center items-center">
@@ -252,6 +263,7 @@ export default function StaffTransactionHistoryPage() {
                                                                 fullBooking.base_price = b.subtotal;
                                                                 fullBooking.discount_amount = b.discount_amount;
                                                                 fullBooking.final_price = b.total;
+                                                                fullBooking.payment_method = b.payment_method;
                                                                 
                                                                 setDetailModal(fullBooking);
                                                             } catch (err) {
