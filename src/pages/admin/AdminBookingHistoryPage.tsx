@@ -18,6 +18,7 @@ export default function AdminBookingHistoryPage() {
   const [fromDate, setFromDate] = useState<string>('')
   const [toDate, setToDate] = useState<string>('')
   const [searchQuery, setSearchQuery] = useState('')
+  const [searchType, setSearchType] = useState<'code' | 'plate'>('code')
   const [selectedTime, setSelectedTime] = useState<string>('')
   const [showTimePicker, setShowTimePicker] = useState(false)
 
@@ -79,9 +80,13 @@ export default function AdminBookingHistoryPage() {
     if (searchQuery) {
       const q = searchQuery.toLowerCase().trim()
       const plate = b.vehicle?.plate_number?.toLowerCase() || ''
-      const id = (b._id ?? b.id!)?.toLowerCase() || ''
-      const shortId = id.slice(-6)
-      if (!plate.includes(q) && !shortId.includes(q) && !id.includes(q)) return false
+      const displayId = (b.appointment_code || '').toLowerCase()
+      
+      const matchPlate = plate.includes(q);
+      const matchCode = displayId.includes(q);
+
+      if (searchType === 'code' && !matchCode) return false;
+      if (searchType === 'plate' && !matchPlate) return false;
     }
 
     return true
@@ -187,11 +192,19 @@ export default function AdminBookingHistoryPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
             <input
               type="text"
-              placeholder="Tìm mã đơn, biển số xe..."
+              placeholder={searchType === 'code' ? "Tìm mã đơn..." : "Tìm biển số xe..."}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 pr-4 py-1.5 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:border-indigo-500 bg-white min-w-[220px] transition-colors"
+              className="pl-9 pr-4 py-1.5 border border-slate-200 rounded-l-lg text-sm text-slate-700 outline-none focus:border-indigo-500 bg-white min-w-[200px] transition-colors"
             />
+            <select
+              value={searchType}
+              onChange={(e) => setSearchType(e.target.value as any)}
+              className="px-2 py-1.5 border-y border-r border-slate-200 rounded-r-lg text-sm text-slate-700 outline-none focus:border-indigo-500 bg-white cursor-pointer"
+            >
+              <option value="code">Mã đơn</option>
+              <option value="plate">Biển số</option>
+            </select>
           </div>
 
           <select
@@ -320,7 +333,7 @@ export default function AdminBookingHistoryPage() {
                 <tr><td colSpan={8} className="admin-empty-text py-10">Không tìm thấy lịch hẹn phù hợp</td></tr>
               ) : (
                 filteredItems.map((b: WashBooking) => {
-                  const id = (b._id ?? b.id!).slice(-6).toUpperCase()
+                  const id = b.appointment_code || 'N/A'
                   return (
                     <tr
                       key={b._id || b.id}

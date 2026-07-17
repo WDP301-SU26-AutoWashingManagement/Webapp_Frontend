@@ -34,6 +34,7 @@ export default function StaffBookingListPage() {
 
   // Filter & Search states
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchType, setSearchType] = useState<'code' | 'plate'>('code');
   const [statusFilter, setStatusFilter] = useState('all');
   const [dateRange, setDateRange] = useState(() => {
     const today = new Date();
@@ -386,9 +387,13 @@ export default function StaffBookingListPage() {
     if (searchQuery) {
       const q = searchQuery.toLowerCase().trim();
       const plate = b.vehicle?.plate_number?.toLowerCase() || '';
-      const id = (b._id ?? b.id!)?.toLowerCase() || '';
-      const shortId = id.slice(-6);
-      if (!plate.includes(q) && !shortId.includes(q) && !id.includes(q)) return false;
+      const displayId = (b.appointment_code || '').toLowerCase();
+      
+      const matchPlate = plate.includes(q);
+      const matchCode = displayId.includes(q);
+
+      if (searchType === 'code' && !matchCode) return false;
+      if (searchType === 'plate' && !matchPlate) return false;
     }
     return true;
   });
@@ -408,11 +413,19 @@ export default function StaffBookingListPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
               <input
                 type="text"
-                placeholder="Tìm mã đơn, biển số xe..."
+                placeholder={searchType === 'code' ? "Tìm mã đơn..." : "Tìm biển số xe..."}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:border-cyan-500 bg-white min-w-[200px]"
+                className="pl-9 pr-4 py-2 border border-slate-200 rounded-l-lg text-sm text-slate-700 outline-none focus:border-cyan-500 bg-white min-w-[200px]"
               />
+              <select
+                value={searchType}
+                onChange={(e) => setSearchType(e.target.value as any)}
+                className="px-2 py-2 border-y border-r border-slate-200 rounded-r-lg text-sm text-slate-700 outline-none focus:border-cyan-500 bg-white cursor-pointer"
+              >
+                <option value="code">Mã đơn</option>
+                <option value="plate">Biển số</option>
+              </select>
             </div>
 
             {/* Filter */}
@@ -466,7 +479,7 @@ export default function StaffBookingListPage() {
             <div className="text-center py-10 text-slate-500 bg-white rounded-xl border border-slate-200 font-medium">Không tìm thấy đơn hàng nào phù hợp với bộ lọc.</div>
           ) : (
             filteredItems.map((booking: WashBooking) => {
-              const id = (booking._id ?? booking.id!).slice(-6).toUpperCase();
+              const id = booking.appointment_code || 'N/A';
               const date = new Date(booking.scheduled_at);
 
               return (
@@ -523,13 +536,13 @@ export default function StaffBookingListPage() {
               {confirmModal.action === 'confirm' ? (
                 <>
                   Bạn có muốn xác nhận cho đơn 
-                  <span className="font-bold ml-1 mr-1">#{(confirmModal.booking?._id || confirmModal.booking?.id)?.slice(-6).toUpperCase()}</span> 
+                  <span className="font-bold ml-1 mr-1">#{confirmModal.booking?.appointment_code || 'N/A'}</span> 
                   hay không?
                 </>
               ) : (
                 <>
                   Bạn có chắc chắn {confirmModal.action === 'checkin_manual' ? 'Check-in thủ công' : (confirmModal.action === 'start' ? 'bắt đầu rửa xe ' : (confirmModal.action === 'start_iot' ? 'kích hoạt máy bơm' : (confirmModal.action === 'washed' ? 'đánh dấu đã rửa xong' : 'chuyển tiếp trạng thái')))} cho đơn
-                  <span className="font-bold ml-1">#{(confirmModal.booking?._id || confirmModal.booking?.id)?.slice(-6).toUpperCase()}</span>?
+                  <span className="font-bold ml-1">#{confirmModal.booking?.appointment_code || 'N/A'}</span>?
                 </>
               )}
             </p>
@@ -568,7 +581,7 @@ export default function StaffBookingListPage() {
           <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
             <h2 className="text-xl font-bold text-slate-800 mb-2">Phương thức Check-in</h2>
             <p className="text-slate-600 mb-6 text-sm">
-              Đơn <span className="font-bold">#{(checkinMethodModal._id || checkinMethodModal.id!)?.slice(-6).toUpperCase()}</span> đã có biên bản kiểm tra. Vui lòng chọn cách check-in:
+              Đơn <span className="font-bold">#{checkinMethodModal.appointment_code || 'N/A'}</span> đã có biên bản kiểm tra. Vui lòng chọn cách check-in:
             </p>
             <div className="flex flex-col gap-3">
               <button
@@ -602,7 +615,7 @@ export default function StaffBookingListPage() {
           <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
             <h2 className="text-xl font-bold text-slate-800 mb-2">Phương thức Bắt đầu</h2>
             <p className="text-slate-600 mb-6 text-sm">
-              Chọn phương thức bắt đầu rửa cho đơn <span className="font-bold">#{(startWashMethodModal._id || startWashMethodModal.id!)?.slice(-6).toUpperCase()}</span>:
+              Chọn phương thức bắt đầu rửa cho đơn <span className="font-bold">#{startWashMethodModal.appointment_code || 'N/A'}</span>:
             </p>
             <div className="flex flex-col gap-3">
               <button
