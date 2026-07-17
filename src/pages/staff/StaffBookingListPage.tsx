@@ -516,10 +516,22 @@ export default function StaffBookingListPage() {
       {confirmModal.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
           <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
-            <h2 className="text-xl font-bold text-slate-800 mb-2">Chuyển trạng thái</h2>
+            <h2 className="text-xl font-bold text-slate-800 mb-2">
+              {confirmModal.action === 'confirm' ? 'Xác nhận đơn' : 'Chuyển trạng thái'}
+            </h2>
             <p className="text-slate-600 mb-6 text-sm">
-              Bạn có chắc chắn {confirmModal.action === 'checkin_manual' ? 'Check-in thủ công' : (confirmModal.action === 'start' ? 'bắt đầu rửa xe ' : (confirmModal.action === 'start_iot' ? 'kích hoạt máy bơm' : (confirmModal.action === 'washed' ? 'đánh dấu đã rửa xong' : 'chuyển tiếp trạng thái')))} cho đơn
-              <span className="font-bold ml-1">#{(confirmModal.booking?._id || confirmModal.booking?.id)?.slice(-6).toUpperCase()}</span>?
+              {confirmModal.action === 'confirm' ? (
+                <>
+                  Bạn có muốn xác nhận cho đơn 
+                  <span className="font-bold ml-1 mr-1">#{(confirmModal.booking?._id || confirmModal.booking?.id)?.slice(-6).toUpperCase()}</span> 
+                  hay không?
+                </>
+              ) : (
+                <>
+                  Bạn có chắc chắn {confirmModal.action === 'checkin_manual' ? 'Check-in thủ công' : (confirmModal.action === 'start' ? 'bắt đầu rửa xe ' : (confirmModal.action === 'start_iot' ? 'kích hoạt máy bơm' : (confirmModal.action === 'washed' ? 'đánh dấu đã rửa xong' : 'chuyển tiếp trạng thái')))} cho đơn
+                  <span className="font-bold ml-1">#{(confirmModal.booking?._id || confirmModal.booking?.id)?.slice(-6).toUpperCase()}</span>?
+                </>
+              )}
             </p>
             <div className="flex justify-end gap-3">
               <button onClick={() => setConfirmModal({ isOpen: false, action: '', booking: null })} className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors">Huỷ bỏ</button>

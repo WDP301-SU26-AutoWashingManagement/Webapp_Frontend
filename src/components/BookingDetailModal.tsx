@@ -388,6 +388,20 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onPay, hi
                       })()} đ
                     </span>
                   </div>
+
+                  {/* Hiển thị Phương thức thanh toán (nếu có) */}
+                  {booking.payment_method && (
+                    <div className="flex justify-between items-center mt-2">
+                      <span className="text-sm text-slate-500">Phương thức thanh toán:</span>
+                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${
+                        booking.payment_method === 'cash' 
+                            ? 'bg-emerald-50 text-emerald-600 border-emerald-200' 
+                            : 'bg-indigo-50 text-indigo-600 border-indigo-200'
+                      }`}>
+                        {booking.payment_method === 'cash' ? 'Tiền mặt' : 'Chuyển khoản'}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
