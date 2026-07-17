@@ -31,7 +31,7 @@ const NAV_GROUPS = [
                 to: '/staff/technical/bookings',
             },
             {
-                label: 'Lịch hẹn hoàn thành',
+                label: 'Quản lý thanh toán',
                 icon: CreditCard,
                 to: '/staff/technical/payments',
             },
