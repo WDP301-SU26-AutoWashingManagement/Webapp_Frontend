@@ -621,6 +621,14 @@ export default function NewBookingPage() {
                                   {recommendation.recommended_items.map(i => i.name).join(', ')}
                                 </span>
                               </div>
+                              {recommendation.suggested_combo && (
+                                <div className="flex justify-between items-start text-xs gap-2">
+                                  <span className="font-semibold text-slate-700 whitespace-nowrap">Gói Combo:</span>
+                                  <span className="text-right text-indigo-900 font-bold">
+                                    {recommendation.suggested_combo.package_name}
+                                  </span>
+                                </div>
+                              )}
                               {recommendation.suggested_scheduled_at && (
                                 <div className="flex justify-between items-center text-xs">
                                   <span className="font-semibold text-slate-700">Khung giờ sớm nhất:</span>
