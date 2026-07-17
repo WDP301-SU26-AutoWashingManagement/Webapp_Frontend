@@ -27,5 +27,13 @@ export const bossAccountService = {
   },
   deleteAdmin: async (id: string): Promise<ApiResponse<any>> => {
     return apiClient.delete(`/admin/${id}`);
+  },
+  getAdminTrash: async (branchId?: string): Promise<any> => {
+    const query = branchId ? `?branch_id=${branchId}` : '';
+    const res = await apiClient.get<ApiResponse<any>>(`/admin/trash${query}`);
+    return res.data;
+  },
+  restoreAdmin: async (id: string): Promise<ApiResponse<any>> => {
+    return apiClient.put(`/admin/${id}/restore`, {});
   }
 }

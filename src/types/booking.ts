@@ -81,6 +81,15 @@ export interface IApplicablePromotion {
   min_order_amount?: number;
 }
 
+export interface ISuggestedCombo {
+  package_id: string;
+  package_name: string;
+  discount_percentage: number;
+  matched_service_ids: string[];
+  original_price: number;
+  discounted_price: number;
+}
+
 export interface IBookingRecommendation {
   vehicle_id: string;
   branch_id: string | null;
@@ -88,8 +97,9 @@ export interface IBookingRecommendation {
   reason: string;
   applicable_promotion_id: string | null;
   applicable_promotion: IApplicablePromotion | null;
+  suggested_combo?: ISuggestedCombo | null;
   estimated_total: number;
   suggested_scheduled_at: string | null;
-  source: 'ai' | 'fallback';
+  source: 'ai' | 'fallback' | 'algorithm';
   generated_at: string;
 }
