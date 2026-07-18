@@ -65,6 +65,11 @@ export interface BookingListParams {
   time_slot?: string
 }
 
+export interface WashingBookingParams {
+  from_date?: string
+  to_date?: string
+}
+
 export interface IRecommendedItem {
   service_id: string;
   service_package_id: string | null;
