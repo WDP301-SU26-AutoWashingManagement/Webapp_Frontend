@@ -9,6 +9,7 @@ import {
 } from "../../services/notificationService";
 import { env } from "../../config/env";
 import { useSSE } from "../../hooks/useSSE";
+import StaffWashingBookingCard from "../../components/WashingBookingCard";
 
 export default function StaffWashingStatus() {
   const [loading, setLoading] = useState(false);
@@ -255,6 +256,8 @@ export default function StaffWashingStatus() {
           </div>
         </div>
       </div>
+
+      <StaffWashingBookingCard/>
     </div>
   );
 }

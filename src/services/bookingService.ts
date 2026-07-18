@@ -108,6 +108,27 @@ export const bookingService = {
     })
   },
 
+  async getWashingBooking(params?: BookingListParams): Promise<BookingListResult> {
+    const body = await apiClient.get<PaginatedEnvelope>(`/bookings/washing-bookings`,
+      {
+        params: {
+          ...(params?.from_date ? { from_date: params.from_date } : {}),
+          ...(params?.to_date ? { to_date: params.to_date } : {}),
+        }
+      }
+    );
+
+    const raw = unwrapApiData<unknown[]>(body)
+    const items = Array.isArray(raw) ? normalizeWashBookingList(raw) : []
+
+    return {
+      items,
+      total: body.pagination?.totalDocs,
+      page: body.pagination?.page,
+      limit: body.pagination?.limit,
+    };
+  },
+
   async getAvailableSlots(branchId: string, date: string): Promise<AvailableSlot[]> {
     const body = await apiClient.get<ApiResponse<AvailableSlot[]>>(`/bookings/branches/${branchId}/available-slots`, {
       params: { date }
@@ -127,10 +148,10 @@ export const bookingService = {
   async getById(id: string): Promise<WashBooking> {
     const body = await apiClient.get<ApiResponse<Record<string, unknown>>>(`/bookings/${id}`)
     const rawData = unwrapApiData<Record<string, unknown>>(body)
-    
+
     // Backend getBookingById returns { appointment, services } instead of a flat object
-    const flatData = rawData.appointment 
-      ? { ...(rawData.appointment as Record<string, unknown>), services: rawData.services } 
+    const flatData = rawData.appointment
+      ? { ...(rawData.appointment as Record<string, unknown>), services: rawData.services }
       : rawData
 
     const booking = normalizeWashBooking(flatData)
