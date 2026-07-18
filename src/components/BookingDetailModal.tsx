@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { X, Calendar, User, Car, Tag, FileText, Download,  Image as  Banknote } from 'lucide-react'
+import { X, Calendar, User, Car, Tag, FileText, Download, Image as Banknote } from 'lucide-react'
 import type { WashBooking } from '../types/booking'
 import { bookingChecklistService, type BookingChecklist } from '../services/bookingChecklistService'
 import CreateChecklistModal from './CreateChecklistModal'
@@ -14,13 +14,15 @@ interface BookingDetailModalProps {
   hideStaffActions?: boolean
 }
 
-export default function BookingDetailModal({ booking, isOpen, onClose, onPay, hideStaffActions = false }: BookingDetailModalProps) {
+export default function BookingDetailModal({ booking: initialBooking, isOpen, onClose, onPay, hideStaffActions = false }: BookingDetailModalProps) {
   const { user } = useAuth()
-  
+
+  const [booking, setBooking] = useState<WashBooking | null>(initialBooking)
   const [checklist, setChecklist] = useState<BookingChecklist | null>(null)
   const [loadingChecklist, setLoadingChecklist] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showViewModal, setShowViewModal] = useState(false)
+  const [isLoadingFull, setIsLoadingFull] = useState(false)
 
   const isTechnical = user?.staff_type === 'technical'
   const isManager = user?.staff_type === 'manager'
@@ -30,11 +32,12 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onPay, hi
   const canCreateChecklist = !hideStaffActions && (isTechnical || isManager)
   const canViewChecklist = true // Đã mở cho toàn bộ người dùng (kể cả Customer) có thể xem và tải biên bản của đơn hàng này
 
-  const fetchChecklist = async () => {
-    if (!booking) return
+  const fetchChecklist = async (targetBooking?: WashBooking) => {
+    const b = targetBooking || booking
+    if (!b) return
     setLoadingChecklist(true)
     try {
-      const appointmentId = booking._id ?? booking.id!
+      const appointmentId = b._id ?? b.id!
       const data = await bookingChecklistService.getByAppointmentId(appointmentId)
       setChecklist(data)
     } catch (error) {
@@ -45,12 +48,29 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onPay, hi
   }
 
   useEffect(() => {
-    if (isOpen && booking) {
-      fetchChecklist()
+    if (isOpen && initialBooking) {
+      setBooking(initialBooking)
+      fetchChecklist(initialBooking)
+
+      const id = initialBooking._id ?? initialBooking.id!
+
+      // Fetch full booking details to ensure we have base_price, final_price, and tiers
+      // Especially needed when opened from StaffWashingStatus which uses a different list API
+      setIsLoadingFull(true)
+      import('../services/bookingService').then(({ bookingService }) => {
+        bookingService.getById(id).then(fullBooking => {
+          setBooking(fullBooking)
+        }).catch(err => {
+          console.error("Lỗi khi tải chi tiết booking:", err)
+        }).finally(() => {
+          setIsLoadingFull(false)
+        })
+      })
     } else {
       setChecklist(null)
+      setBooking(null)
     }
-  }, [isOpen, booking])
+  }, [isOpen, initialBooking])
 
   if (!isOpen || !booking) return null
 
@@ -84,14 +104,14 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onPay, hi
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
-        
+
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50 rounded-t-2xl">
           <div className="flex items-center gap-3">
             <h2 className="text-xl font-bold text-slate-800">Chi tiết đơn #{id}</h2>
             {getStatusBadge(booking.booking_status)}
           </div>
-          <button 
+          <button
             onClick={onClose}
             className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-full transition-colors"
           >
@@ -102,7 +122,7 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onPay, hi
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            
+
             {/* Cột 1 */}
             <div className="space-y-6">
               <div>
@@ -166,27 +186,27 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onPay, hi
                     <div className="text-sm text-slate-500">Đang tải dữ liệu...</div>
                   ) : checklist ? (
                     canViewChecklist ? (
-                    <div 
-                      onClick={() => setShowViewModal(true)}
-                      className="w-full flex items-center justify-between cursor-pointer hover:bg-slate-100 p-2 -m-2 rounded-lg transition-colors group"
-                    >
-                      <div>
-                        <span className="text-sm font-bold text-slate-800 block group-hover:text-cyan-600 transition-colors">Biên bản đồng kiểm xe</span>
-                        <span className="text-xs text-slate-500 block mt-1">
-                          Đã kiểm tra lúc {checklist.createdAt ? new Date(checklist.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '...'}
-                        </span>
-                      </div>
-                      <button
-                        onClick={async (e) => {
-                          e.stopPropagation(); // Ngăn mở Modal xem chi tiết khi bấm nút tải
-                          const url = await bookingChecklistService.getPdfDownloadUrl(checklist._id)
-                          window.open(url, '_blank')
-                        }}
-                        className="px-3 py-1.5 bg-cyan-100 text-cyan-700 hover:bg-cyan-200 hover:text-cyan-800 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5"
+                      <div
+                        onClick={() => setShowViewModal(true)}
+                        className="w-full flex items-center justify-between cursor-pointer hover:bg-slate-100 p-2 -m-2 rounded-lg transition-colors group"
                       >
-                        <Download size={14} /> Tải PDF
-                      </button>
-                    </div>
+                        <div>
+                          <span className="text-sm font-bold text-slate-800 block group-hover:text-cyan-600 transition-colors">Biên bản đồng kiểm xe</span>
+                          <span className="text-xs text-slate-500 block mt-1">
+                            Đã kiểm tra lúc {checklist.createdAt ? new Date(checklist.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '...'}
+                          </span>
+                        </div>
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation(); // Ngăn mở Modal xem chi tiết khi bấm nút tải
+                            const url = await bookingChecklistService.getPdfDownloadUrl(checklist._id)
+                            window.open(url, '_blank')
+                          }}
+                          className="px-3 py-1.5 bg-cyan-100 text-cyan-700 hover:bg-cyan-200 hover:text-cyan-800 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5"
+                        >
+                          <Download size={14} /> Tải PDF
+                        </button>
+                      </div>
                     ) : (
                       <div className="text-sm text-slate-500 italic py-1">
                         Bạn không có quyền xem biên bản này.
@@ -246,7 +266,7 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onPay, hi
                       (() => {
                         const combos: Record<string, { name: string, price: number, items: string[] }> = {};
                         const individuals: Array<{ name: string, price: number }> = [];
-                        
+
                         booking.services.forEach(svc => {
                           if (svc.service_package_id) {
                             const pkgId = svc.service_package_id._id;
@@ -301,9 +321,9 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onPay, hi
                       </span>
                     )}
                   </div>
-                  
+
                   <div className="h-px bg-slate-200 my-2"></div>
-                  
+
                   {/* Hiển thị Giá gốc */}
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-slate-500">Tổng phí dịch vụ:</span>
@@ -314,11 +334,11 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onPay, hi
 
                   {/* Hiển thị Hạng thành viên */}
                   {(() => {
-                    const tierDiscAmount = booking.applied_tier_discount !== undefined 
-                        ? booking.applied_tier_discount 
-                        : (booking.customer?.tier_id?.discount_percentage 
-                            ? Math.round((booking.base_price ?? booking.final_price ?? 0) * (booking.customer.tier_id.discount_percentage / 100))
-                            : 0);
+                    const tierDiscAmount = booking.applied_tier_discount !== undefined
+                      ? booking.applied_tier_discount
+                      : (booking.customer?.tier_id?.discount_percentage
+                        ? Math.round((booking.base_price ?? booking.final_price ?? 0) * (booking.customer.tier_id.discount_percentage / 100))
+                        : 0);
 
                     if (tierDiscAmount > 0) {
                       return (
@@ -346,7 +366,7 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onPay, hi
                       const tierDiscAmount = Math.round(base * (tierDiscPct / 100));
                       purePromotionDiscount = Math.max(0, (booking.discount_amount || 0) - tierDiscAmount);
                     }
-                    
+
                     if (purePromotionDiscount > 0) {
                       return (
                         <div className="flex justify-between items-center">
@@ -361,7 +381,7 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onPay, hi
                   })()}
 
                   <div className="h-px bg-slate-200 my-2"></div>
-                  
+
                   {/* Hiển thị Tổng tiền thanh toán chính xác */}
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-slate-500">Tổng thanh toán:</span>
@@ -370,9 +390,9 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onPay, hi
                         const paidInvoices = JSON.parse(localStorage.getItem('paid_invoices') || '{}');
                         const cachedTotal = paidInvoices[booking._id || booking.id!];
                         if (cachedTotal !== undefined) return cachedTotal.toLocaleString('vi-VN');
-                        
+
                         const base = booking.base_price ?? booking.final_price ?? 0;
-                        
+
                         let totalDiscount = 0;
                         if (booking.applied_tier_discount !== undefined || booking.applied_promotion_discount !== undefined) {
                           totalDiscount = (booking.applied_tier_discount || 0) + (booking.applied_promotion_discount || 0);
@@ -382,7 +402,7 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onPay, hi
                           const tierDiscPct = booking.customer?.tier_id?.discount_percentage || 0;
                           totalDiscount = Math.round(base * (tierDiscPct / 100));
                         }
-                        
+
                         const finalPrice = Math.max(0, base - totalDiscount);
                         return finalPrice.toLocaleString('vi-VN');
                       })()} đ
@@ -393,11 +413,10 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onPay, hi
                   {booking.payment_method && (
                     <div className="flex justify-between items-center mt-2">
                       <span className="text-sm text-slate-500">Phương thức thanh toán:</span>
-                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${
-                        booking.payment_method === 'cash' 
-                            ? 'bg-emerald-50 text-emerald-600 border-emerald-200' 
-                            : 'bg-indigo-50 text-indigo-600 border-indigo-200'
-                      }`}>
+                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${booking.payment_method === 'cash'
+                        ? 'bg-emerald-50 text-emerald-600 border-emerald-200'
+                        : 'bg-indigo-50 text-indigo-600 border-indigo-200'
+                        }`}>
                         {booking.payment_method === 'cash' ? 'Tiền mặt' : 'Chuyển khoản'}
                       </span>
                     </div>
@@ -413,7 +432,7 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onPay, hi
         <div className="p-4 border-t border-slate-100 bg-slate-50/50 rounded-b-2xl flex justify-between items-center">
           <div>
             {onPay && booking && booking.booking_status === 'washed' && (
-              <button 
+              <button
                 onClick={() => {
                   onClose()
                   onPay(booking)
@@ -424,7 +443,7 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onPay, hi
               </button>
             )}
           </div>
-          <button 
+          <button
             onClick={onClose}
             className="px-6 py-2 bg-slate-800 text-white font-medium rounded-xl hover:bg-slate-900 transition-colors"
           >
@@ -434,14 +453,14 @@ export default function BookingDetailModal({ booking, isOpen, onClose, onPay, hi
 
       </div>
 
-      <CreateChecklistModal 
-        booking={booking} 
-        isOpen={showCreateModal} 
-        onClose={() => setShowCreateModal(false)} 
+      <CreateChecklistModal
+        booking={booking}
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
         onSuccess={() => {
           setShowCreateModal(false);
           fetchChecklist();
-        }} 
+        }}
       />
 
       <ViewChecklistModal

@@ -30,6 +30,54 @@ export interface AvailableSlot {
   available_bays: number
 }
 
+async function resolveTiersForBookings(items: WashBooking[]): Promise<void> {
+  // Cache locally to avoid repeated requests
+  if (!(window as any).__tierCache) (window as any).__tierCache = new Map();
+  const tierMap: Map<string, any> = (window as any).__tierCache;
+
+  try {
+    const needsTier = items.some(b => b.customer?.tier_id?._id && b.customer.tier_id.discount_percentage === undefined && !tierMap.has(b.customer.tier_id._id));
+    if (needsTier) {
+      // Staff không có quyền gọi /tiers, nhưng có quyền gọi /customers.
+      // API /customers có populate sẵn tier_id nên ta có thể 'mượn' để trích xuất danh sách các hạng.
+      const customersBody = await apiClient.get<any>('/customers', { params: { limit: 50 } });
+      const customersData = Array.isArray(customersBody.data) ? customersBody.data : [];
+
+      customersData.forEach((c: any) => {
+        if (c.tier_id && typeof c.tier_id === 'object' && c.tier_id._id) {
+          tierMap.set(String(c.tier_id._id), c.tier_id);
+        }
+      });
+
+      // Nếu vẫn còn thiếu tier nào, fetch đích danh customer đó (trường hợp hiếm)
+      for (const b of items) {
+        if (b.customer?.tier_id?._id && !tierMap.has(b.customer.tier_id._id) && b.customer_id) {
+          try {
+            const singleCustomer = await apiClient.get<any>(`/customers/${b.customer_id}`);
+            const cData = singleCustomer.data || singleCustomer;
+            if (cData?.tier_id && typeof cData.tier_id === 'object' && cData.tier_id._id) {
+              tierMap.set(String(cData.tier_id._id), cData.tier_id);
+            }
+          } catch (err) { }
+        }
+      }
+    }
+
+    // Apply tiers
+    items.forEach(b => {
+      if (b.customer?.tier_id?._id && b.customer.tier_id.discount_percentage === undefined) {
+        const matched = tierMap.get(b.customer.tier_id._id);
+        if (matched && b.customer.tier_id) {
+          b.customer.tier_id.discount_percentage = Number(matched.discount_percentage || 0);
+          b.customer.tier_id.tier_name = String(matched.tier_name || '');
+        }
+      }
+    });
+  } catch (e) {
+    console.error('Lỗi khi lấy tiers qua customers:', e);
+  }
+}
+
 /** Customer bookings — GET/POST /bookings (authenticate) */
 export const bookingService = {
   async list(params?: BookingListParams): Promise<BookingListResult> {
@@ -53,51 +101,7 @@ export const bookingService = {
       const raw = unwrapApiData<unknown[]>(body)
       const items = Array.isArray(raw) ? normalizeWashBookingList(raw) : []
 
-      // Cache locally to avoid repeated requests
-      if (!(window as any).__tierCache) (window as any).__tierCache = new Map();
-      const tierMap: Map<string, any> = (window as any).__tierCache;
-
-      try {
-        const needsTier = items.some(b => b.customer?.tier_id?._id && b.customer.tier_id.discount_percentage === undefined && !tierMap.has(b.customer.tier_id._id));
-        if (needsTier) {
-          // Staff không có quyền gọi /tiers, nhưng có quyền gọi /customers.
-          // API /customers có populate sẵn tier_id nên ta có thể 'mượn' để trích xuất danh sách các hạng.
-          const customersBody = await apiClient.get<any>('/customers', { params: { limit: 50 } });
-          const customersData = Array.isArray(customersBody.data) ? customersBody.data : [];
-
-          customersData.forEach((c: any) => {
-            if (c.tier_id && typeof c.tier_id === 'object' && c.tier_id._id) {
-              tierMap.set(String(c.tier_id._id), c.tier_id);
-            }
-          });
-
-          // Nếu vẫn còn thiếu tier nào, fetch đích danh customer đó (trường hợp hiếm)
-          for (const b of items) {
-            if (b.customer?.tier_id?._id && !tierMap.has(b.customer.tier_id._id) && b.customer_id) {
-              try {
-                const singleCustomer = await apiClient.get<any>(`/customers/${b.customer_id}`);
-                const cData = singleCustomer.data || singleCustomer;
-                if (cData?.tier_id && typeof cData.tier_id === 'object' && cData.tier_id._id) {
-                  tierMap.set(String(cData.tier_id._id), cData.tier_id);
-                }
-              } catch (err) { }
-            }
-          }
-        }
-
-        // Apply tiers
-        items.forEach(b => {
-          if (b.customer?.tier_id?._id && b.customer.tier_id.discount_percentage === undefined) {
-            const matched = tierMap.get(b.customer.tier_id._id);
-            if (matched && b.customer.tier_id) {
-              b.customer.tier_id.discount_percentage = Number(matched.discount_percentage || 0);
-              b.customer.tier_id.tier_name = String(matched.tier_name || '');
-            }
-          }
-        });
-      } catch (e) {
-        console.error('Lỗi khi lấy tiers qua customers:', e);
-      }
+      await resolveTiersForBookings(items);
 
       return {
         items,
@@ -156,28 +160,8 @@ export const bookingService = {
 
     const booking = normalizeWashBooking(flatData)
 
-    if (booking.customer?.tier_id?._id && booking.customer.tier_id.discount_percentage === undefined) {
-      if (!(window as any).__tierCache) (window as any).__tierCache = new Map();
-      const tierMap: Map<string, any> = (window as any).__tierCache;
+    await resolveTiersForBookings([booking]);
 
-      try {
-        if (!tierMap.has(booking.customer.tier_id._id) && booking.customer_id) {
-          const singleCustomer = await apiClient.get<any>(`/customers/${booking.customer_id}`);
-          const cData = singleCustomer.data || singleCustomer;
-          if (cData?.tier_id && typeof cData.tier_id === 'object' && cData.tier_id._id) {
-            tierMap.set(String(cData.tier_id._id), cData.tier_id);
-          }
-        }
-
-        const matched = tierMap.get(booking.customer.tier_id._id);
-        if (matched && booking.customer.tier_id) {
-          booking.customer.tier_id.discount_percentage = Number(matched.discount_percentage || 0);
-          booking.customer.tier_id.tier_name = String(matched.tier_name || '');
-        }
-      } catch (e) {
-        console.error('Lỗi khi lấy tier qua customers:', e);
-      }
-    }
     return booking;
   },
 
