@@ -55,9 +55,8 @@ export default function StaffWashingBookingCard() {
         if (searchQuery) {
             const q = searchQuery.toLowerCase().trim();
             const plate = b.vehicle?.plate_number?.toLowerCase() || '';
-            const id = (b._id ?? b.id!)?.toLowerCase() || '';
-            const shortId = id.slice(-6);
-            if (!plate.includes(q) && !shortId.includes(q) && !id.includes(q)) return false;
+            const code = (b.appointment_code || '').toLowerCase();
+            if (!plate.includes(q) && !code.includes(q)) return false;
         }
         return true;
     });
@@ -110,7 +109,7 @@ export default function StaffWashingBookingCard() {
                         <div className="text-center py-10 text-slate-500 bg-white rounded-xl border border-slate-200 font-medium">Không tìm thấy đơn hàng nào phù hợp với bộ lọc.</div>
                     ) : (
                         filteredItems.map((booking: WashBooking) => {
-                            const id = (booking._id ?? booking.id!).slice(-6).toUpperCase();
+                            const code = booking.appointment_code || 'N/A';
                             const date = new Date(booking.scheduled_at);
 
                             return (
@@ -121,7 +120,7 @@ export default function StaffWashingBookingCard() {
                                             <div className="flex items-center gap-3 mb-1">
                                                 <h2 className="text-xl font-extrabold text-slate-900">{booking.vehicle?.plate_number || 'N/A'}</h2>
                                                 <span className="px-2.5 py-0.5 bg-slate-100 text-slate-700 font-bold rounded text-xs border border-slate-200 shadow-sm">
-                                                    #{id}
+                                                    #{code}
                                                 </span>
                                                 <span className="px-2.5 py-0.5 bg-cyan-50 text-cyan-700 border border-cyan-200 text-xs font-semibold rounded-full truncate max-w-[200px]">
                                                     {booking.service_package?.name || booking.service_package?.service_name || 'Dịch vụ lẻ'}
