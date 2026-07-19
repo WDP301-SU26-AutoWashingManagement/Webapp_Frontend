@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { X, Calendar, User, Car, Tag, FileText, Download, Image as Banknote } from 'lucide-react'
+import { X, Calendar, User, Car, Tag, FileText, Download, Image as Banknote, CheckCircle2, Circle, Check, Zap } from 'lucide-react'
 import type { WashBooking } from '../types/booking'
 import { bookingChecklistService, type BookingChecklist } from '../services/bookingChecklistService'
 import CreateChecklistModal from './CreateChecklistModal'
@@ -66,6 +66,8 @@ export default function BookingDetailModal({ booking: initialBooking, isOpen, on
           setIsLoadingFull(false)
         })
       })
+
+
     } else {
       setChecklist(null)
       setBooking(null)
@@ -80,6 +82,7 @@ export default function BookingDetailModal({ booking: initialBooking, isOpen, on
     switch (status) {
       case 'pending': return <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-bold">Chờ xác nhận</span>
       case 'confirmed': return <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold">Đã xác nhận</span>
+      case 'arrived': return <span className="px-3 py-1 bg-sky-100 text-sky-700 rounded-full text-xs font-bold">Xe đã tới</span>
       case 'checked_in': return <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-bold">Đã nhận xe</span>
       case 'in_progress': return <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-bold">Đang rửa</span>
       case 'washed': return <span className="px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-xs font-bold">Rửa xong</span>
@@ -264,8 +267,8 @@ export default function BookingDetailModal({ booking: initialBooking, isOpen, on
                     <span className="text-sm text-slate-500 block mb-1">Chi tiết dịch vụ:</span>
                     {booking.services && booking.services.length > 0 ? (
                       (() => {
-                        const combos: Record<string, { name: string, price: number, items: string[] }> = {};
-                        const individuals: Array<{ name: string, price: number }> = [];
+                        const combos: Record<string, { name: string, price: number, items: any[] }> = {};
+                        const individuals: Array<any> = [];
 
                         booking.services.forEach(svc => {
                           if (svc.service_package_id) {
@@ -278,40 +281,59 @@ export default function BookingDetailModal({ booking: initialBooking, isOpen, on
                               };
                             }
                             combos[pkgId].price += svc.price_snapshot;
-                            combos[pkgId].items.push(svc.service_id?.service_name || 'Dịch vụ');
+                            combos[pkgId].items.push(svc);
                           } else {
-                            individuals.push({
-                              name: svc.service_id?.service_name || 'Dịch vụ',
-                              price: svc.price_snapshot
-                            });
+                            individuals.push(svc);
                           }
                         });
+
+                        const renderServiceItem = (svc: any) => {
+                          const isAutomated = svc.service_id?.is_automated || svc.service_id?.service_name?.toLowerCase() === 'dịch vụ rửa xe';
+                          const isCompleted = svc.is_completed;
+                          
+                          return (
+                            <div key={svc._id} className="flex items-center gap-2 mb-1">
+                              {isCompleted ? (
+                                <CheckCircle2 size={14} className="shrink-0 text-emerald-500" />
+                              ) : isAutomated ? (
+                                <Zap size={14} className="shrink-0 text-amber-500" />
+                              ) : (
+                                <Circle size={14} className="shrink-0 text-slate-300" />
+                              )}
+                              <span className={`text-[12.5px] ${isCompleted ? 'text-slate-800' : 'text-slate-600'} ${isAutomated && !isCompleted ? 'font-semibold text-amber-700' : ''}`}>
+                                {svc.service_id?.service_name || 'Dịch vụ'}
+                              </span>
+                            </div>
+                          )
+                        }
 
                         return (
                           <>
                             {Object.values(combos).map((combo, idx) => (
-                              <div key={`combo-${idx}`} className="flex justify-between items-start text-sm mb-2">
+                              <div key={`combo-${idx}`} className="flex justify-between items-start text-sm mb-3 bg-white border border-slate-100 rounded-lg p-2 shadow-sm">
                                 <span className="text-slate-800 flex-1 pr-2 flex flex-col">
-                                  <span className="font-semibold text-cyan-700">{combo.name}</span>
-                                  <span className="text-[12px] text-slate-500 ml-2 mt-0.5 whitespace-pre-wrap leading-relaxed">
-                                    {combo.items.map(item => `• ${item}`).join('\n')}
-                                  </span>
+                                  <span className="font-semibold text-cyan-700 mb-1">{combo.name}</span>
+                                  <div className="flex flex-col ml-1">
+                                    {combo.items.map(item => renderServiceItem(item))}
+                                  </div>
                                 </span>
-                                <span className="font-medium text-slate-700 shrink-0 mt-0.5">
+                                <span className="font-bold text-slate-700 shrink-0 mt-0.5">
                                   {combo.price.toLocaleString('vi-VN')} đ
                                 </span>
                               </div>
                             ))}
-                            {individuals.map((ind, idx) => (
-                              <div key={`ind-${idx}`} className="flex justify-between items-start text-sm mb-2">
-                                <span className="text-slate-800 flex-1 pr-2 font-medium">
-                                  {ind.name}
-                                </span>
-                                <span className="font-medium text-slate-700 shrink-0 mt-0.5">
-                                  {ind.price.toLocaleString('vi-VN')} đ
-                                </span>
+                            {individuals.length > 0 && (
+                              <div className="flex flex-col gap-2">
+                                {individuals.map((ind, idx) => (
+                                  <div key={`ind-${idx}`} className="flex justify-between items-center text-sm bg-white border border-slate-100 rounded-lg p-2 shadow-sm">
+                                    {renderServiceItem(ind)}
+                                    <span className="font-bold text-slate-700 shrink-0">
+                                      {ind.price_snapshot.toLocaleString('vi-VN')} đ
+                                    </span>
+                                  </div>
+                                ))}
                               </div>
-                            ))}
+                            )}
                           </>
                         );
                       })()

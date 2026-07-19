@@ -21,7 +21,7 @@ const TAB_CONFIG: { id: BookingTab; label: string; statuses: BookingStatus[] }[]
   {
     id: 'upcoming',
     label: 'Đang xử lý',
-    statuses: ['pending', 'confirmed', 'checked_in', 'in_progress', 'washed'],
+    statuses: ['pending', 'confirmed', 'arrived', 'checked_in', 'in_progress', 'washed'],
   },
   { id: 'completed', label: 'Hoàn thành', statuses: ['completed'] },
   { id: 'cancelled', label: 'Đã hủy', statuses: ['cancelled'] },

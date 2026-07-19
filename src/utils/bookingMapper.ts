@@ -4,6 +4,7 @@ import { normalizeMongoId } from './mongoId'
 const BOOKING_STATUSES: BookingStatus[] = [
   'pending',
   'confirmed',
+  'arrived',
   'checked_in',
   'in_progress',
   'washed',

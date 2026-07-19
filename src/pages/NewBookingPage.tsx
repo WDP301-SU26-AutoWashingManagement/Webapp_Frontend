@@ -440,6 +440,18 @@ export default function NewBookingPage() {
   }
 
   const handlePrev = () => {
+    if (step === 2) {
+      // Chỉ reset lại các lựa chọn (giờ, dịch vụ) để khách chọn lại từ đầu
+      // NHƯNG giữ nguyên cục Gợi ý (recommendation)
+      setForm(p => ({
+        ...p,
+        scheduled_at: '',
+        combo_package_id: '',
+        service_ids: [],
+        promotion_code: ''
+      }))
+      setValidatedPromotion(null)
+    }
     setStep(s => Math.max(s - 1, 1))
   }
 
