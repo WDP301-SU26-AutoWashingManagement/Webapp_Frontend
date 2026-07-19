@@ -623,8 +623,7 @@ export default function NewBookingPage() {
                             ✨
                           </div>
                           <div className="flex-1">
-                            <h4 className="text-sm font-bold text-indigo-900 mb-1">Auto-Pilot Booking</h4>
-                            <p className="text-xs text-indigo-700 italic leading-relaxed mb-3">"{recommendation.reason}"</p>
+                            <h4 className="text-sm font-bold text-indigo-900 mb-1">Booking Recommendation</h4>
 
                             <div className="bg-white/60 rounded-lg p-3 border border-indigo-100 mb-3 space-y-2">
                               <div className="flex justify-between items-start text-xs gap-2">
