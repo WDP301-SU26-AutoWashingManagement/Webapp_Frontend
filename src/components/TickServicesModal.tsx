@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { X, Check, CheckCircle2, Circle, Zap, AlertCircle } from 'lucide-react'
 import type { WashBooking } from '../types/booking'
 import { bookingService } from '../services/bookingService'
+import { showSuccess, showError } from '../utils/toast'
 
 interface TickServicesModalProps {
   booking: WashBooking | null
@@ -51,20 +52,22 @@ export default function TickServicesModal({ booking: initialBooking, isOpen, onC
     try {
       const promises: Promise<any>[] = [];
       const bId = booking._id ?? booking.id!;
-      
+
       booking.services?.forEach(svc => {
         const isCurrentlyCompleted = !!svc.is_completed;
         const isLocallyCompleted = !!localStatuses[svc._id];
-        
+
         if (isCurrentlyCompleted !== isLocallyCompleted) {
           promises.push(bookingService.toggleService(bId, svc._id));
         }
       });
-      
+
       if (promises.length > 0) {
         await Promise.all(promises);
       }
-      
+
+      showSuccess("Đã lưu dịch vụ hoàn thành");
+
       if (andCheckin) {
         onCheckin();
       } else {
@@ -72,7 +75,7 @@ export default function TickServicesModal({ booking: initialBooking, isOpen, onC
       }
     } catch (error) {
       console.error("Lỗi khi lưu dịch vụ:", error);
-      alert("Đã có lỗi xảy ra khi lưu. Vui lòng thử lại!");
+      showError("Đã có lỗi xảy ra khi lưu. Vui lòng thử lại!");
     } finally {
       setIsSaving(false);
     }
@@ -104,7 +107,7 @@ export default function TickServicesModal({ booking: initialBooking, isOpen, onC
   const renderServiceItem = (svc: any) => {
     const isAutomated = svc.service_id?.is_automated || svc.service_id?.service_name?.toLowerCase() === 'dịch vụ rửa xe';
     const isCompleted = localStatuses[svc._id] || false;
-    
+
     return (
       <div key={svc._id} className={`flex items-center gap-2 mb-1 ${!isAutomated ? 'cursor-pointer hover:bg-slate-100 -mx-2 px-2 py-1 rounded' : 'py-1'}`} onClick={() => {
         if (!isAutomated) {
@@ -112,12 +115,12 @@ export default function TickServicesModal({ booking: initialBooking, isOpen, onC
         }
       }}>
         {!isAutomated && (
-            <div className={`shrink-0 w-5 h-5 rounded border flex items-center justify-center transition-colors ${isCompleted ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300'}`}>
-                {isCompleted && <Check size={14} strokeWidth={3} />}
-            </div>
+          <div className={`shrink-0 w-5 h-5 rounded border flex items-center justify-center transition-colors ${isCompleted ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300'}`}>
+            {isCompleted && <Check size={14} strokeWidth={3} />}
+          </div>
         )}
         {isAutomated && (
-            <Zap size={16} className="shrink-0 text-amber-500" />
+          <Zap size={16} className="shrink-0 text-amber-500" />
         )}
         <span className={`text-[14px] ${isCompleted ? 'text-slate-800' : 'text-slate-600'} ${isAutomated ? 'font-semibold text-amber-700' : ''}`}>
           {svc.service_id?.service_name || 'Dịch vụ'}
@@ -129,16 +132,16 @@ export default function TickServicesModal({ booking: initialBooking, isOpen, onC
   // Check if all manual are checked
   let allManualChecked = true;
   booking.services?.forEach(svc => {
-      const isAuto = svc.service_id?.is_automated || svc.service_id?.service_name?.toLowerCase() === 'dịch vụ rửa xe';
-      if (svc.service_id && !isAuto && !localStatuses[svc._id]) {
-          allManualChecked = false;
-      }
+    const isAuto = svc.service_id?.is_automated || svc.service_id?.service_name?.toLowerCase() === 'dịch vụ rửa xe';
+    if (svc.service_id && !isAuto && !localStatuses[svc._id]) {
+      allManualChecked = false;
+    }
   });
 
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
-        
+
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50 rounded-t-2xl">
           <h2 className="text-lg font-bold text-slate-800">Cập nhật Dịch vụ Thủ công</h2>
@@ -150,8 +153,8 @@ export default function TickServicesModal({ booking: initialBooking, isOpen, onC
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
           <div className="bg-blue-50 border border-blue-100 text-blue-700 p-3 rounded-lg text-sm flex gap-2 mb-4">
-              <AlertCircle size={18} className="shrink-0 mt-0.5" />
-              <p>Vui lòng đánh dấu hoàn thành <strong>tất cả</strong> các dịch vụ thủ công trước khi chuyển sang bước Check-in.</p>
+            <AlertCircle size={18} className="shrink-0 mt-0.5" />
+            <p>Vui lòng đánh dấu hoàn thành <strong>tất cả</strong> các dịch vụ thủ công trước khi chuyển sang bước Check-in.</p>
           </div>
 
           {loadingFull ? (
@@ -181,16 +184,16 @@ export default function TickServicesModal({ booking: initialBooking, isOpen, onC
 
         {/* Footer */}
         <div className="p-4 border-t border-slate-100 bg-slate-50/50 rounded-b-2xl flex justify-between gap-3">
-          <button 
+          <button
             disabled={isSaving}
-            onClick={() => handleSave(false)} 
+            onClick={() => handleSave(false)}
             className="flex-1 px-4 py-2 bg-slate-800 text-white font-medium rounded-xl hover:bg-slate-900 transition-colors disabled:opacity-50"
           >
             {isSaving ? 'Đang lưu...' : 'Lưu lại'}
           </button>
-          <button 
+          <button
             disabled={!allManualChecked || loadingFull || isSaving}
-            onClick={() => handleSave(true)} 
+            onClick={() => handleSave(true)}
             className="flex-1 px-4 py-2 bg-[#0ea5b7] disabled:bg-slate-300 text-white font-medium rounded-xl hover:bg-[#0b8fa0] transition-colors"
           >
             Chuyển Check-in
