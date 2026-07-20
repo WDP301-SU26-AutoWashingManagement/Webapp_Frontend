@@ -1,6 +1,7 @@
 export type BookingStatus =
   | 'pending'
   | 'confirmed'
+  | 'arrived'
   | 'checked_in'
   | 'in_progress'
   | 'washed'
@@ -28,16 +29,19 @@ export interface WashBooking {
   created_at?: string
   branch_id?: any
   services?: Array<{
+    _id: string
     service_id: {
       _id: string
       service_name: string
       service_price: number
+      is_automated?: boolean
     }
     service_package_id?: {
       _id: string
       package_name: string
     } | null
     price_snapshot: number
+    is_completed?: boolean
   }>
 }
 

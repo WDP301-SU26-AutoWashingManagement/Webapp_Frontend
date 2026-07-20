@@ -24,6 +24,7 @@ interface ServiceModalProps {
 
 function ServiceModal({ initial, groups, onClose, onSaved }: ServiceModalProps) {
   const isEdit = !!initial
+  const isWashingService = initial?.service_name === 'Dịch vụ rửa xe'
   const [form, setForm] = useState<CreateServiceInput>({
     service_group_id: initial?.service_group_id ?? (groups[0]?._id ?? groups[0]?.id ?? ''),
     service_name: initial?.service_name ?? '',
@@ -85,6 +86,7 @@ function ServiceModal({ initial, groups, onClose, onSaved }: ServiceModalProps) 
               className="admin-form-input"
               value={form.service_group_id}
               onChange={e => setForm(f => ({ ...f, service_group_id: e.target.value }))}
+              disabled={isWashingService}
             >
               <option value="">-- Chọn nhóm dịch vụ --</option>
               {groups.map(g => (
@@ -102,6 +104,7 @@ function ServiceModal({ initial, groups, onClose, onSaved }: ServiceModalProps) 
               onChange={e => setForm(f => ({ ...f, service_name: e.target.value }))}
               placeholder="Rửa xe cơ bản..."
               maxLength={100}
+              disabled={isWashingService}
             />
           </div>
 
@@ -114,6 +117,7 @@ function ServiceModal({ initial, groups, onClose, onSaved }: ServiceModalProps) 
               placeholder="Mô tả ngắn về dịch vụ..."
               rows={3}
               maxLength={500}
+              disabled={isWashingService}
             />
           </div>
 
@@ -145,11 +149,12 @@ function ServiceModal({ initial, groups, onClose, onSaved }: ServiceModalProps) 
 
           <div className="admin-form-group">
             <label className="admin-form-label">Trạng thái</label>
-            <label className="admin-toggle">
+            <label className={`admin-toggle ${isWashingService ? 'opacity-50 cursor-not-allowed' : ''}`}>
               <input
                 type="checkbox"
                 checked={form.is_active}
                 onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))}
+                disabled={isWashingService}
               />
               <span className="admin-toggle__track" />
               <span className="admin-toggle__label">{form.is_active ? 'Đang hoạt động' : 'Tạm ngừng'}</span>
@@ -342,8 +347,8 @@ export default function AdminServicesPage() {
                     </span>
                   </td>
                   <td style={{ textAlign: 'center' }}>
-                    <label className="relative inline-flex items-center cursor-pointer" title={pkg.is_active ? "Đang hoạt động" : "Đã tạm ngưng"}>
-                      <input type="checkbox" className="sr-only peer" checked={pkg.is_active} onChange={() => void handleToggle(pkg)} disabled={togglingId === id} />
+                    <label className={`relative inline-flex items-center ${pkg.service_name === 'Dịch vụ rửa xe' ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`} title={pkg.service_name === 'Dịch vụ rửa xe' ? "Dịch vụ mặc định không thể tắt" : (pkg.is_active ? "Đang hoạt động" : "Đã tạm ngưng")}>
+                      <input type="checkbox" className="sr-only peer" checked={pkg.is_active} onChange={() => void handleToggle(pkg)} disabled={togglingId === id || pkg.service_name === 'Dịch vụ rửa xe'} />
                       <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-[100%] peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
                     </label>
                   </td>
@@ -359,8 +364,8 @@ export default function AdminServicesPage() {
                       <button
                         className="admin-action-btn admin-action-btn--delete"
                         onClick={() => void handleDelete(pkg)}
-                        disabled={deletingId === id || pkg.is_active}
-                        title={pkg.is_active ? 'Tạm ngừng dịch vụ trước khi xóa' : 'Xoá'}
+                        disabled={deletingId === id || pkg.is_active || pkg.service_name === 'Dịch vụ rửa xe'}
+                        title={pkg.service_name === 'Dịch vụ rửa xe' ? 'Không thể xóa dịch vụ mặc định' : (pkg.is_active ? 'Tạm ngừng dịch vụ trước khi xóa' : 'Xoá')}
                       >
                         {deletingId === id ? <RefreshCw size={14} className="animate-spin" /> : <Trash2 size={14} />}
                       </button>
