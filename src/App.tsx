@@ -1,4 +1,4 @@
-import { Navigate, Routes, Route, useLocation } from 'react-router-dom'
+  import { Navigate, Routes, Route, useLocation } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import NavBar from './components/NavBar'
 import ScrollToTop from './components/ScrollToTop'
