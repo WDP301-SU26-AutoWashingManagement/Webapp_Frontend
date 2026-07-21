@@ -502,6 +502,23 @@ export default function SharedReportsPage() {
                         <p className="text-lg font-bold text-rose-600">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(detailModal.report.compensation.compensation_amount)}</p>
                       </div>
 
+                      {/* Hiển thị QR nhận tiền của khách hàng */}
+                      {detailModal.report.compensation.qr_image ? (
+                        <div>
+                          <h4 className="text-sm font-semibold text-slate-900 mb-2">QR tài khoản nhận tiền (KH cung cấp)</h4>
+                          <a href={detailModal.report.compensation.qr_image} target="_blank" rel="noreferrer" className="block w-32 h-auto rounded-lg overflow-hidden border border-slate-200 hover:border-indigo-400 transition-colors">
+                            <img src={detailModal.report.compensation.qr_image} alt="Customer QR" className="w-full object-cover" />
+                          </a>
+                        </div>
+                      ) : (
+                        <div>
+                          <h4 className="text-sm font-semibold text-slate-900 mb-2">QR tài khoản nhận tiền</h4>
+                          <div className="bg-slate-50 text-slate-500 px-3 py-2 rounded-lg border border-slate-200 text-sm">
+                            Khách hàng chưa tải lên ảnh QR nhận tiền
+                          </div>
+                        </div>
+                      )}
+
                       {detailModal.report.compensation.transfer_image ? (
                         <div>
                           <h4 className="text-sm font-semibold text-slate-900 mb-2">Ảnh bill chuyển khoản</h4>
@@ -512,7 +529,7 @@ export default function SharedReportsPage() {
                       ) : (
                         <div>
                           <h4 className="text-sm font-semibold text-slate-900 mb-2">Ảnh bill chuyển khoản</h4>
-                          <div className="bg-amber-50 text-amber-600 px-3 py-2 rounded-lg border border-amber-200 text-sm">
+                          <div className="bg-amber-50 text-amber-600 px-3 py-2 rounded-lg border border-amber-200 text-sm font-medium">
                             <AlertTriangle size={16} className="inline mr-1" />
                             Chưa có bill chuyển khoản
                           </div>
@@ -531,11 +548,22 @@ export default function SharedReportsPage() {
                         )}
                         {detailModal.report.compensation.customer_signature && (
                           <div className="bg-slate-50 p-2 rounded-lg border border-slate-200 text-center">
-                            <span className="text-xs text-slate-500 font-medium block mb-1">Khách hàng</span>
+                            <span className="text-xs text-slate-500 font-medium block mb-1">Ký cam kết (KH)</span>
                             <img src={detailModal.report.compensation.customer_signature} alt="Customer signature" className="h-12 mx-auto object-contain mix-blend-multiply" />
                           </div>
                         )}
                       </div>
+
+                      {detailModal.report.compensation.customer_signature_confirm ? (
+                        <div className="mt-4 bg-emerald-50/50 p-3 rounded-xl border border-emerald-100 text-center">
+                          <span className="text-xs text-emerald-600 font-bold block mb-1">Chữ ký nhận tiền (KH)</span>
+                          <img src={detailModal.report.compensation.customer_signature_confirm} alt="Customer signature confirm" className="h-12 mx-auto object-contain mix-blend-multiply" />
+                        </div>
+                      ) : (
+                        <div className="mt-4 bg-amber-50/30 text-amber-600 px-3 py-2.5 rounded-xl border border-amber-100 text-xs text-center font-medium">
+                          Chờ khách hàng nhận tiền & ký xác nhận hoàn tất
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

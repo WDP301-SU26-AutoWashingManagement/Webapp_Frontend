@@ -4,8 +4,11 @@ export interface NotificationWashingStatus {
 }
 
 export enum ActionType {
-    PREPAIRING = 'PREPAIRING',
-    WASHING = 'WASHING',
+    IDLE = 'IDLE',
+    PRE_RINSE = 'PRE RINSE',
+    SCRUBBING = 'SCRUBBING',
+    POST_RINSE = 'POST RINSE',
+    DRYING = 'DRYING',
     DONE = 'DONE',
     ERROR = 'ERROR'
 }   
