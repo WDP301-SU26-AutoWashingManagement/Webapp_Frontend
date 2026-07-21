@@ -15,7 +15,8 @@ import {
     Users,
     PlayCircle,
     UserCog,
-    CircleEllipsis
+    CircleEllipsis,
+    MessageSquare
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import logo2 from '../../assets/logo2.png'
@@ -53,6 +54,11 @@ const NAV_GROUPS = [
                 label: 'Tình trạng rửa xe',
                 icon: CircleEllipsis,
                 to: '/staff/washing-status',
+            },
+            {
+                label: 'Khiếu nại / Báo cáo',
+                icon: MessageSquare,
+                to: '/staff/reports',
             },
         ]
     },
@@ -117,8 +123,8 @@ export default function StaffLayout() {
             items: group.items.filter(item => {
                 // Giấu Hệ thống Auto-Cron, Doanh thu đối với Manager và Technical
                 if (!isAdminOrBoss && (item.to === '/staff/dashboard' || item.to === '/staff/revenue')) return false
-                // Giấu Lịch sử giao dịch đối với Technical
-                if (!isManager && item.to === '/staff/transaction-history') return false
+                // Giấu Lịch sử giao dịch và Khiếu nại đối với Technical (Chỉ Manager được xem)
+                if (!isManager && (item.to === '/staff/transaction-history' || item.to === '/staff/reports')) return false
                 return true
             })
         }

@@ -281,14 +281,14 @@ export default function StaffBookingListPage() {
     }
 
     const statusIndex = getStepIndex(currentStatus);
-    const displayIndex = currentStatus === 'completed' ? STEPS.length : statusIndex + 1;
+    const displayIndex = (currentStatus === 'completed' || currentStatus === 'compensated') ? STEPS.length : statusIndex + 1;
 
     return (
       <div className="flex items-center w-full pb-2 pt-2">
         {STEPS.map((step, index) => {
-          const isCompleted = index < displayIndex || currentStatus === 'completed';
+          const isCompleted = index < displayIndex || currentStatus === 'completed' || currentStatus === 'compensated';
           const isCurrent = index === displayIndex;
-          const isPending = index > displayIndex && currentStatus !== 'completed';
+          const isPending = index > displayIndex && currentStatus !== 'completed' && currentStatus !== 'compensated';
 
           return (
             <div key={step.id} className={`flex items-center ${index < STEPS.length - 1 ? 'flex-1' : ''}`}>
@@ -306,7 +306,7 @@ export default function StaffBookingListPage() {
               </span>
               {index < STEPS.length - 1 && (
                 <div className={`flex-1 min-w-[8px] h-1 mx-1.5 sm:mx-2 rounded-full transition-colors duration-300
-                  ${index < displayIndex || currentStatus === 'completed' ? 'bg-[#0ea5b7]' : 'bg-gray-200'}
+                  ${index < displayIndex || currentStatus === 'completed' || currentStatus === 'compensated' ? 'bg-[#0ea5b7]' : 'bg-gray-200'}
                 `}></div>
               )}
             </div>
@@ -382,6 +382,13 @@ export default function StaffBookingListPage() {
           </button>
         );
       case 'washed':
+        if ((booking as any).report && (booking as any).report?.status !== 'rejected') {
+          return (
+            <button disabled className="flex items-center px-4 py-2 bg-slate-200 text-slate-500 rounded-lg shadow-sm font-medium opacity-70 cursor-not-allowed">
+              <AlertCircle className="w-4 h-4 mr-2" /> Xử lí khiếu nại
+            </button>
+          );
+        }
         return (
           <button onClick={() => setPaymentModal({ isOpen: true, booking })} className="flex items-center px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors shadow-sm font-medium">
             <CreditCard className="w-4 h-4 mr-2" /> Thanh Toán
@@ -391,6 +398,12 @@ export default function StaffBookingListPage() {
         return (
           <span className="text-green-600 font-semibold flex items-center bg-green-50 px-3 py-1.5 rounded-lg border border-green-200">
             <CheckCircle className="w-5 h-5 mr-1" /> Đã xong
+          </span>
+        );
+      case 'compensated':
+        return (
+          <span className="text-indigo-600 font-semibold flex items-center bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-200">
+            <CheckCircle className="w-5 h-5 mr-1" /> Đã đền bù
           </span>
         );
       default:
@@ -460,6 +473,7 @@ export default function StaffBookingListPage() {
                 <option value="in_progress">Đang rửa</option>
                 <option value="washed">Chờ thanh toán</option>
                 <option value="completed">Đã hoàn thành</option>
+                <option value="compensated">Đã đền bù</option>
                 <option value="cancelled">Đã hủy</option>
               </select>
               <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"><ChevronDown size={14} /></div>

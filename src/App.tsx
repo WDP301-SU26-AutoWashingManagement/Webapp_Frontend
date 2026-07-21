@@ -36,6 +36,7 @@ import BossAccountsPage from './pages/boss/BossAccountsPage'
 import BossBranchesPage from './pages/boss/BossBranchesPage'
 import BossPromotionsPage from './pages/boss/BossPromotionsPage'
 import SharedCustomersPage from './pages/shared/SharedCustomersPage'
+import SharedReportsPage from './pages/shared/SharedReportsPage'
 
 // Staff
 import StaffLayout from './pages/staff/StaffLayout'
@@ -176,7 +177,7 @@ function AppContent() {
           <Route path="tiers" element={<AdminTiersPage />} />
           <Route
             path="reports"
-            element={<StaffTransactionHistoryPage />}
+            element={<SharedReportsPage />}
           />
           <Route
             path="settings"
@@ -233,6 +234,7 @@ function AppContent() {
           <Route path="bookings" element={<StaffBookingListPage />} />
           <Route path="payments" element={<StaffPaymentsPage />} />
           <Route path="transaction-history" element={<StaffTransactionHistoryPage />} />
+          <Route path="reports" element={<SharedReportsPage />} />
           <Route path="leave-requests" element={<StaffLeaveRequestsPage />} />
           <Route path="schedules" element={<StaffSchedulePage />} />
           <Route path="list" element={<AdminStaffsPage />} />
