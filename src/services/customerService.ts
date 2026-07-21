@@ -161,7 +161,7 @@ export const customerService = {
         return profile
       } catch (err) {
         const fallback = profileFromSessionUser()
-        if (fallback?.customer_id) {
+        if (fallback) {
           return fallback
         }
         throw err
