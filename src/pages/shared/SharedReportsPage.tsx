@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { RefreshCw, ChevronLeft, ChevronRight, Eye, Search, AlertTriangle, CheckCircle, Trash2, MessageSquare, Calendar, XCircle, Upload, X } from 'lucide-react'
+import { RefreshCw, ChevronLeft, ChevronRight, Eye, Search, AlertTriangle, CheckCircle, Trash2, MessageSquare, Calendar, XCircle, Upload, X, FileText } from 'lucide-react'
 import { bookingChecklistService, type BookingChecklist } from '../../services/bookingChecklistService'
 import { bookingService } from '../../services/bookingService'
 import type { WashBooking } from '../../types/booking'
@@ -8,6 +8,9 @@ import { useAuth } from '../../hooks/useAuth'
 import BookingDetailModal from '../../components/BookingDetailModal'
 import CompensationModal from '../../components/CompensationModal'
 import RejectModal from '../../components/RejectModal'
+import { env } from '../../config/env'
+import { getAccessToken } from '../../lib/authSession'
+import { fetchEventSource } from '@microsoft/fetch-event-source'
 
 export default function SharedReportsPage() {
   const { user } = useAuth()
@@ -25,6 +28,14 @@ export default function SharedReportsPage() {
   const [appointmentDetail, setAppointmentDetail] = useState<WashBooking | null>(null)
   const [loadingChecklist, setLoadingChecklist] = useState(false)
   const [previewBillModal, setPreviewBillModal] = useState<{ appointmentId: string, base64: string } | null>(null)
+  const [previewImage, setPreviewImage] = useState<string | null>(null)
+  
+  // States for AI Verification
+  const [isVerifying, setIsVerifying] = useState(false)
+  const [verifyProgress, setVerifyProgress] = useState(0)
+  const [verifyStep, setVerifyStep] = useState('')
+  const [verifyResult, setVerifyResult] = useState<any>(null)
+  const [verifyError, setVerifyError] = useState('')
 
   useEffect(() => {
     if (detailModal && detailModal._id) {
@@ -139,33 +150,172 @@ export default function SharedReportsPage() {
     }
   }
 
+  const handleVerifyBill = async () => {
+    if (!previewBillModal) return;
+    setIsVerifying(true);
+    setVerifyProgress(0);
+    setVerifyStep('Đang khởi tạo AI...');
+    setVerifyResult(null);
+    setVerifyError('');
+
+    try {
+      const byteString = atob(previewBillModal.base64.split(',')[1]);
+      const mimeString = previewBillModal.base64.split(',')[0].split(':')[1].split(';')[0];
+      const ab = new ArrayBuffer(byteString.length);
+      const ia = new Uint8Array(ab);
+      for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+      }
+      const blob = new Blob([ab], { type: mimeString });
+      
+      const formData = new FormData();
+      formData.append('image', blob, 'bill.png');
+      formData.append('type', 'AUTO');
+
+      const token = getAccessToken();
+
+      await fetchEventSource(`${env.apiBaseUrl}/confidence/verify-image`, {
+        method: 'POST',
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: formData,
+        onmessage(ev) {
+          try {
+            const data = JSON.parse(ev.data);
+            if (data.progress !== undefined) {
+              setVerifyProgress(data.progress);
+              if (data.progress === -1) {
+                setVerifyError(data.step || 'Lỗi xử lý ảnh');
+                setIsVerifying(false);
+              } else {
+                setVerifyStep(data.step);
+              }
+            }
+            if (data.progress === 100 && data.data) {
+              setVerifyResult(data.data);
+              setIsVerifying(false);
+            }
+          } catch (e) {
+            console.error(e);
+          }
+        },
+        onerror(err) {
+          setVerifyError('Lỗi kết nối máy chủ xác thực AI');
+          setIsVerifying(false);
+          throw err;
+        }
+      });
+    } catch (err) {
+      if (!verifyError) {
+        setVerifyError('Đã xảy ra lỗi khi xác thực');
+      }
+      setIsVerifying(false);
+    }
+  }
+
   const confirmUploadBill = async () => {
     if (!previewBillModal) return;
     try {
-      await bookingChecklistService.uploadCompensationBill(previewBillModal.appointmentId, previewBillModal.base64);
-      showSuccess('Đã tải lên bill chuyển khoản thành công, khiếu nại đã hoàn tất!');
-
-      // Update detailModal locally to reflect changes
-      if (detailModal && detailModal._id === previewBillModal.appointmentId) {
-        setDetailModal({
-          ...detailModal,
-          report: {
-            ...detailModal.report,
-            compensation: {
-              ...detailModal.report.compensation,
-              transfer_image: previewBillModal.base64
+      if (verifyResult?.type === 'QR') {
+        await bookingChecklistService.uploadCompensationQr(previewBillModal.appointmentId, previewBillModal.base64);
+        showSuccess('Đã tải lên ảnh QR nhận tiền thành công!');
+        
+        // Update detailModal locally to reflect changes
+        if (detailModal && detailModal._id === previewBillModal.appointmentId) {
+          setDetailModal({
+            ...detailModal,
+            report: {
+              ...detailModal.report,
+              compensation: {
+                ...detailModal.report.compensation,
+                qr_image: previewBillModal.base64
+              }
             }
-          }
-        });
+          });
+        }
+      } else {
+        await bookingChecklistService.uploadCompensationBill(previewBillModal.appointmentId, previewBillModal.base64);
+        showSuccess('Đã tải lên bill chuyển khoản thành công!');
+        
+        // Update detailModal locally to reflect changes
+        if (detailModal && detailModal._id === previewBillModal.appointmentId) {
+          setDetailModal({
+            ...detailModal,
+            report: {
+              ...detailModal.report,
+              compensation: {
+                ...detailModal.report.compensation,
+                transfer_image: previewBillModal.base64
+              }
+            }
+          });
+        }
       }
 
       fetchReports(page, activeTab);
     } catch (error: any) {
-      showError(error.response?.data?.message || 'Lỗi khi tải lên bill chuyển khoản');
+      showError(error.response?.data?.message || 'Lỗi khi tải lên hình ảnh');
     } finally {
       setPreviewBillModal(null);
+      setVerifyResult(null);
+      setVerifyError('');
+      setVerifyProgress(0);
     }
   }
+
+  const handleExportDocx = async (appointment: any) => {
+    try {
+      showSuccess('Đang tạo file biên bản, vui lòng chờ...');
+      
+      const customerInfo = appointment.customer_id?.user_id || {};
+      const branchInfo = appointment.branch_id?.branch_address 
+        ? `${appointment.branch_id.branch_address.street}, ${appointment.branch_id.branch_address.ward}, ${appointment.branch_id.branch_address.district}, ${appointment.branch_id.branch_address.city}`
+        : 'Chi nhánh không xác định';
+
+      const payload = {
+        branch_info: branchInfo,
+        customer_info: {
+          fullname: customerInfo.full_name || '—',
+          phone: customerInfo.phone || '—',
+          email: customerInfo.email || '—'
+        },
+        compensation_amount: appointment.report.compensation.compensation_amount,
+        customer_signature: appointment.report.compensation.customer_signature,
+        admin_signature: appointment.report.compensation.admin_signature,
+        transfer_image: appointment.report.compensation.transfer_image,
+        created_at: appointment.report.compensation.created_at
+      };
+
+      const token = getAccessToken();
+      const response = await fetch(`${env.apiBaseUrl}/export/compensation-docx`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        throw new Error('Lỗi khi xuất file');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Bien_Ban_Den_Bu_${appointment.appointment_code}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+    } catch (error) {
+      console.error(error);
+      showError('Không thể xuất file biên bản lúc này.');
+    }
+  };
 
   return (
     <div className="admin-page animate-in fade-in duration-300">
@@ -379,9 +529,9 @@ export default function SharedReportsPage() {
                       <h4 className="text-sm font-semibold text-slate-900 mb-3">Hình ảnh bằng chứng</h4>
                       <div className="grid grid-cols-3 gap-3">
                         {detailModal.report.evidence.map((img: string, idx: number) => (
-                          <a key={idx} href={img} target="_blank" rel="noreferrer" className="block aspect-square rounded-lg overflow-hidden border border-slate-200 hover:border-indigo-400 transition-colors">
+                          <div key={idx} onClick={() => setPreviewImage(img)} className="block aspect-square rounded-lg overflow-hidden border border-slate-200 hover:border-indigo-400 transition-colors cursor-pointer">
                             <img src={img} alt="Evidence" className="w-full h-full object-cover" />
-                          </a>
+                          </div>
                         ))}
                       </div>
                     </div>
@@ -431,9 +581,9 @@ export default function SharedReportsPage() {
                           <h4 className="text-sm font-semibold text-slate-900 mb-3">Hình ảnh hiện trạng xe</h4>
                           <div className="grid grid-cols-3 gap-3">
                             {initialChecklist.images.map((img: string, idx: number) => (
-                              <a key={idx} href={img} target="_blank" rel="noreferrer" className="block aspect-square rounded-lg overflow-hidden border border-slate-200 hover:border-emerald-400 transition-colors">
+                              <div key={idx} onClick={() => setPreviewImage(img)} className="block aspect-square rounded-lg overflow-hidden border border-slate-200 hover:border-emerald-400 transition-colors cursor-pointer">
                                 <img src={img} alt="Checklist img" className="w-full h-full object-cover" />
-                              </a>
+                              </div>
                             ))}
                           </div>
                         </div>
@@ -486,13 +636,24 @@ export default function SharedReportsPage() {
                       <CheckCircle size={18} />
                       Biên bản cam kết đền bù
                     </h3>
-                    {!detailModal.report.compensation.transfer_image && (
-                      <label className="inline-flex items-center gap-2 cursor-pointer bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg border border-indigo-200 hover:bg-indigo-100 transition-colors text-xs font-medium">
-                        <Upload size={14} />
-                        Tải lên bill
-                        <input type="file" accept="image/*" className="hidden" onChange={(e) => handleUploadBill(e, detailModal._id)} />
-                      </label>
-                    )}
+                    <div className="flex gap-2">
+                      {detailModal.report.compensation.transfer_image && detailModal.report.compensation.customer_signature && (
+                        <button 
+                          onClick={() => handleExportDocx(detailModal)}
+                          className="inline-flex items-center gap-2 cursor-pointer bg-emerald-500 text-white px-3 py-1.5 rounded-lg border border-emerald-600 hover:bg-emerald-600 transition-colors text-xs font-medium shadow-sm"
+                        >
+                          <FileText size={14} />
+                          Xuất file Word
+                        </button>
+                      )}
+                      {(!detailModal.report.compensation.transfer_image || !detailModal.report.compensation.qr_image) && (
+                        <label className="inline-flex items-center gap-2 cursor-pointer bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg border border-indigo-200 hover:bg-indigo-100 transition-colors text-xs font-medium shadow-sm">
+                          <Upload size={14} />
+                          Tải lên AI (Bill/QR)
+                          <input type="file" accept="image/*" className="hidden" onChange={(e) => handleUploadBill(e, detailModal._id)} />
+                        </label>
+                      )}
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -506,9 +667,9 @@ export default function SharedReportsPage() {
                       {detailModal.report.compensation.qr_image ? (
                         <div>
                           <h4 className="text-sm font-semibold text-slate-900 mb-2">QR tài khoản nhận tiền (KH cung cấp)</h4>
-                          <a href={detailModal.report.compensation.qr_image} target="_blank" rel="noreferrer" className="block w-32 h-auto rounded-lg overflow-hidden border border-slate-200 hover:border-indigo-400 transition-colors">
+                          <div onClick={() => setPreviewImage(detailModal.report.compensation.qr_image)} className="block w-32 h-auto rounded-lg overflow-hidden border border-slate-200 hover:border-indigo-400 transition-colors cursor-pointer">
                             <img src={detailModal.report.compensation.qr_image} alt="Customer QR" className="w-full object-cover" />
-                          </a>
+                          </div>
                         </div>
                       ) : (
                         <div>
@@ -522,9 +683,9 @@ export default function SharedReportsPage() {
                       {detailModal.report.compensation.transfer_image ? (
                         <div>
                           <h4 className="text-sm font-semibold text-slate-900 mb-2">Ảnh bill chuyển khoản</h4>
-                          <a href={detailModal.report.compensation.transfer_image} target="_blank" rel="noreferrer" className="block w-32 h-auto rounded-lg overflow-hidden border border-slate-200 hover:border-emerald-400 transition-colors">
+                          <div onClick={() => setPreviewImage(detailModal.report.compensation.transfer_image)} className="block w-32 h-auto rounded-lg overflow-hidden border border-slate-200 hover:border-emerald-400 transition-colors cursor-pointer">
                             <img src={detailModal.report.compensation.transfer_image} alt="Transfer bill" className="w-full object-cover" />
-                          </a>
+                          </div>
                         </div>
                       ) : (
                         <div>
@@ -692,7 +853,12 @@ export default function SharedReportsPage() {
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50 rounded-t-2xl">
               <h2 className="text-lg font-bold text-slate-800">Xác nhận ảnh chuyển khoản</h2>
               <button
-                onClick={() => setPreviewBillModal(null)}
+                onClick={() => {
+                  setPreviewBillModal(null)
+                  setVerifyResult(null)
+                  setVerifyError('')
+                  setVerifyProgress(0)
+                }}
                 className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-full transition-colors"
               >
                 <X size={20} />
@@ -701,28 +867,112 @@ export default function SharedReportsPage() {
 
             <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center">
               <p className="text-sm text-slate-600 mb-4 text-center font-medium">Bản xem trước hình ảnh biên lai tải lên</p>
-              <div className="w-full max-w-sm rounded-lg overflow-hidden border border-slate-200 shadow-sm mb-4">
-                <img src={previewBillModal.base64} alt="Preview" className="w-full h-auto" />
+              <div className="w-full max-w-sm rounded-lg overflow-hidden border border-slate-200 shadow-sm mb-4 shrink-0 bg-slate-50 flex items-center justify-center">
+                <img src={previewBillModal.base64} alt="Preview" className="w-full max-h-[50vh] object-contain" />
               </div>
 
-              <div className="w-full max-w-sm bg-indigo-50/50 border border-indigo-100 p-3 rounded-xl flex items-center justify-between opacity-75">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-500 shrink-0">
-                    <CheckCircle size={16} />
+              <div className="w-full max-w-sm bg-indigo-50/50 border border-indigo-100 p-3 rounded-xl flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-500 shrink-0">
+                      <CheckCircle size={16} />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-indigo-900 leading-none">Kiểm tra độ tin cậy AI</h4>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-indigo-900 leading-none">Kiểm tra độ tin cậy AI</h4>
-                  </div>
+                  {!isVerifying && !verifyResult && (
+                    <button type="button" onClick={handleVerifyBill} className="px-3 py-1.5 bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-lg hover:bg-indigo-200 transition-colors">
+                      Kiểm tra
+                    </button>
+                  )}
                 </div>
-                <button type="button" className="px-3 py-1.5 bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-lg hover:bg-indigo-200 transition-colors">
-                  Kiểm tra
-                </button>
+
+                {isVerifying && (
+                  <div className="w-full">
+                    <div className="flex justify-between text-xs font-medium text-indigo-700 mb-1">
+                      <span>{verifyStep}</span>
+                      <span>{verifyProgress}%</span>
+                    </div>
+                    <div className="w-full bg-indigo-100 rounded-full h-1.5 overflow-hidden">
+                      <div className="bg-indigo-500 h-full rounded-full transition-all duration-300" style={{ width: `${Math.max(verifyProgress, 0)}%` }}></div>
+                    </div>
+                  </div>
+                )}
+
+                {verifyError && (
+                  <div className="w-full p-2 bg-rose-50 border border-rose-100 rounded-lg flex items-start gap-2 text-rose-600 text-xs mt-1">
+                    <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+                    <span>{verifyError}</span>
+                  </div>
+                )}
+
+                {verifyResult && (
+                  <div className="w-full p-3 bg-white border border-indigo-100 rounded-lg flex flex-col gap-2 shadow-sm">
+                    <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                      <span className="text-xs font-semibold text-slate-600">Độ tin cậy:</span>
+                      <span className={`text-sm font-bold px-2 py-0.5 rounded-full ${
+                        (verifyResult.confidence * 100) >= 80 ? 'bg-emerald-100 text-emerald-700' : 
+                        (verifyResult.confidence * 100) >= 50 ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700'
+                      }`}>
+                        {Math.round(verifyResult.confidence * 100)}%
+                      </span>
+                    </div>
+                    {verifyResult.reason && (
+                      <div className={`text-xs p-1.5 rounded border ${
+                        (verifyResult.confidence * 100) >= 80 ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 
+                        (verifyResult.confidence * 100) >= 50 ? 'bg-amber-50 text-amber-700 border-amber-100' : 'bg-rose-50 text-rose-600 border-rose-100'
+                      }`}>
+                        <span className="font-semibold">Chi tiết:</span> {verifyResult.reason}
+                      </div>
+                    )}
+                    <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-xs">
+                      {(verifyResult.details?.amount || verifyResult.details?.analysis?.amount) && (
+                        <>
+                          <span className="text-slate-500">Số tiền:</span>
+                          <span className="font-semibold text-slate-800 text-right">
+                            {verifyResult.type === 'QR' && verifyResult.details?.analysis?.amount 
+                              ? verifyResult.details.analysis.amount.toLocaleString('vi-VN') + ' VNĐ'
+                              : verifyResult.details.amount}
+                          </span>
+                        </>
+                      )}
+                      {(verifyResult.details?.provider || verifyResult.details?.analysis?.providerName) && (
+                        <>
+                          <span className="text-slate-500">Ngân hàng:</span>
+                          <span className="font-semibold text-slate-800 text-right">
+                            {verifyResult.type === 'QR' 
+                              ? verifyResult.details?.analysis?.providerName 
+                              : verifyResult.details?.provider}
+                          </span>
+                        </>
+                      )}
+                      {verifyResult.type === 'QR' && verifyResult.details?.analysis?.accountNumber && (
+                        <>
+                          <span className="text-slate-500">Số tài khoản:</span>
+                          <span className="font-semibold text-slate-800 text-right">{verifyResult.details.analysis.accountNumber}</span>
+                        </>
+                      )}
+                      {verifyResult.type !== 'QR' && verifyResult.details?.transactionId && (
+                        <>
+                          <span className="text-slate-500">Mã giao dịch:</span>
+                          <span className="font-semibold text-slate-800 text-right">{verifyResult.details.transactionId}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
             <div className="p-4 border-t border-slate-100 bg-slate-50/50 rounded-b-2xl flex justify-end gap-3">
               <button
-                onClick={() => setPreviewBillModal(null)}
+                onClick={() => {
+                  setPreviewBillModal(null)
+                  setVerifyResult(null)
+                  setVerifyError('')
+                  setVerifyProgress(0)
+                }}
                 className="px-5 py-2 text-slate-600 font-medium rounded-xl hover:bg-slate-200 transition-colors"
               >
                 Hủy thay đổi
@@ -736,6 +986,26 @@ export default function SharedReportsPage() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+      {/* Image Preview Modal */}
+      {previewImage && (
+        <div 
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/90 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+          onClick={() => setPreviewImage(null)}
+        >
+          <button 
+            onClick={() => setPreviewImage(null)}
+            className="absolute top-4 right-4 p-2 text-white hover:text-rose-400 bg-slate-800/50 hover:bg-slate-800 rounded-full transition-colors z-10"
+          >
+            <X size={24} />
+          </button>
+          <img 
+            src={previewImage} 
+            alt="Preview" 
+            className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>
       )}
     </div>
