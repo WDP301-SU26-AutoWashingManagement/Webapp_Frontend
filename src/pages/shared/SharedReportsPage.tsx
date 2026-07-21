@@ -660,7 +660,7 @@ export default function SharedReportsPage() {
       {/* Preview Bill Modal */}
       {previewBillModal && (
         <div className="fixed inset-0 z-[160] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl w-full max-w-4xl shadow-2xl flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50 rounded-t-2xl">
               <h2 className="text-lg font-bold text-slate-800">Xác nhận ảnh chuyển khoản</h2>
               <button
@@ -671,21 +671,24 @@ export default function SharedReportsPage() {
               </button>
             </div>
 
-            <div className="flex-1 overflow-hidden p-6 flex flex-col md:flex-row gap-6">
-              <div className="flex-1 flex flex-col items-center bg-slate-50 p-4 rounded-xl border border-slate-100 overflow-y-auto">
-                <p className="text-sm text-slate-600 mb-4 text-center font-medium">Bản xem trước hình ảnh biên lai tải lên</p>
-                <div className="w-full max-w-sm rounded-lg overflow-hidden border border-slate-200 shadow-sm">
-                  <img src={previewBillModal.base64} alt="Preview" className="w-full h-auto" />
-                </div>
+            <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center">
+              <p className="text-sm text-slate-600 mb-4 text-center font-medium">Bản xem trước hình ảnh biên lai tải lên</p>
+              <div className="w-full max-w-sm rounded-lg overflow-hidden border border-slate-200 shadow-sm mb-4">
+                <img src={previewBillModal.base64} alt="Preview" className="w-full h-auto" />
               </div>
 
-              <div className="w-full md:w-80 flex flex-col gap-4">
-                <div className="bg-indigo-50/50 border border-indigo-100 p-4 rounded-xl h-full flex flex-col items-center justify-center text-center opacity-75">
-                  <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-500 mb-3">
-                    <CheckCircle size={24} />
+              <div className="w-full max-w-sm bg-indigo-50/50 border border-indigo-100 p-3 rounded-xl flex items-center justify-between opacity-75">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-500 shrink-0">
+                    <CheckCircle size={16} />
                   </div>
-                  <h4 className="text-sm font-bold text-indigo-900 mb-1">Kiểm tra độ tin cậy</h4>
+                  <div>
+                    <h4 className="text-sm font-bold text-indigo-900 leading-none">Kiểm tra độ tin cậy AI</h4>
+                  </div>
                 </div>
+                <button type="button" className="px-3 py-1.5 bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-lg hover:bg-indigo-200 transition-colors">
+                  Kiểm tra
+                </button>
               </div>
             </div>
 
