@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { X, Calendar, User, Car, Tag, FileText, Download, Image as Banknote, CheckCircle2, Circle, Check, Zap } from 'lucide-react'
+import { X, Calendar, User, Car, Tag, FileText, Download, Image as Banknote, CheckCircle2, Circle, Check, Zap, AlertTriangle } from 'lucide-react'
 import type { WashBooking } from '../types/booking'
 import { bookingChecklistService, type BookingChecklist } from '../services/bookingChecklistService'
 import CreateChecklistModal from './CreateChecklistModal'
@@ -87,6 +87,7 @@ export default function BookingDetailModal({ booking: initialBooking, isOpen, on
       case 'in_progress': return <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-bold">Đang rửa</span>
       case 'washed': return <span className="px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-xs font-bold">Rửa xong</span>
       case 'completed': return <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold">Hoàn thành</span>
+      case 'compensated': return <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-bold">Đã đền bù</span>
       case 'cancelled': return <span className="px-3 py-1 bg-rose-100 text-rose-700 rounded-full text-xs font-bold">Đã hủy</span>
       default: return <span className="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-bold">{status}</span>
     }
@@ -453,7 +454,7 @@ export default function BookingDetailModal({ booking: initialBooking, isOpen, on
         {/* Footer */}
         <div className="p-4 border-t border-slate-100 bg-slate-50/50 rounded-b-2xl flex justify-between items-center">
           <div>
-            {onPay && booking && booking.booking_status === 'washed' && (
+            {onPay && booking && booking.booking_status === 'washed' && (!(booking as any).report || (booking as any).report?.status === 'rejected') && (
               <button
                 onClick={() => {
                   onClose()
@@ -463,6 +464,11 @@ export default function BookingDetailModal({ booking: initialBooking, isOpen, on
               >
                 <Banknote size={16} /> Thanh toán đơn này
               </button>
+            )}
+            {onPay && booking && booking.booking_status === 'washed' && (booking as any).report && (booking as any).report?.status !== 'rejected' && (
+              <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 text-amber-700 rounded-xl text-sm font-medium border border-amber-200">
+                <AlertTriangle size={16} /> Có khiếu nại chưa giải quyết, tạm khóa thanh toán
+              </div>
             )}
           </div>
           <button

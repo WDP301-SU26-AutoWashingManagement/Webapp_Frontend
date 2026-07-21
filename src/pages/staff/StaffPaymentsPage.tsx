@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { RefreshCw, ChevronLeft, ChevronRight, Eye, Search, Check } from 'lucide-react'
+import { RefreshCw, ChevronLeft, ChevronRight, Eye, Search, Check, AlertCircle } from 'lucide-react'
 import { bookingService } from '../../services/bookingService'
 import type { BookingListResult } from '../../services/bookingService'
 import type { WashBooking } from '../../types/booking'
@@ -224,12 +224,18 @@ export default function StaffPaymentsPage() {
                                                     >
                                                         <Eye size={14} /> Chi tiết
                                                     </button>
-                                                    <button
-                                                        onClick={() => setPaymentModal({ isOpen: true, booking: b })}
-                                                        className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition shadow-sm shadow-emerald-200 flex items-center gap-1.5"
-                                                    >
-                                                        <Check size={14} /> Thanh toán
-                                                    </button>
+                                                    {((b as any).report && (b as any).report?.status !== 'rejected') ? (
+                                                        <button disabled className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-slate-200 text-slate-500 cursor-not-allowed shadow-sm flex items-center gap-1.5">
+                                                            <AlertCircle size={14} /> Xử lí khiếu nại
+                                                        </button>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => setPaymentModal({ isOpen: true, booking: b })}
+                                                            className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition shadow-sm shadow-emerald-200 flex items-center gap-1.5"
+                                                        >
+                                                            <Check size={14} /> Thanh toán
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>

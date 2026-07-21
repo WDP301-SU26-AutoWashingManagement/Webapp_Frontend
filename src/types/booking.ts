@@ -6,6 +6,7 @@ export type BookingStatus =
   | 'in_progress'
   | 'washed'
   | 'completed'
+  | 'compensated'
   | 'cancelled'
 
 export interface WashBooking {
@@ -43,6 +44,7 @@ export interface WashBooking {
     price_snapshot: number
     is_completed?: boolean
   }>
+  report?: any
 }
 
 export interface CreateBookingInput {

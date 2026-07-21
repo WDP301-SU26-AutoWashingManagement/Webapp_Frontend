@@ -10,6 +10,7 @@ export interface AuthUser {
   is_active: boolean
   staff_type?: string
   branch_id?: string | null
+  phone?: string | null
 }
 
 export interface RegisterInput {
