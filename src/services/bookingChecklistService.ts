@@ -98,6 +98,22 @@ export const bookingChecklistService = {
     throw new Error('Lỗi khi tải lên ảnh chuyển khoản');
   },
 
+  async uploadCompensationQr(appointmentId: string, qr_image: string): Promise<any> {
+    const response = await apiClient.patch<ApiResponse<any>>(`/booking-checklists/appointment/${appointmentId}/report/upload-qr`, { qr_image });
+    if (response && response.data) {
+      return response.data;
+    }
+    throw new Error('Lỗi khi tải lên ảnh QR tài khoản');
+  },
+
+  async customerConfirmCompensation(appointmentId: string, customer_signature_confirm: string): Promise<any> {
+    const response = await apiClient.patch<ApiResponse<any>>(`/booking-checklists/appointment/${appointmentId}/report/customer-confirm`, { customer_signature_confirm });
+    if (response && response.data) {
+      return response.data;
+    }
+    throw new Error('Lỗi khi xác nhận hoàn tất bồi thường');
+  },
+
   async rejectReport(appointmentId: string, payload: { reject_reason: string, admin_signature: string, customer_signature: string }): Promise<any> {
     const response = await apiClient.patch<ApiResponse<any>>(`/booking-checklists/appointment/${appointmentId}/report/reject`, payload);
     if (response && response.data) {
