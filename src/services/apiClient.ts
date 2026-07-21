@@ -52,9 +52,9 @@ class ApiClient {
     }
   }
 
-  async delete<T = unknown>(endpoint: string): Promise<T> {
+  async delete<T = unknown>(endpoint: string, config?: RequestConfig): Promise<T> {
     try {
-      const response = await axiosInstance.delete<T>(endpoint)
+      const response = await axiosInstance.delete<T>(endpoint, config)
       return response.data
     } catch (error) {
       this.handleError(error)

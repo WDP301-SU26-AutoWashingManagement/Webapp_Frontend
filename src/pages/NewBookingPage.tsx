@@ -320,7 +320,8 @@ export default function NewBookingPage() {
     () =>
       compatibleServices.filter((pkg) => {
         const id = pkg._id ?? pkg.id
-        return id && form.service_ids.includes(id) && !includedServiceIdsInCombo.includes(id)
+        const isWashingService = pkg.service_name === 'Dịch vụ rửa xe'
+        return id && (form.service_ids.includes(id) || isWashingService) && !includedServiceIdsInCombo.includes(id)
       }),
     [compatibleServices, form.service_ids, includedServiceIdsInCombo],
   )
@@ -431,7 +432,7 @@ export default function NewBookingPage() {
       }
     }
     if (step === 2) {
-      if (!form.combo_package_id && form.service_ids.length === 0) {
+      if (!form.combo_package_id && selectedServices.length === 0) {
         showError('Vui lòng chọn ít nhất một Combo hoặc Dịch vụ lẻ')
         return
       }
@@ -440,6 +441,18 @@ export default function NewBookingPage() {
   }
 
   const handlePrev = () => {
+    if (step === 2) {
+      // Chỉ reset lại các lựa chọn (giờ, dịch vụ) để khách chọn lại từ đầu
+      // NHƯNG giữ nguyên cục Gợi ý (recommendation)
+      setForm(p => ({
+        ...p,
+        scheduled_at: '',
+        combo_package_id: '',
+        service_ids: [],
+        promotion_code: ''
+      }))
+      setValidatedPromotion(null)
+    }
     setStep(s => Math.max(s - 1, 1))
   }
 
@@ -450,8 +463,9 @@ export default function NewBookingPage() {
 
       const servicesPayload: Array<{ service_id: string; service_package_id?: string }> = []
 
-      form.service_ids.forEach(id => {
-        servicesPayload.push({ service_id: id })
+      selectedServices.forEach(pkg => {
+        const id = pkg._id ?? pkg.id
+        if (id) servicesPayload.push({ service_id: id })
       })
 
       if (form.combo_package_id && includedServiceIdsInCombo.length > 0) {
@@ -611,8 +625,7 @@ export default function NewBookingPage() {
                             ✨
                           </div>
                           <div className="flex-1">
-                            <h4 className="text-sm font-bold text-indigo-900 mb-1">Auto-Pilot Booking</h4>
-                            <p className="text-xs text-indigo-700 italic leading-relaxed mb-3">"{recommendation.reason}"</p>
+                            <h4 className="text-sm font-bold text-indigo-900 mb-1">Booking Recommendation</h4>
 
                             <div className="bg-white/60 rounded-lg p-3 border border-indigo-100 mb-3 space-y-2">
                               <div className="flex justify-between items-start text-xs gap-2">
@@ -849,11 +862,12 @@ export default function NewBookingPage() {
                         <div className="flex flex-col border border-slate-200 rounded-xl overflow-hidden divide-y divide-slate-100">
                           {compatibleServices.map((pkg) => {
                             const id = pkg._id ?? pkg.id ?? ''
+                            const isWashingService = pkg.service_name === 'Dịch vụ rửa xe'
                             const isIncludedInCombo = includedServiceIdsInCombo.includes(id)
-                            const isSelected = form.service_ids.includes(id) || isIncludedInCombo
+                            const isSelected = form.service_ids.includes(id) || isIncludedInCombo || isWashingService
 
                             const toggleService = () => {
-                              if (isIncludedInCombo) return // Không cho click nếu đã nằm trong combo
+                              if (isIncludedInCombo || isWashingService) return // Không cho click nếu đã nằm trong combo hoặc là mặc định
                               setForm(p => {
                                 if (p.service_ids.includes(id)) {
                                   return { ...p, service_ids: p.service_ids.filter(sid => sid !== id) }
@@ -869,6 +883,7 @@ export default function NewBookingPage() {
                                 onClick={toggleService}
                                 className={`relative cursor-pointer p-5 transition-all flex items-start gap-4 
                                   ${isIncludedInCombo ? 'bg-slate-50/50 cursor-not-allowed opacity-70'
+                                    : isWashingService ? 'bg-[#fff5ee] cursor-not-allowed'
                                     : isSelected ? 'bg-[#fff5ee]'
                                       : 'hover:bg-slate-50'}`}
                               >
@@ -877,18 +892,22 @@ export default function NewBookingPage() {
                                     type="checkbox"
                                     checked={isSelected}
                                     readOnly
-                                    className={`w-5 h-5 rounded border-slate-300 cursor-pointer ${isIncludedInCombo ? 'text-slate-400 focus:ring-slate-400' : 'text-[#ea580c] focus:ring-[#ea580c]'}`}
+                                    className={`w-5 h-5 rounded border-slate-300 ${isIncludedInCombo || isWashingService ? 'cursor-not-allowed text-slate-400 focus:ring-slate-400 opacity-60' : 'cursor-pointer text-[#ea580c] focus:ring-[#ea580c]'}`}
                                   />
                                 </div>
                                 <div className="flex-1 space-y-1.5">
                                   <div className="flex justify-between items-start gap-4">
                                     <div className="flex items-center gap-2">
                                       <h4 className="font-bold text-slate-800 text-base">{pkg.service_name}</h4>
-                                      {isIncludedInCombo && (
+                                      {isIncludedInCombo ? (
                                         <span className="bg-slate-200 text-slate-600 text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded">
                                           Thuộc Combo
                                         </span>
-                                      )}
+                                      ) : isWashingService ? (
+                                        <span className="bg-rose-100 text-rose-600 text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded">
+                                          Mặc định
+                                        </span>
+                                      ) : null}
                                     </div>
                                     <p className={`text-lg font-bold whitespace-nowrap ${isIncludedInCombo ? 'text-slate-400' : 'text-[#ea580c]'}`}>{formatPrice(pkg.service_price)}</p>
                                   </div>

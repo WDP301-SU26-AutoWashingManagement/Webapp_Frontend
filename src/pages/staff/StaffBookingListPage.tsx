@@ -6,15 +6,17 @@ import { showError, showSuccess } from '../../utils/toast';
 import PaymentModal from '../../components/PaymentModal';
 import BookingDetailModal from '../../components/BookingDetailModal';
 import CreateChecklistModal from '../../components/CreateChecklistModal';
+import TickServicesModal from '../../components/TickServicesModal';
 import { bookingChecklistService } from '../../services/bookingChecklistService';
 import { washService } from '../../services/staffWashingStatusService';
 
 const STEPS = [
-  { id: 'pending', label: 'Đã xác nhận' },
-  { id: 'confirmed', label: 'Đã check-in ' },
-  { id: 'checked_in', label: 'Đang rửa' },
+  { id: 'confirmed', label: 'Đã xác nhận' },
+  { id: 'arrived', label: 'Xe đã tới' },
+  { id: 'checked_in', label: 'Check-in rửa xe' },
   { id: 'in_progress', label: 'Đang rửa' },
-  { id: 'washed', label: 'Chờ thanh toán' }
+  { id: 'washed', label: 'Rửa xong' },
+  { id: 'completed', label: 'Đã thanh toán' }
 ];
 
 export default function StaffBookingListPage() {
@@ -27,6 +29,7 @@ export default function StaffBookingListPage() {
   const [detailModal, setDetailModal] = useState<WashBooking | null>(null);
 
   const [createChecklistModalBooking, setCreateChecklistModalBooking] = useState<WashBooking | null>(null);
+  const [tickServicesModalBooking, setTickServicesModalBooking] = useState<WashBooking | null>(null);
   const [checkinMethodModal, setCheckinMethodModal] = useState<WashBooking | null>(null);
   const [startWashMethodModal, setStartWashMethodModal] = useState<WashBooking | null>(null);
   const [missingChecklistIds, setMissingChecklistIds] = useState<Set<string>>(new Set());
@@ -277,32 +280,33 @@ export default function StaffBookingListPage() {
       );
     }
 
-    const displayIndex = getStepIndex(currentStatus);
+    const statusIndex = getStepIndex(currentStatus);
+    const displayIndex = (currentStatus === 'completed' || currentStatus === 'compensated') ? STEPS.length : statusIndex + 1;
 
     return (
-      <div className="flex items-center w-full overflow-x-auto pb-2 pt-2">
+      <div className="flex items-center w-full pb-2 pt-2">
         {STEPS.map((step, index) => {
-          const isCompleted = index < displayIndex || currentStatus === 'completed';
+          const isCompleted = index < displayIndex || currentStatus === 'completed' || currentStatus === 'compensated';
           const isCurrent = index === displayIndex;
-          const isPending = index > displayIndex && currentStatus !== 'completed';
+          const isPending = index > displayIndex && currentStatus !== 'completed' && currentStatus !== 'compensated';
 
           return (
-            <div key={step.id} className="flex items-center">
-              <div className={`flex items-center justify-center w-8 h-8 rounded-full border-2 font-semibold text-sm shrink-0 transition-colors duration-300
+            <div key={step.id} className={`flex items-center ${index < STEPS.length - 1 ? 'flex-1' : ''}`}>
+              <div className={`flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-full border-2 font-semibold text-xs sm:text-sm shrink-0 transition-colors duration-300
                 ${isCompleted ? 'bg-[#0ea5b7] border-[#0ea5b7] text-white' : ''}
                 ${isCurrent && currentStatus !== 'completed' ? 'bg-white border-[#0ea5b7] text-[#0ea5b7] ring-4 ring-cyan-50 shadow-md' : ''}
                 ${isPending ? 'bg-gray-50 border-gray-300 text-gray-400' : ''}
               `}>
-                {isCompleted ? <Check className="w-4 h-4" /> : index + 1}
+                {isCompleted ? <Check className="w-3 h-3 sm:w-4 sm:h-4" /> : index + 1}
               </div>
-              <span className={`ml-2 text-sm font-medium whitespace-nowrap hidden sm:block
+              <span className={`ml-1.5 sm:ml-2 text-[10px] sm:text-xs font-medium whitespace-nowrap
                 ${isCompleted || isCurrent ? 'text-slate-800' : 'text-gray-400'}
               `}>
                 {step.label}
               </span>
               {index < STEPS.length - 1 && (
-                <div className={`w-6 sm:w-12 h-1 mx-2 rounded-full transition-colors duration-300
-                  ${index < displayIndex || currentStatus === 'completed' ? 'bg-[#0ea5b7]' : 'bg-gray-200'}
+                <div className={`flex-1 min-w-[8px] h-1 mx-1.5 sm:mx-2 rounded-full transition-colors duration-300
+                  ${index < displayIndex || currentStatus === 'completed' || currentStatus === 'compensated' ? 'bg-[#0ea5b7]' : 'bg-gray-200'}
                 `}></div>
               )}
             </div>
@@ -344,15 +348,27 @@ export default function StaffBookingListPage() {
           );
         }
 
+        // This is a fallback if the status is somehow still 'confirmed' but checklist exists.
+        // It shouldn't happen with the new backend logic (it auto-transitions to arrived).
+        // But if it does, they can tick services and check-in.
         return (
           <button
-            onClick={() => setCheckinMethodModal(booking)}
+            onClick={() => setTickServicesModalBooking(booking)}
             className="flex items-center px-4 py-2 bg-[#0ea5b7] text-white rounded-lg hover:bg-[#0b8fa0] transition-colors shadow-sm font-medium"
           >
-            <CheckCircle className="w-4 h-4 mr-2" /> Check-in
+            <CheckCircle className="w-4 h-4 mr-2" /> Cập nhật DV
           </button>
         );
       }
+      case 'arrived':
+        return (
+          <button
+            onClick={() => setTickServicesModalBooking(booking)}
+            className="flex items-center px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors shadow-sm font-medium"
+          >
+            <CheckCircle className="w-4 h-4 mr-2" /> Đánh dấu DV
+          </button>
+        );
       case 'checked_in':
         return (
           <button onClick={() => setStartWashMethodModal(booking)} className="flex items-center px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors shadow-sm font-medium">
@@ -366,6 +382,13 @@ export default function StaffBookingListPage() {
           </button>
         );
       case 'washed':
+        if ((booking as any).report && (booking as any).report?.status !== 'rejected') {
+          return (
+            <button disabled className="flex items-center px-4 py-2 bg-slate-200 text-slate-500 rounded-lg shadow-sm font-medium opacity-70 cursor-not-allowed">
+              <AlertCircle className="w-4 h-4 mr-2" /> Xử lí khiếu nại
+            </button>
+          );
+        }
         return (
           <button onClick={() => setPaymentModal({ isOpen: true, booking })} className="flex items-center px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors shadow-sm font-medium">
             <CreditCard className="w-4 h-4 mr-2" /> Thanh Toán
@@ -375,6 +398,12 @@ export default function StaffBookingListPage() {
         return (
           <span className="text-green-600 font-semibold flex items-center bg-green-50 px-3 py-1.5 rounded-lg border border-green-200">
             <CheckCircle className="w-5 h-5 mr-1" /> Đã xong
+          </span>
+        );
+      case 'compensated':
+        return (
+          <span className="text-indigo-600 font-semibold flex items-center bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-200">
+            <CheckCircle className="w-5 h-5 mr-1" /> Đã đền bù
           </span>
         );
       default:
@@ -388,7 +417,7 @@ export default function StaffBookingListPage() {
       const q = searchQuery.toLowerCase().trim();
       const plate = b.vehicle?.plate_number?.toLowerCase() || '';
       const displayId = (b.appointment_code || '').toLowerCase();
-      
+
       const matchPlate = plate.includes(q);
       const matchCode = displayId.includes(q);
 
@@ -438,11 +467,13 @@ export default function StaffBookingListPage() {
               >
                 <option value="all">Tất cả trạng thái</option>
                 <option value="pending">Chờ duyệt</option>
-                <option value="confirmed">Chờ Check-in</option>
+                <option value="confirmed">Chờ nhận xe</option>
+                <option value="arrived">Cập nhật DV</option>
                 <option value="checked_in">Đã nhận xe</option>
                 <option value="in_progress">Đang rửa</option>
                 <option value="washed">Chờ thanh toán</option>
                 <option value="completed">Đã hoàn thành</option>
+                <option value="compensated">Đã đền bù</option>
                 <option value="cancelled">Đã hủy</option>
               </select>
               <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"><ChevronDown size={14} /></div>
@@ -535,8 +566,8 @@ export default function StaffBookingListPage() {
             <p className="text-slate-600 mb-6 text-sm">
               {confirmModal.action === 'confirm' ? (
                 <>
-                  Bạn có muốn xác nhận cho đơn 
-                  <span className="font-bold ml-1 mr-1">#{confirmModal.booking?.appointment_code || 'N/A'}</span> 
+                  Bạn có muốn xác nhận cho đơn
+                  <span className="font-bold ml-1 mr-1">#{confirmModal.booking?.appointment_code || 'N/A'}</span>
                   hay không?
                 </>
               ) : (
@@ -659,7 +690,19 @@ export default function StaffBookingListPage() {
               newSet.delete(id);
               return newSet;
             });
+            fetchBookings(); // Refetch to get the updated status (arrived)
           }
+        }}
+      />
+
+      <TickServicesModal
+        booking={tickServicesModalBooking}
+        isOpen={!!tickServicesModalBooking}
+        onClose={() => setTickServicesModalBooking(null)}
+        onCheckin={() => {
+          const booking = tickServicesModalBooking;
+          setTickServicesModalBooking(null);
+          setCheckinMethodModal(booking);
         }}
       />
 

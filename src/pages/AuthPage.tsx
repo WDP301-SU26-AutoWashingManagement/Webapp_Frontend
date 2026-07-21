@@ -32,6 +32,11 @@ export default function AuthPage() {
       navigate('/admin/dashboard', { replace: true })
       return
     }
+    // Staff → go to staff routes
+    if (role === 'staff') {
+      navigate('/staff', { replace: true })
+      return
+    }
     // Customer → honour the ?from= / state.from, else home
     const fromState = locationState?.from
     const fromQuery = searchParams.get('from')

@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { CalendarDays, CalendarPlus, Car, MapPin, Eye } from 'lucide-react'
+import { CalendarDays, CalendarPlus, Car, MapPin, Eye, MessageSquareWarning, MessageSquare, CheckCircle, AlertTriangle, X, XCircle } from 'lucide-react'
 import { Link, Navigate, useSearchParams } from 'react-router-dom'
 import AccountPageShell from '../components/account/AccountPageShell'
 import { bookingService } from '../services/bookingService'
 import type { BookingStatus, WashBooking } from '../types/booking'
 import BookingDetailModal from '../components/BookingDetailModal'
+import ReportModal from '../components/ReportModal'
 import {
   BOOKING_STATUS_LABELS,
   BOOKING_STATUS_STYLES,
@@ -15,15 +16,16 @@ import {
 import { getApiErrorMessage } from '../utils/errors'
 import { showError, showSuccess } from '../utils/toast'
 
-type BookingTab = 'upcoming' | 'completed' | 'cancelled'
+type BookingTab = 'upcoming' | 'completed' | 'compensated' | 'cancelled'
 
 const TAB_CONFIG: { id: BookingTab; label: string; statuses: BookingStatus[] }[] = [
   {
     id: 'upcoming',
     label: 'Đang xử lý',
-    statuses: ['pending', 'confirmed', 'checked_in', 'in_progress', 'washed'],
+    statuses: ['pending', 'confirmed', 'arrived', 'checked_in', 'in_progress', 'washed'],
   },
   { id: 'completed', label: 'Hoàn thành', statuses: ['completed'] },
+  { id: 'compensated', label: 'Đã đền bù', statuses: ['compensated'] },
   { id: 'cancelled', label: 'Đã hủy', statuses: ['cancelled'] },
 ]
 
@@ -49,6 +51,8 @@ export default function BookingsPage() {
   const [detailModal, setDetailModal] = useState<WashBooking | null>(null)
 
   const [cancelModal, setCancelModal] = useState<{ isOpen: boolean, booking: WashBooking | null }>({ isOpen: false, booking: null })
+  const [reportModal, setReportModal] = useState<{ isOpen: boolean, appointmentId: string | null }>({ isOpen: false, appointmentId: null })
+  const [viewReportModal, setViewReportModal] = useState<{ isOpen: boolean; report: any }>({ isOpen: false, report: null })
   const [cancelReason, setCancelReason] = useState('')
   const [isCancelling, setIsCancelling] = useState(false)
 
@@ -245,6 +249,24 @@ export default function BookingsPage() {
                             Hủy lịch
                           </button>
                         )}
+                        {booking.booking_status === 'washed' && !(booking as any).report && (
+                          <button
+                            type="button"
+                            onClick={() => setReportModal({ isOpen: true, appointmentId: bookingId(booking) })}
+                            className="rounded-lg border border-amber-200 px-3 py-2 text-sm font-medium text-amber-600 transition hover:bg-amber-50 flex items-center justify-center gap-1.5"
+                          >
+                            <MessageSquareWarning className="h-4 w-4" /> Khiếu nại
+                          </button>
+                        )}
+                        {(booking as any).report && (
+                          <button
+                            type="button"
+                            onClick={() => setViewReportModal({ isOpen: true, report: (booking as any).report })}
+                            className="rounded-lg border border-indigo-200 px-3 py-2 text-sm font-medium text-indigo-600 transition hover:bg-indigo-50 flex items-center justify-center gap-1.5"
+                          >
+                            <MessageSquare className="h-4 w-4" /> Xem khiếu nại
+                          </button>
+                        )}
                       </div>
                     </div>
                   </li>
@@ -350,6 +372,162 @@ export default function BookingsPage() {
         onClose={() => setDetailModal(null)}
         hideStaffActions={true}
       />
+
+      <ReportModal
+        isOpen={reportModal.isOpen}
+        appointmentId={reportModal.appointmentId}
+        onClose={() => setReportModal({ isOpen: false, appointmentId: null })}
+        onSuccess={() => loadBookings(page)}
+      />
+
+      {viewReportModal.isOpen && viewReportModal.report && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="text-indigo-500" size={20} />
+                <h3 className="text-lg font-bold text-slate-800">Chi tiết khiếu nại của bạn</h3>
+              </div>
+              <button onClick={() => setViewReportModal({ isOpen: false, report: null })} className="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-200 transition">
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto flex-1 space-y-5">
+              <div>
+                <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Tiêu đề</h4>
+                <p className="text-slate-800 font-bold">{viewReportModal.report.title}</p>
+              </div>
+              <div>
+                <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Trạng thái xử lý</h4>
+                {viewReportModal.report.status === 'rejected' ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 text-xs font-bold border border-rose-200"><XCircle size={14}/> Đã từ chối</span>
+                ) : viewReportModal.report.isConfirm ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200"><CheckCircle size={14}/> Đã tiếp nhận & Xử lý</span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-bold border border-amber-200"><AlertTriangle size={14}/> Đang chờ xử lý</span>
+                )}
+              </div>
+              <div>
+                <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Nội dung chi tiết</h4>
+                <div className="p-4 bg-slate-50 rounded-lg border border-slate-100 text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
+                  {viewReportModal.report.description}
+                </div>
+              </div>
+              {viewReportModal.report.evidence && viewReportModal.report.evidence.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Hình ảnh đính kèm</h4>
+                  <div className="grid grid-cols-3 gap-3">
+                    {viewReportModal.report.evidence.map((img: string, idx: number) => (
+                      <a key={idx} href={img} target="_blank" rel="noreferrer" className="block aspect-square rounded-lg overflow-hidden border border-slate-200 hover:border-indigo-400 transition-colors">
+                        <img src={img} alt="Evidence" className="w-full h-full object-cover" />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Kết quả xử lý Từ chối */}
+              {viewReportModal.report.status === 'rejected' && (
+                <div className="mt-6 bg-white p-5 rounded-xl border border-rose-200 shadow-sm">
+                  <h3 className="text-base font-bold text-rose-700 border-b border-rose-100 pb-2 flex items-center gap-2 mb-4">
+                    <XCircle size={18} />
+                    Biên bản từ chối khiếu nại
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <h4 className="text-sm font-semibold text-slate-900 mb-1">Lí do từ chối</h4>
+                      <p className="text-sm text-slate-700 bg-rose-50 p-3 rounded-lg border border-rose-100 whitespace-pre-wrap">{viewReportModal.report.reject_details?.reason || viewReportModal.report.reject_reason || 'Không có lí do'}</p>
+                    </div>
+                    
+                    {(viewReportModal.report.reject_details?.admin_signature || viewReportModal.report.reject_details?.customer_signature) && (
+                      <div>
+                         <h4 className="text-sm font-semibold text-slate-900 mb-2">Chữ ký xác nhận</h4>
+                         <div className="grid grid-cols-2 gap-4">
+                           {viewReportModal.report.reject_details.admin_signature && (
+                              <div className="bg-slate-50 p-2 rounded-lg border border-slate-200 text-center">
+                                <span className="text-xs text-slate-500 font-medium block mb-1">Đại diện cửa hàng</span>
+                                <img src={viewReportModal.report.reject_details.admin_signature} alt="Admin signature" className="h-12 mx-auto object-contain mix-blend-multiply" />
+                              </div>
+                           )}
+                           {viewReportModal.report.reject_details.customer_signature && (
+                              <div className="bg-slate-50 p-2 rounded-lg border border-slate-200 text-center">
+                                <span className="text-xs text-slate-500 font-medium block mb-1">Khách hàng</span>
+                                <img src={viewReportModal.report.reject_details.customer_signature} alt="Customer signature" className="h-12 mx-auto object-contain mix-blend-multiply" />
+                              </div>
+                           )}
+                         </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Kết quả xử lý Đền bù */}
+              {viewReportModal.report.status === 'accepted' && viewReportModal.report.compensation && (
+                <div className="mt-6 bg-white p-5 rounded-xl border border-emerald-200 shadow-sm">
+                  <h3 className="text-base font-bold text-emerald-700 border-b border-emerald-100 pb-2 flex items-center gap-2 mb-4">
+                    <CheckCircle size={18} />
+                    Biên bản cam kết đền bù
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="text-sm font-semibold text-slate-900 mb-1">Số tiền đền bù</h4>
+                        <p className="text-lg font-bold text-rose-600">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(viewReportModal.report.compensation.compensation_amount)}</p>
+                      </div>
+                      
+                      {viewReportModal.report.compensation.transfer_image ? (
+                        <div>
+                           <h4 className="text-sm font-semibold text-slate-900 mb-2">Ảnh bill chuyển khoản</h4>
+                           <a href={viewReportModal.report.compensation.transfer_image} target="_blank" rel="noreferrer" className="block w-32 h-auto rounded-lg overflow-hidden border border-slate-200 hover:border-emerald-400 transition-colors">
+                             <img src={viewReportModal.report.compensation.transfer_image} alt="Transfer bill" className="w-full object-cover" />
+                           </a>
+                        </div>
+                      ) : (
+                        <div>
+                           <h4 className="text-sm font-semibold text-slate-900 mb-2">Ảnh bill chuyển khoản</h4>
+                           <div className="bg-amber-50 text-amber-600 px-3 py-2 rounded-lg border border-amber-200 text-sm">
+                             Đang chờ kế toán tải lên bill chuyển khoản...
+                           </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-4">
+                       <h4 className="text-sm font-semibold text-slate-900 mb-2">Chữ ký xác nhận đền bù</h4>
+                       <div className="grid grid-cols-2 gap-4">
+                         {viewReportModal.report.compensation.admin_signature && (
+                            <div className="bg-slate-50 p-2 rounded-lg border border-slate-200 text-center">
+                              <span className="text-xs text-slate-500 font-medium block mb-1">Đại diện cửa hàng</span>
+                              <img src={viewReportModal.report.compensation.admin_signature} alt="Admin signature" className="h-12 mx-auto object-contain mix-blend-multiply" />
+                            </div>
+                         )}
+                         {viewReportModal.report.compensation.customer_signature && (
+                            <div className="bg-slate-50 p-2 rounded-lg border border-slate-200 text-center">
+                              <span className="text-xs text-slate-500 font-medium block mb-1">Khách hàng</span>
+                              <img src={viewReportModal.report.compensation.customer_signature} alt="Customer signature" className="h-12 mx-auto object-contain mix-blend-multiply" />
+                            </div>
+                         )}
+                       </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end">
+              <button
+                onClick={() => setViewReportModal({ isOpen: false, report: null })}
+                className="px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white text-sm font-semibold rounded-lg shadow-sm transition"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AccountPageShell>
   )
 }
