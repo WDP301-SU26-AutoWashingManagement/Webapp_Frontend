@@ -26,12 +26,11 @@ export default function StaffWashingStatus() {
   useEffect(() => {
     if (data?.type === "washing_status") {
       setWashingStatus(data);
-      if (data.action === ActionType.PREPAIRING) {
+      if (data.action === ActionType.IDLE) {
         setDetecting("Thiết bị chưa được sử dụng");
       }
       if (
-        data.action === ActionType.DONE ||
-        data.action === ActionType.WASHING
+        data.action !== ActionType.IDLE
       ) {
         setDetecting("");
       }
@@ -75,7 +74,7 @@ export default function StaffWashingStatus() {
         <div className="admin-card md:col-span-6 lg:col-span-5 flex flex-col justify-between">
           {/* Phần trên: Trạng thái Bơm */}
           <div className="flex flex-col border-b border-slate-100">
-            <div className="flex items-center gap-2 mb-5">
+            <div className="flex items-center gap-2 mb-1">
               <Droplets className="text-[#0ea5b7]" size={20} />
               <span className="admin-stat-card__label" style={{ fontSize: "1rem" }}>
                 Trạng thái Bơm
@@ -230,27 +229,6 @@ export default function StaffWashingStatus() {
               <span>
                 Đảm bảo không có người hoặc vật cản đứng gần khu vực vòi phun
                 áp lực cao.
-              </span>
-            </div>
-            <div style={{ display: "flex", gap: "0.5rem" }}>
-              <span
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  width: "20px",
-                  height: "20px",
-                  borderRadius: "50%",
-                  background: "#f1f5f9",
-                  fontWeight: "bold",
-                  flexShrink: 0,
-                }}
-              >
-                4
-              </span>
-              <span>
-                Nhập biển số xe và bấm nút <strong>Kích hoạt Bơm Nước</strong>{" "}
-                để bắt đầu chu trình rửa.
               </span>
             </div>
           </div>
