@@ -132,13 +132,31 @@ export default function NewBookingPage() {
     void loadFormOptions(true)
   }, [loadFormOptions])
 
-  const scheduleBounds = useMemo(
-    () => ({
-      min: toDatetimeLocalValue(getEarliestBookableTime()),
-      max: toDatetimeLocalValue(getLatestBookableTime(bookingWindowDays)),
-    }),
-    [bookingWindowDays],
-  )
+  const scheduleBounds = useMemo(() => {
+    const now = new Date();
+    let minOpen: string | undefined;
+    let minClose: string | undefined;
+    let maxOpen: string | undefined;
+    let maxClose: string | undefined;
+
+    if (form.branch_id) {
+      const selectedBranch = branches.find((b) => b._id === form.branch_id);
+      if (selectedBranch?.operating_time) {
+        const op = selectedBranch.operating_time;
+        const isWeekend = now.getDay() === 0 || now.getDay() === 6;
+        minOpen = isWeekend && op.weekend_open ? op.weekend_open : op.default_open;
+        minClose = isWeekend && op.weekend_close ? op.weekend_close : op.default_close;
+
+        maxOpen = op.default_open;
+        maxClose = op.default_close;
+      }
+    }
+
+    return {
+      min: toDatetimeLocalValue(getEarliestBookableTime(now, minOpen, minClose)),
+      max: toDatetimeLocalValue(getLatestBookableTime(bookingWindowDays, now, maxOpen, maxClose)),
+    };
+  }, [bookingWindowDays, form.branch_id, branches]);
 
   const dateValue = form.scheduled_at ? form.scheduled_at.split('T')[0] : ''
   const timeValue = form.scheduled_at ? form.scheduled_at.split('T')[1] : ''
@@ -252,7 +270,7 @@ export default function NewBookingPage() {
     // Auto-fill combo/services
     let comboId = '';
     const sIds: string[] = [];
-    
+
     if (recommendation.suggested_combo) {
       comboId = recommendation.suggested_combo.package_id;
       const matchedIds = recommendation.suggested_combo.matched_service_ids || [];
@@ -320,7 +338,8 @@ export default function NewBookingPage() {
     () =>
       compatibleServices.filter((pkg) => {
         const id = pkg._id ?? pkg.id
-        return id && form.service_ids.includes(id) && !includedServiceIdsInCombo.includes(id)
+        const isWashingService = pkg.service_name === 'Dịch vụ rửa xe'
+        return id && (form.service_ids.includes(id) || isWashingService) && !includedServiceIdsInCombo.includes(id)
       }),
     [compatibleServices, form.service_ids, includedServiceIdsInCombo],
   )
@@ -377,7 +396,7 @@ export default function NewBookingPage() {
     setValidatingPromotion(true)
     try {
       const { promotion, message } = await promotionService.validateCode(code)
-      
+
       let totalBasePrice = 0
       if (selectedCombo) {
         totalBasePrice += selectedCombo.finalPrice
@@ -419,11 +438,19 @@ export default function NewBookingPage() {
         showError('Thời gian hẹn không hợp lệ')
         return
       }
-      
+
       const selectedBranch = branches.find((b) => b._id === form.branch_id)
-      const openTime = selectedBranch?.operating_time?.default_open
-      const closeTime = selectedBranch?.operating_time?.default_close
-      
+      let openTime = selectedBranch?.operating_time?.default_open
+      let closeTime = selectedBranch?.operating_time?.default_close
+
+      if (selectedBranch?.operating_time) {
+        const isWeekend = scheduledAt.getDay() === 0 || scheduledAt.getDay() === 6;
+        if (isWeekend) {
+          openTime = selectedBranch.operating_time.weekend_open || openTime;
+          closeTime = selectedBranch.operating_time.weekend_close || closeTime;
+        }
+      }
+
       const timeCheck = validateScheduledAt(scheduledAt, bookingWindowDays, new Date(), openTime, closeTime)
       if (!timeCheck.valid) {
         showError(timeCheck.message ?? 'Thời gian hẹn không hợp lệ')
@@ -431,7 +458,7 @@ export default function NewBookingPage() {
       }
     }
     if (step === 2) {
-      if (!form.combo_package_id && form.service_ids.length === 0) {
+      if (!form.combo_package_id && selectedServices.length === 0) {
         showError('Vui lòng chọn ít nhất một Combo hoặc Dịch vụ lẻ')
         return
       }
@@ -440,6 +467,18 @@ export default function NewBookingPage() {
   }
 
   const handlePrev = () => {
+    if (step === 2) {
+      // Chỉ reset lại các lựa chọn (giờ, dịch vụ) để khách chọn lại từ đầu
+      // NHƯNG giữ nguyên cục Gợi ý (recommendation)
+      setForm(p => ({
+        ...p,
+        scheduled_at: '',
+        combo_package_id: '',
+        service_ids: [],
+        promotion_code: ''
+      }))
+      setValidatedPromotion(null)
+    }
     setStep(s => Math.max(s - 1, 1))
   }
 
@@ -450,8 +489,9 @@ export default function NewBookingPage() {
 
       const servicesPayload: Array<{ service_id: string; service_package_id?: string }> = []
 
-      form.service_ids.forEach(id => {
-        servicesPayload.push({ service_id: id })
+      selectedServices.forEach(pkg => {
+        const id = pkg._id ?? pkg.id
+        if (id) servicesPayload.push({ service_id: id })
       })
 
       if (form.combo_package_id && includedServiceIdsInCombo.length > 0) {
@@ -664,8 +704,16 @@ export default function NewBookingPage() {
                       <span>
                         {(() => {
                           const selectedBranch = branches.find((b) => b._id === form.branch_id);
-                          const openTime = selectedBranch?.operating_time?.default_open;
-                          const closeTime = selectedBranch?.operating_time?.default_close;
+                          let openTime = selectedBranch?.operating_time?.default_open;
+                          let closeTime = selectedBranch?.operating_time?.default_close;
+                          if (selectedBranch?.operating_time && dateValue) {
+                            const d = new Date(dateValue);
+                            const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+                            if (isWeekend) {
+                              openTime = selectedBranch.operating_time.weekend_open || openTime;
+                              closeTime = selectedBranch.operating_time.weekend_close || closeTime;
+                            }
+                          }
                           return getScheduleFieldHints(bookingWindowDays, openTime, closeTime);
                         })()}
                       </span>
@@ -848,11 +896,12 @@ export default function NewBookingPage() {
                         <div className="flex flex-col border border-slate-200 rounded-xl overflow-hidden divide-y divide-slate-100">
                           {compatibleServices.map((pkg) => {
                             const id = pkg._id ?? pkg.id ?? ''
+                            const isWashingService = pkg.service_name === 'Dịch vụ rửa xe'
                             const isIncludedInCombo = includedServiceIdsInCombo.includes(id)
-                            const isSelected = form.service_ids.includes(id) || isIncludedInCombo
+                            const isSelected = form.service_ids.includes(id) || isIncludedInCombo || isWashingService
 
                             const toggleService = () => {
-                              if (isIncludedInCombo) return // Không cho click nếu đã nằm trong combo
+                              if (isIncludedInCombo || isWashingService) return // Không cho click nếu đã nằm trong combo hoặc là mặc định
                               setForm(p => {
                                 if (p.service_ids.includes(id)) {
                                   return { ...p, service_ids: p.service_ids.filter(sid => sid !== id) }
@@ -868,26 +917,31 @@ export default function NewBookingPage() {
                                 onClick={toggleService}
                                 className={`relative cursor-pointer p-5 transition-all flex items-start gap-4 
                                   ${isIncludedInCombo ? 'bg-slate-50/50 cursor-not-allowed opacity-70'
-                                    : isSelected ? 'bg-[#fff5ee]'
-                                      : 'hover:bg-slate-50'}`}
+                                    : isWashingService ? 'bg-[#fff5ee] cursor-not-allowed'
+                                      : isSelected ? 'bg-[#fff5ee]'
+                                        : 'hover:bg-slate-50'}`}
                               >
                                 <div className="pt-0.5">
                                   <input
                                     type="checkbox"
                                     checked={isSelected}
                                     readOnly
-                                    className={`w-5 h-5 rounded border-slate-300 cursor-pointer ${isIncludedInCombo ? 'text-slate-400 focus:ring-slate-400' : 'text-[#ea580c] focus:ring-[#ea580c]'}`}
+                                    className={`w-5 h-5 rounded border-slate-300 ${isIncludedInCombo || isWashingService ? 'cursor-not-allowed text-slate-400 focus:ring-slate-400 opacity-60' : 'cursor-pointer text-[#ea580c] focus:ring-[#ea580c]'}`}
                                   />
                                 </div>
                                 <div className="flex-1 space-y-1.5">
                                   <div className="flex justify-between items-start gap-4">
                                     <div className="flex items-center gap-2">
                                       <h4 className="font-bold text-slate-800 text-base">{pkg.service_name}</h4>
-                                      {isIncludedInCombo && (
+                                      {isIncludedInCombo ? (
                                         <span className="bg-slate-200 text-slate-600 text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded">
                                           Thuộc Combo
                                         </span>
-                                      )}
+                                      ) : isWashingService ? (
+                                        <span className="bg-rose-100 text-rose-600 text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded">
+                                          Mặc định
+                                        </span>
+                                      ) : null}
                                     </div>
                                     <p className={`text-lg font-bold whitespace-nowrap ${isIncludedInCombo ? 'text-slate-400' : 'text-[#ea580c]'}`}>{formatPrice(pkg.service_price)}</p>
                                   </div>

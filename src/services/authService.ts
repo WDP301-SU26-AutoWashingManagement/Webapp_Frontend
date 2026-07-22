@@ -55,6 +55,7 @@ function normalizeId(value: unknown): string | null {
 }
 
 function mapUserFromAuthData(user: RawUser | undefined, jwt: JwtPayload): AuthUser {
+  const rawRoleData = user && typeof user === 'object' && 'role_data' in user ? (user as any).role_data : null
   return {
     user_id: normalizeId(user?._id ?? user?.id) ?? jwt.id ?? null,
     email: user?.email ?? null,
@@ -62,7 +63,8 @@ function mapUserFromAuthData(user: RawUser | undefined, jwt: JwtPayload): AuthUs
     role: jwt.role ?? 'customer',
     avatar_url: user?.avatar_url ?? null,
     is_active: user?.is_active ?? true,
-    branch_id: user?.branch_id ? normalizeId(user.branch_id) : null,
+    staff_type: (user as any)?.staff_type ?? rawRoleData?.staff_type ?? undefined,
+    branch_id: user?.branch_id ? normalizeId(user.branch_id) : (rawRoleData?.branch_id ? normalizeId(rawRoleData.branch_id) : null),
   }
 }
 

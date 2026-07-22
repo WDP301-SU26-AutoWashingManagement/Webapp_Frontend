@@ -4,10 +4,12 @@ import { normalizeMongoId } from './mongoId'
 const BOOKING_STATUSES: BookingStatus[] = [
   'pending',
   'confirmed',
+  'arrived',
   'checked_in',
   'in_progress',
   'washed',
   'completed',
+  'compensated',
   'cancelled',
 ]
 
@@ -122,6 +124,7 @@ export function normalizeWashBooking(raw: Record<string, unknown>): WashBooking 
     branch_id: raw.branch_id,
     created_at: raw.created_at != null ? String(raw.created_at) : undefined,
     services: Array.isArray(raw.services) ? (raw.services as any[]) : undefined,
+    report: raw.report,
   }
 }
 

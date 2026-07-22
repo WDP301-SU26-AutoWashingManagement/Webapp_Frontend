@@ -149,6 +149,13 @@ export const bookingService = {
     return unwrapApiData<import('../types/booking').IBookingRecommendation>(body)
   },
 
+  async clearRecommendationCache(vehicleId: string, branchId?: string): Promise<void> {
+    const params: Record<string, string> = { vehicle_id: vehicleId }
+    if (branchId) params.branch_id = branchId
+
+    await apiClient.delete('/bookings/recommendation/cache', { params })
+  },
+
   async getById(id: string): Promise<WashBooking> {
     const body = await apiClient.get<ApiResponse<Record<string, unknown>>>(`/bookings/${id}`)
     const rawData = unwrapApiData<Record<string, unknown>>(body)
@@ -236,5 +243,10 @@ export const bookingService = {
   async activateWaterPump(plate: string): Promise<any> {
     const body = await apiClient.post<any>('/wash/manual', { plate })
     return body
+  },
+
+  async toggleService(bookingId: string, itemId: string): Promise<any> {
+    const body = await apiClient.patch<ApiResponse<Record<string, unknown>>>(`/bookings/${bookingId}/items/${itemId}/toggle`);
+    return body;
   },
 }

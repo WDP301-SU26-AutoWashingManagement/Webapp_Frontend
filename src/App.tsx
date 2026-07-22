@@ -1,4 +1,4 @@
-import { Navigate, Routes, Route, useLocation } from 'react-router-dom'
+  import { Navigate, Routes, Route, useLocation } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import NavBar from './components/NavBar'
 import ScrollToTop from './components/ScrollToTop'
@@ -36,6 +36,7 @@ import BossAccountsPage from './pages/boss/BossAccountsPage'
 import BossBranchesPage from './pages/boss/BossBranchesPage'
 import BossPromotionsPage from './pages/boss/BossPromotionsPage'
 import SharedCustomersPage from './pages/shared/SharedCustomersPage'
+import SharedReportsPage from './pages/shared/SharedReportsPage'
 
 // Staff
 import StaffLayout from './pages/staff/StaffLayout'
@@ -91,18 +92,18 @@ function AppContent() {
 
   // Nếu là Staff, kiểm tra chéo vùng làm việc
   if (!loading && isAuthenticated && user?.role === 'staff') {
-    const isManager = user?.staff_type === 'manager';
+    const isTechnical = user?.staff_type === 'technical';
     const isTechnicalRoute = pathname.startsWith('/staff/technical');
 
     if (!isStaffPage) {
-      if (isManager) return <Navigate to="/staff/bookings" replace />
-      return <Navigate to="/staff/technical/bookings" replace />
+      if (isTechnical) return <Navigate to="/staff/technical/bookings" replace />
+      return <Navigate to="/staff/bookings" replace />
     } else {
       // Đang ở trong /staff, kiểm tra không cho đi lạc chéo vùng
-      if (!isManager && !isTechnicalRoute) {
+      if (isTechnical && !isTechnicalRoute) {
         return <Navigate to="/staff/technical/bookings" replace />
       }
-      if (isManager && isTechnicalRoute) {
+      if (!isTechnical && isTechnicalRoute) {
         return <Navigate to="/staff" replace />
       }
     }
@@ -176,7 +177,7 @@ function AppContent() {
           <Route path="tiers" element={<AdminTiersPage />} />
           <Route
             path="reports"
-            element={<StaffTransactionHistoryPage />}
+            element={<SharedReportsPage />}
           />
           <Route
             path="settings"
@@ -233,6 +234,7 @@ function AppContent() {
           <Route path="bookings" element={<StaffBookingListPage />} />
           <Route path="payments" element={<StaffPaymentsPage />} />
           <Route path="transaction-history" element={<StaffTransactionHistoryPage />} />
+          <Route path="reports" element={<SharedReportsPage />} />
           <Route path="leave-requests" element={<StaffLeaveRequestsPage />} />
           <Route path="schedules" element={<StaffSchedulePage />} />
           <Route path="list" element={<AdminStaffsPage />} />

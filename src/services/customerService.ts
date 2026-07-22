@@ -92,6 +92,7 @@ export function mapProfileToAuthUser(profile: CustomerProfile, role = 'customer'
     is_active: profile.is_active ?? true,
     staff_type: profile.staff_type,
     branch_id: profile.branch_id ?? null,
+    phone: profile.phone ?? null,
   }
 }
 
@@ -160,7 +161,7 @@ export const customerService = {
         return profile
       } catch (err) {
         const fallback = profileFromSessionUser()
-        if (fallback?.customer_id) {
+        if (fallback) {
           return fallback
         }
         throw err
