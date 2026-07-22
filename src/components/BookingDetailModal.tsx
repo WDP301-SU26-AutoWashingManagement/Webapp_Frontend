@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { X, Calendar, User, Car, Tag, FileText, Download, Image as Banknote, CheckCircle2, Circle, Check, Zap, AlertTriangle } from 'lucide-react'
+import { X, Calendar, User, Car, Tag, FileText, Download, Image as Banknote, CheckCircle2, Circle, Check, Zap, AlertTriangle, PenTool, CreditCard } from 'lucide-react'
 import type { WashBooking } from '../types/booking'
 import { bookingChecklistService, type BookingChecklist } from '../services/bookingChecklistService'
 import CreateChecklistModal from './CreateChecklistModal'
@@ -11,10 +11,11 @@ interface BookingDetailModalProps {
   isOpen: boolean
   onClose: () => void
   onPay?: (booking: WashBooking) => void
+  onConfirmHandover?: (booking: WashBooking) => void
   hideStaffActions?: boolean
 }
 
-export default function BookingDetailModal({ booking: initialBooking, isOpen, onClose, onPay, hideStaffActions = false }: BookingDetailModalProps) {
+export default function BookingDetailModal({ booking: initialBooking, isOpen, onClose, onPay, onConfirmHandover, hideStaffActions = false }: BookingDetailModalProps) {
   const { user } = useAuth()
 
   const [booking, setBooking] = useState<WashBooking | null>(initialBooking)
@@ -455,15 +456,31 @@ export default function BookingDetailModal({ booking: initialBooking, isOpen, on
         <div className="p-4 border-t border-slate-100 bg-slate-50/50 rounded-b-2xl flex justify-between items-center">
           <div>
             {onPay && booking && booking.booking_status === 'washed' && (!(booking as any).report || (booking as any).report?.status === 'rejected') && (
-              <button
-                onClick={() => {
-                  onClose()
-                  onPay(booking)
-                }}
-                className="px-6 py-2 bg-rose-500 text-white font-medium rounded-xl hover:bg-rose-600 transition-colors flex items-center gap-2"
-              >
-                <Banknote size={16} /> Thanh toán đơn này
-              </button>
+              checklist?.customer_signature_after ? (
+                <button
+                  onClick={() => {
+                    onClose()
+                    onPay(booking)
+                  }}
+                  className="px-6 py-2 bg-rose-500 text-white font-medium rounded-xl hover:bg-rose-600 transition-colors flex items-center gap-2 shadow-sm"
+                >
+                  <Banknote size={16} /> Thanh toán đơn này
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    onClose()
+                    if (onConfirmHandover) {
+                      onConfirmHandover(booking)
+                    } else {
+                      onPay(booking)
+                    }
+                  }}
+                  className="px-6 py-2 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 transition-colors flex items-center gap-2 shadow-sm"
+                >
+                  <PenTool size={16} /> Ký nhận xe trước khi thanh toán
+                </button>
+              )
             )}
             {onPay && booking && booking.booking_status === 'washed' && (booking as any).report && (booking as any).report?.status !== 'rejected' && (
               <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 text-amber-700 rounded-xl text-sm font-medium border border-amber-200">

@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Camera, CreditCard, Play, CheckCircle, XCircle, Clock, Check, RefreshCw, X, Image as ImageIcon, CheckCircle2, AlertCircle, Search, Filter, ChevronDown, Eye, FileText } from 'lucide-react';
+import { Camera, CreditCard, Play, CheckCircle, XCircle, Clock, Check, RefreshCw, X, Image as ImageIcon, CheckCircle2, AlertCircle, Search, Filter, ChevronDown, Eye, FileText, PenTool } from 'lucide-react';
 import { bookingService, type BookingListResult } from '../../services/bookingService';
 import type { WashBooking } from '../../types/booking';
 import { showError, showSuccess } from '../../utils/toast';
 import PaymentModal from '../../components/PaymentModal';
 import BookingDetailModal from '../../components/BookingDetailModal';
 import CreateChecklistModal from '../../components/CreateChecklistModal';
+import ConfirmHandoverModal from '../../components/ConfirmHandoverModal';
 import TickServicesModal from '../../components/TickServicesModal';
 import { bookingChecklistService } from '../../services/bookingChecklistService';
 import { washService } from '../../services/staffWashingStatusService';
@@ -29,6 +30,9 @@ export default function StaffBookingListPage() {
   const [detailModal, setDetailModal] = useState<WashBooking | null>(null);
 
   const [createChecklistModalBooking, setCreateChecklistModalBooking] = useState<WashBooking | null>(null);
+  const [confirmHandoverModalBooking, setConfirmHandoverModalBooking] = useState<WashBooking | null>(null);
+  const [signedHandoverIds, setSignedHandoverIds] = useState<Set<string>>(new Set());
+  const [loadingHandovers, setLoadingHandovers] = useState<Set<string>>(new Set());
   const [tickServicesModalBooking, setTickServicesModalBooking] = useState<WashBooking | null>(null);
   const [checkinMethodModal, setCheckinMethodModal] = useState<WashBooking | null>(null);
   const [startWashMethodModal, setStartWashMethodModal] = useState<WashBooking | null>(null);
@@ -102,6 +106,36 @@ export default function StaffBookingListPage() {
             return newSet;
           });
           setLoadingChecklists(prev => {
+            const newSet = new Set(prev);
+            results.forEach(r => newSet.delete(r.id));
+            return newSet;
+          });
+        });
+      }
+
+      // Check handover signature status for 'washed' bookings
+      const washedBookings = res.items.filter((b: WashBooking) => b.booking_status === 'washed');
+      if (washedBookings.length > 0) {
+        const washedIds = washedBookings.map((b: WashBooking) => b._id || b.id!);
+        setLoadingHandovers(prev => new Set([...prev, ...washedIds]));
+
+        Promise.all(
+          washedBookings.map((b: WashBooking) => {
+            const id = b._id || b.id!;
+            return bookingChecklistService.getByAppointmentId(id)
+              .then(checklist => ({ id, hasSigned: !!checklist?.customer_signature_after }))
+              .catch(() => ({ id, hasSigned: false }));
+          })
+        ).then(results => {
+          setSignedHandoverIds(prev => {
+            const newSet = new Set(prev);
+            results.forEach(r => {
+              if (r.hasSigned) newSet.add(r.id);
+              else newSet.delete(r.id);
+            });
+            return newSet;
+          });
+          setLoadingHandovers(prev => {
             const newSet = new Set(prev);
             results.forEach(r => newSet.delete(r.id));
             return newSet;
@@ -381,7 +415,8 @@ export default function StaffBookingListPage() {
             <CheckCircle className="w-4 h-4 mr-2" /> Báo rửa xong
           </button>
         );
-      case 'washed':
+      case 'washed': {
+        const id = booking._id || booking.id!;
         if ((booking as any).report && (booking as any).report?.status !== 'rejected') {
           return (
             <button disabled className="flex items-center px-4 py-2 bg-slate-200 text-slate-500 rounded-lg shadow-sm font-medium opacity-70 cursor-not-allowed">
@@ -389,11 +424,38 @@ export default function StaffBookingListPage() {
             </button>
           );
         }
+
+        const isLoadingHandover = loadingHandovers.has(id);
+        if (isLoadingHandover) {
+          return (
+            <button disabled className="flex items-center px-4 py-2 bg-slate-200 text-slate-500 rounded-lg shadow-sm font-medium">
+              <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> Đang tải...
+            </button>
+          );
+        }
+
+        const hasSignedHandover = signedHandoverIds.has(id);
+
+        if (!hasSignedHandover) {
+          return (
+            <button
+              onClick={() => setConfirmHandoverModalBooking(booking)}
+              className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm font-medium shadow-sm"
+            >
+              <PenTool className="w-4 h-4 mr-2" /> Ký nhận xe
+            </button>
+          );
+        }
+
         return (
-          <button onClick={() => setPaymentModal({ isOpen: true, booking })} className="flex items-center px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors shadow-sm font-medium">
+          <button
+            onClick={() => setPaymentModal({ isOpen: true, booking })}
+            className="flex items-center px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors shadow-sm font-medium"
+          >
             <CreditCard className="w-4 h-4 mr-2" /> Thanh Toán
           </button>
         );
+      }
       case 'completed':
         return (
           <span className="text-green-600 font-semibold flex items-center bg-green-50 px-3 py-1.5 rounded-lg border border-green-200">
@@ -603,7 +665,15 @@ export default function StaffBookingListPage() {
         booking={detailModal}
         isOpen={!!detailModal}
         onClose={() => setDetailModal(null)}
-        onPay={(b) => setPaymentModal({ isOpen: true, booking: b })}
+        onConfirmHandover={(b) => setConfirmHandoverModalBooking(b)}
+        onPay={(b) => {
+          const id = b._id || b.id!;
+          if (signedHandoverIds.has(id)) {
+            setPaymentModal({ isOpen: true, booking: b });
+          } else {
+            setConfirmHandoverModalBooking(b);
+          }
+        }}
       />
 
       {/* CHỌN PHƯƠNG THỨC CHECK-IN MODAL */}
@@ -612,7 +682,7 @@ export default function StaffBookingListPage() {
           <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
             <h2 className="text-xl font-bold text-slate-800 mb-2">Phương thức Check-in</h2>
             <p className="text-slate-600 mb-6 text-sm">
-              Đơn <span className="font-bold">#{checkinMethodModal.appointment_code || 'N/A'}</span> đã có biên bản kiểm tra. Vui lòng chọn cách check-in:
+              Đơn <span className="font-bold">#{checkinMethodModal?.appointment_code || 'N/A'}</span> đã có biên bản kiểm tra. Vui lòng chọn cách check-in:
             </p>
             <div className="flex flex-col gap-3">
               <button
@@ -626,7 +696,7 @@ export default function StaffBookingListPage() {
               </button>
               <button
                 onClick={() => {
-                  const booking = checkinMethodModal;
+                  const booking = checkinMethodModal!;
                   setCheckinMethodModal(null);
                   setConfirmModal({ isOpen: true, action: 'checkin_manual', booking });
                 }}
@@ -646,12 +716,12 @@ export default function StaffBookingListPage() {
           <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
             <h2 className="text-xl font-bold text-slate-800 mb-2">Phương thức Bắt đầu</h2>
             <p className="text-slate-600 mb-6 text-sm">
-              Chọn phương thức bắt đầu rửa cho đơn <span className="font-bold">#{startWashMethodModal.appointment_code || 'N/A'}</span>:
+              Chọn phương thức bắt đầu rửa cho đơn <span className="font-bold">#{startWashMethodModal?.appointment_code || 'N/A'}</span>:
             </p>
             <div className="flex flex-col gap-3">
               <button
                 onClick={() => {
-                  const booking = startWashMethodModal;
+                  const booking = startWashMethodModal!;
                   setStartWashMethodModal(null);
                   setConfirmModal({ isOpen: true, action: 'start_iot', booking });
                 }}
@@ -661,7 +731,7 @@ export default function StaffBookingListPage() {
               </button>
               <button
                 onClick={() => {
-                  const booking = startWashMethodModal;
+                  const booking = startWashMethodModal!;
                   setStartWashMethodModal(null);
                   setConfirmModal({ isOpen: true, action: 'start', booking });
                 }}
@@ -691,6 +761,22 @@ export default function StaffBookingListPage() {
               return newSet;
             });
             fetchBookings(); // Refetch to get the updated status (arrived)
+          }
+        }}
+      />
+
+      {/* MODAL KÝ NHẬN BÀN GIAO XE SAU KHI RỬA XONG */}
+      <ConfirmHandoverModal
+        booking={confirmHandoverModalBooking}
+        isOpen={!!confirmHandoverModalBooking}
+        onClose={() => setConfirmHandoverModalBooking(null)}
+        onSuccess={() => {
+          const booking = confirmHandoverModalBooking;
+          setConfirmHandoverModalBooking(null);
+          if (booking) {
+            const id = booking._id || booking.id!;
+            setSignedHandoverIds(prev => new Set(prev).add(id));
+            setPaymentModal({ isOpen: true, booking });
           }
         }}
       />
@@ -742,7 +828,7 @@ export default function StaffBookingListPage() {
                         </>
                       ) : (
                         <div className="w-full h-full relative flex items-center justify-center bg-slate-900">
-                          <img src={URL.createObjectURL(capturedFile)} className="max-h-full object-contain" alt="Captured" />
+                          <img src={capturedFile ? URL.createObjectURL(capturedFile!) : ''} className="max-h-full object-contain" alt="Captured" />
                           <button onClick={() => setCapturedFile(null)} className="absolute top-3 right-3 p-1.5 bg-black/60 rounded-full text-white"><X size={16} /></button>
                         </div>
                       )}
@@ -750,7 +836,7 @@ export default function StaffBookingListPage() {
                   ) : (
                     <label className="border-2 border-dashed border-slate-200 hover:border-cyan-400 rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer bg-slate-50 min-h-[220px]">
                       <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
-                      {uploadFile ? <span className="font-semibold text-cyan-600">{uploadFile.name}</span> : <span>Chọn ảnh biển số xe</span>}
+                      {uploadFile ? <span className="font-semibold text-cyan-600">{uploadFile?.name}</span> : <span>Chọn ảnh biển số xe</span>}
                     </label>
                   )}
 
@@ -762,17 +848,17 @@ export default function StaffBookingListPage() {
                 </>
               ) : (
                 <div className="text-center">
-                  {scanResult.success ? (
+                  {scanResult?.success ? (
                     <>
                       <div className="text-green-500 mb-2 flex justify-center"><CheckCircle2 size={40} /></div>
                       <h3 className="text-xl font-bold mb-2">Check-in thành công</h3>
-                      <p className="text-sm font-semibold text-slate-700 mt-4 border p-2 bg-slate-50">Biển số nhận diện: <span className="text-indigo-600">{scanResult.license_plate}</span></p>
+                      <p className="text-sm font-semibold text-slate-700 mt-4 border p-2 bg-slate-50">Biển số nhận diện: <span className="text-indigo-600">{scanResult?.license_plate}</span></p>
                     </>
                   ) : (
                     <>
                       <div className="text-red-500 mb-2 flex justify-center"><AlertCircle size={40} /></div>
                       <h3 className="text-xl font-bold mb-2">Thất bại</h3>
-                      <p className="text-sm text-slate-600">{scanResult.message}</p>
+                      <p className="text-sm text-slate-600">{scanResult?.message}</p>
                       <input value={manualPlate} onChange={e => setManualPlate(e.target.value)} placeholder="Nhập lại biển số bằng tay" className="w-full p-2 border border-slate-300 rounded-lg mt-4 outline-none focus:border-cyan-500 font-bold uppercase" />
                       <button onClick={handleManualCheckin} disabled={isScanning} className="w-full mt-2 bg-slate-800 hover:bg-slate-900 transition-colors text-white py-2 rounded-lg font-medium">Check-in </button>
                     </>
