@@ -1,4 +1,4 @@
-import { Navigate, Routes, Route, useLocation } from 'react-router-dom'
+  import { Navigate, Routes, Route, useLocation } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import NavBar from './components/NavBar'
 import ScrollToTop from './components/ScrollToTop'
@@ -92,18 +92,18 @@ function AppContent() {
 
   // Nếu là Staff, kiểm tra chéo vùng làm việc
   if (!loading && isAuthenticated && user?.role === 'staff') {
-    const isManager = user?.staff_type === 'manager';
+    const isTechnical = user?.staff_type === 'technical';
     const isTechnicalRoute = pathname.startsWith('/staff/technical');
 
     if (!isStaffPage) {
-      if (isManager) return <Navigate to="/staff/bookings" replace />
-      return <Navigate to="/staff/technical/bookings" replace />
+      if (isTechnical) return <Navigate to="/staff/technical/bookings" replace />
+      return <Navigate to="/staff/bookings" replace />
     } else {
       // Đang ở trong /staff, kiểm tra không cho đi lạc chéo vùng
-      if (!isManager && !isTechnicalRoute) {
+      if (isTechnical && !isTechnicalRoute) {
         return <Navigate to="/staff/technical/bookings" replace />
       }
-      if (isManager && isTechnicalRoute) {
+      if (!isTechnical && isTechnicalRoute) {
         return <Navigate to="/staff" replace />
       }
     }

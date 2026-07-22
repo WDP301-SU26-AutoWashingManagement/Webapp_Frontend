@@ -83,12 +83,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setUser(mapped)
       return mapped
     } catch {
-      return authService.getCurrentUser()
+      const current = authService.getCurrentUser()
+      if (current) setUser(current)
+      return current
     }
   }, [])
 
   const login = useCallback(async (email: string, password: string) => {
     await authService.login(email, password)
+    const stored = authService.getCurrentUser()
+    if (stored) setUser(stored)
     await refreshUserFromProfile()
   }, [refreshUserFromProfile])
 
@@ -99,6 +103,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     const code = await requestGoogleAuthCode(env.googleClientId)
     await authService.googleLoginByCode(code, 'postmessage')
+    const stored = authService.getCurrentUser()
+    if (stored) setUser(stored)
 
     await refreshUserFromProfile()
   }, [refreshUserFromProfile])
