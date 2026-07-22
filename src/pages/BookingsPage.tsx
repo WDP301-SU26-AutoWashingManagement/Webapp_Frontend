@@ -16,6 +16,9 @@ import {
 } from '../utils/bookingStatus'
 import { getApiErrorMessage } from '../utils/errors'
 import { showError, showSuccess } from '../utils/toast'
+import { fetchEventSource } from '@microsoft/fetch-event-source'
+import { env } from '../config/env'
+import { getAccessToken } from '../lib/authSession'
 
 type BookingTab = 'upcoming' | 'completed' | 'compensated' | 'cancelled'
 
@@ -60,37 +63,81 @@ export default function BookingsPage() {
   const [confirmSignatureModal, setConfirmSignatureModal] = useState<{ isOpen: boolean; appointmentId: string | null }>({ isOpen: false, appointmentId: null });
   const [customerSignatureConfirm, setCustomerSignatureConfirm] = useState<string | null>(null);
   const [isSubmittingConfirm, setIsSubmittingConfirm] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+  const [isVerifyingQR, setIsVerifyingQR] = useState(false);
+  const [verifyQRProgress, setVerifyQRProgress] = useState(0);
 
   const handleUploadQr = async (e: React.ChangeEvent<HTMLInputElement>, appointmentId: string) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     try {
-      const base64Image = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.readAsDataURL(file);
-      });
+      setIsVerifyingQR(true);
+      setVerifyQRProgress(0);
 
-      await bookingChecklistService.uploadCompensationQr(appointmentId, base64Image);
-      showSuccess('Tải lên QR tài khoản thành công!');
-      
-      setViewReportModal((prev: any) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          report: {
-            ...prev.report,
-            compensation: {
-              ...prev.report.compensation,
-              qr_image: base64Image
+      const formData = new FormData();
+      formData.append('image', file, 'qr.png');
+      formData.append('type', 'QR'); // Ép kiểu QR
+
+      const token = getAccessToken();
+
+      await fetchEventSource(`${env.apiBaseUrl}/confidence/verify-image`, {
+        method: 'POST',
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: formData,
+        onmessage(ev) {
+          try {
+            const data = JSON.parse(ev.data);
+            if (data.progress !== undefined) {
+              setVerifyQRProgress(data.progress);
+              if (data.progress === -1) {
+                showError(data.step || 'Lỗi xử lý ảnh QR');
+                setIsVerifyingQR(false);
+              }
             }
+            if (data.progress === 100 && data.data) {
+              const verifyResult = data.data;
+              if (verifyResult.type === 'QR') {
+                // Đọc base64 để update UI
+                const reader = new FileReader();
+                reader.onloadend = async () => {
+                  const base64Image = reader.result as string;
+                  try {
+                    await bookingChecklistService.uploadCompensationQr(appointmentId, base64Image);
+                    showSuccess('Tải lên QR tài khoản thành công!');
+                    
+                    setViewReportModal((prev: any) => {
+                      if (!prev) return prev;
+                      return { ...prev, report: { ...prev.report, compensation: { ...prev.report.compensation, qr_image: base64Image } } };
+                    });
+                    void loadBookings(page);
+                  } catch (err: any) {
+                    showError(err.response?.data?.message || 'Lỗi khi lưu ảnh QR');
+                  } finally {
+                    setIsVerifyingQR(false);
+                  }
+                };
+                reader.readAsDataURL(file);
+              } else {
+                showError('Ảnh tải lên không phải là mã QR hợp lệ. Vui lòng thử lại!');
+                setIsVerifyingQR(false);
+              }
+            }
+          } catch (e) {
+            console.error(e);
           }
-        };
+        },
+        onerror(err) {
+          showError('Lỗi kết nối máy chủ xác thực AI');
+          setIsVerifyingQR(false);
+          throw err;
+        }
       });
-      void loadBookings(page);
-    } catch (err: any) {
-      showError(err.response?.data?.message || 'Lỗi khi tải lên ảnh QR');
+    } catch (err) {
+      setIsVerifyingQR(false);
     } finally {
       e.target.value = '';
     }
@@ -480,9 +527,9 @@ export default function BookingsPage() {
                   <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Hình ảnh đính kèm</h4>
                   <div className="grid grid-cols-3 gap-3">
                     {viewReportModal.report.evidence.map((img: string, idx: number) => (
-                      <a key={idx} href={img} target="_blank" rel="noreferrer" className="block aspect-square rounded-lg overflow-hidden border border-slate-200 hover:border-indigo-400 transition-colors">
+                      <div key={idx} onClick={() => setPreviewImage(img)} className="block aspect-square rounded-lg overflow-hidden border border-slate-200 hover:border-indigo-400 transition-colors cursor-pointer">
                         <img src={img} alt="Evidence" className="w-full h-full object-cover" />
-                      </a>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -545,25 +592,49 @@ export default function BookingsPage() {
                         <h4 className="text-sm font-semibold text-slate-900 mb-2">QR tài khoản nhận tiền</h4>
                         {viewReportModal.report.compensation.qr_image ? (
                           <div className="space-y-2">
-                            <a href={viewReportModal.report.compensation.qr_image} target="_blank" rel="noreferrer" className="block w-32 h-auto rounded-lg overflow-hidden border border-slate-200 hover:border-indigo-400 transition-colors">
+                            <div onClick={() => setPreviewImage(viewReportModal.report.compensation.qr_image)} className="block w-32 h-auto rounded-lg overflow-hidden border border-slate-200 hover:border-indigo-400 transition-colors cursor-pointer">
                               <img src={viewReportModal.report.compensation.qr_image} alt="QR Code" className="w-full object-cover" />
-                            </a>
+                            </div>
                             {!viewReportModal.report.compensation.transfer_image && (
-                              <div>
-                                <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg cursor-pointer transition-colors border border-slate-200">
-                                  <Upload size={12} /> Cập nhật QR khác
-                                  <input type="file" accept="image/*" className="hidden" onChange={(e) => handleUploadQr(e, viewReportModal.appointmentId || '')} />
-                                </label>
+                              <div className="mt-2">
+                                {isVerifyingQR ? (
+                                  <div className="w-full">
+                                    <div className="flex justify-between text-xs font-medium text-[#0ea5b7] mb-1">
+                                      <span>Đang kiểm tra AI...</span>
+                                      <span>{verifyQRProgress}%</span>
+                                    </div>
+                                    <div className="w-full bg-cyan-100 rounded-full h-1.5 overflow-hidden">
+                                      <div className="bg-[#0ea5b7] h-full rounded-full transition-all duration-300" style={{ width: `${Math.max(verifyQRProgress, 0)}%` }}></div>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg cursor-pointer transition-colors border border-slate-200">
+                                    <Upload size={12} /> Cập nhật QR khác
+                                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleUploadQr(e, viewReportModal.appointmentId || '')} />
+                                  </label>
+                                )}
                               </div>
                             )}
                           </div>
                         ) : (
                           <div>
                             <p className="text-xs text-slate-500 mb-2">Tải lên mã QR ngân hàng để cửa hàng chuyển tiền bồi thường nhanh hơn.</p>
-                            <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-[#0ea5b7] hover:text-[#0c8fa0] text-xs font-semibold rounded-lg cursor-pointer transition-colors border border-cyan-200/50">
-                              <Upload size={12} /> Tải ảnh QR nhận tiền
-                              <input type="file" accept="image/*" className="hidden" onChange={(e) => handleUploadQr(e, viewReportModal.appointmentId || '')} />
-                            </label>
+                            {isVerifyingQR ? (
+                              <div className="w-full">
+                                <div className="flex justify-between text-xs font-medium text-[#0ea5b7] mb-1">
+                                  <span>Đang kiểm tra AI...</span>
+                                  <span>{verifyQRProgress}%</span>
+                                </div>
+                                <div className="w-full bg-cyan-100 rounded-full h-1.5 overflow-hidden">
+                                  <div className="bg-[#0ea5b7] h-full rounded-full transition-all duration-300" style={{ width: `${Math.max(verifyQRProgress, 0)}%` }}></div>
+                                </div>
+                              </div>
+                            ) : (
+                              <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-[#0ea5b7] hover:text-[#0c8fa0] text-xs font-semibold rounded-lg cursor-pointer transition-colors border border-cyan-200/50">
+                                <Upload size={12} /> Tải ảnh QR nhận tiền
+                                <input type="file" accept="image/*" className="hidden" onChange={(e) => handleUploadQr(e, viewReportModal.appointmentId || '')} />
+                              </label>
+                            )}
                           </div>
                         )}
                       </div>
@@ -571,9 +642,9 @@ export default function BookingsPage() {
                       {viewReportModal.report.compensation.transfer_image ? (
                         <div>
                            <h4 className="text-sm font-semibold text-slate-900 mb-2">Ảnh bill chuyển khoản</h4>
-                           <a href={viewReportModal.report.compensation.transfer_image} target="_blank" rel="noreferrer" className="block w-32 h-auto rounded-lg overflow-hidden border border-slate-200 hover:border-emerald-400 transition-colors">
+                           <div onClick={() => setPreviewImage(viewReportModal.report.compensation.transfer_image)} className="block w-32 h-auto rounded-lg overflow-hidden border border-slate-200 hover:border-emerald-400 transition-colors cursor-pointer">
                              <img src={viewReportModal.report.compensation.transfer_image} alt="Transfer bill" className="w-full object-cover" />
-                           </a>
+                           </div>
                         </div>
                       ) : (
                         <div>
@@ -689,6 +760,27 @@ export default function BookingsPage() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Image Preview Modal */}
+      {previewImage && (
+        <div 
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/90 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+          onClick={() => setPreviewImage(null)}
+        >
+          <button 
+            onClick={() => setPreviewImage(null)}
+            className="absolute top-4 right-4 p-2 text-white hover:text-rose-400 bg-slate-800/50 hover:bg-slate-800 rounded-full transition-colors z-10"
+          >
+            <X size={24} />
+          </button>
+          <img 
+            src={previewImage} 
+            alt="Preview" 
+            className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>
       )}
     </AccountPageShell>
