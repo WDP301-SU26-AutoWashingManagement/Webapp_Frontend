@@ -96,21 +96,49 @@ export default function ViewChecklistModal({ checklist, isOpen, onClose }: ViewC
             </div>
           )}
 
-          {/* Signature */}
-          {checklist.customer_signature && (
-            <div>
-              <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
-                <PenTool size={16} className="text-indigo-500" /> Chữ ký xác nhận
-              </h3>
-              <div className="border border-slate-200 rounded-xl p-4 bg-white flex justify-center items-center h-32">
-                <img
-                  src={checklist.customer_signature}
-                  alt="Chữ ký khách hàng"
-                  className="max-w-full max-h-full object-contain"
-                />
+          {/* Signatures */}
+          <div>
+            <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
+              <PenTool size={16} className="text-indigo-500" /> Chữ ký xác nhận đồng kiểm
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Chữ ký ban đầu */}
+              <div className="border border-slate-200 rounded-xl p-3.5 bg-slate-50 flex flex-col items-center">
+                <span className="text-xs font-semibold text-slate-600 mb-2">1. Chữ ký lúc nhận xe (Ban đầu)</span>
+                {checklist.customer_signature ? (
+                  <div className="h-28 flex items-center justify-center w-full bg-white rounded-lg border border-slate-200 p-2">
+                    <img
+                      src={checklist.customer_signature}
+                      alt="Chữ ký ban đầu"
+                      className="max-w-full max-h-full object-contain mix-blend-multiply"
+                    />
+                  </div>
+                ) : (
+                  <div className="h-28 flex items-center justify-center text-xs text-slate-400 italic bg-white rounded-lg border border-slate-200 w-full">
+                    Chưa có chữ ký ban đầu
+                  </div>
+                )}
+              </div>
+
+              {/* Chữ ký bàn giao xe */}
+              <div className="border border-slate-200 rounded-xl p-3.5 bg-slate-50 flex flex-col items-center">
+                <span className="text-xs font-semibold text-slate-600 mb-2">2. Chữ ký bàn giao xe (Sau khi rửa)</span>
+                {checklist.customer_signature_after ? (
+                  <div className="h-28 flex items-center justify-center w-full bg-white rounded-lg border border-slate-200 p-2">
+                    <img
+                      src={checklist.customer_signature_after}
+                      alt="Chữ ký bàn giao xe"
+                      className="max-w-full max-h-full object-contain mix-blend-multiply"
+                    />
+                  </div>
+                ) : (
+                  <div className="h-28 flex items-center justify-center text-xs text-slate-400 italic bg-white rounded-lg border border-slate-200 w-full">
+                    Chưa ký bàn giao xe
+                  </div>
+                )}
               </div>
             </div>
-          )}
+          </div>
         </div>
 
         <div className="p-4 border-t border-slate-100 bg-slate-50/50 rounded-b-2xl flex justify-end">
