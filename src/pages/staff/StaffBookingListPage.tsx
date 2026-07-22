@@ -774,6 +774,8 @@ export default function StaffBookingListPage() {
           const booking = confirmHandoverModalBooking;
           setConfirmHandoverModalBooking(null);
           if (booking) {
+            const id = booking._id || booking.id!;
+            setSignedHandoverIds(prev => new Set(prev).add(id));
             setPaymentModal({ isOpen: true, booking });
           }
         }}
