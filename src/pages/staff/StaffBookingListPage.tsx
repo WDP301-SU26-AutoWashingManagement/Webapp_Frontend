@@ -283,17 +283,19 @@ export default function StaffBookingListPage() {
     if (!manualPlate.trim()) return showError('Vui lòng nhập biển số xe');
     setIsScanning(true);
     try {
-      const plateToSearch = manualPlate.trim().toLowerCase();
-      const foundBooking = data.items.find((b: WashBooking) =>
-        b.booking_status === 'confirmed' && b.vehicle?.plate_number?.toLowerCase() === plateToSearch
-      );
+      const plateToSearch = manualPlate.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+      const foundBooking = data.items.find((b: WashBooking) => {
+        const isEligibleStatus = b.booking_status === 'confirmed' || b.booking_status === 'arrived';
+        const itemPlate = (b.vehicle?.plate_number || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        return isEligibleStatus && itemPlate === plateToSearch;
+      });
       if (foundBooking) {
         await bookingService.checkin(foundBooking._id || foundBooking.id!);
         showSuccess('Check-in thủ công thành công!');
         setScanResult({ success: true, message: 'Check-in thành công qua biển số nhập tay', license_plate: foundBooking.vehicle?.plate_number });
         fetchBookings();
       } else {
-        showError('Không tìm thấy xe đang chờ nhận với biển số này');
+        showError('Không tìm thấy xe đang chờ nhận hoặc đã tới với biển số này');
       }
     } catch (error: any) {
       showError(error?.response?.data?.message || error?.message || 'Lỗi khi check-in thủ công');
