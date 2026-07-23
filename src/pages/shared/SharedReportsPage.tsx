@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { RefreshCw, ChevronLeft, ChevronRight, Eye, Search, AlertTriangle, CheckCircle, Trash2, MessageSquare, Calendar, XCircle, Upload, X, FileText } from 'lucide-react'
+import { RefreshCw, ChevronLeft, ChevronRight, Eye, Search, AlertTriangle, CheckCircle, Trash2, MessageSquare, Calendar, XCircle, Upload, X, FileText, DollarSign, Building2, ShieldAlert, TrendingUp, BarChart3 } from 'lucide-react'
 import { bookingChecklistService, type BookingChecklist } from '../../services/bookingChecklistService'
+import { branchService, type Branch } from '../../services/branchService'
 import { bookingService } from '../../services/bookingService'
 import type { WashBooking } from '../../types/booking'
 import { showError, showSuccess } from '../../utils/toast'
@@ -17,6 +18,9 @@ export default function SharedReportsPage() {
   const [data, setData] = useState<any>({ items: [], total: 0 })
   const [loading, setLoading] = useState(true)
 
+  const [branches, setBranches] = useState<Branch[]>([])
+  const [selectedBranchFilter, setSelectedBranchFilter] = useState<string>('all')
+
   const [page, setPage] = useState(1)
   const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'accepted' | 'rejected'>('pending')
   const [searchQuery, setSearchQuery] = useState('')
@@ -27,15 +31,21 @@ export default function SharedReportsPage() {
   const [initialChecklist, setInitialChecklist] = useState<BookingChecklist | null>(null)
   const [appointmentDetail, setAppointmentDetail] = useState<WashBooking | null>(null)
   const [loadingChecklist, setLoadingChecklist] = useState(false)
-  const [previewBillModal, setPreviewBillModal] = useState<{ appointmentId: string, base64: string } | null>(null)
+  const [previewBillModal, setPreviewBillModal] = useState<{ appointmentId: string, base64: string, targetType: 'QR' | 'BILL' } | null>(null)
   const [previewImage, setPreviewImage] = useState<string | null>(null)
-  
+
   // States for AI Verification
   const [isVerifying, setIsVerifying] = useState(false)
   const [verifyProgress, setVerifyProgress] = useState(0)
   const [verifyStep, setVerifyStep] = useState('')
   const [verifyResult, setVerifyResult] = useState<any>(null)
   const [verifyError, setVerifyError] = useState('')
+
+  useEffect(() => {
+    if (user?.role === 'boss') {
+      branchService.list().then(setBranches).catch(console.error)
+    }
+  }, [user?.role])
 
   useEffect(() => {
     if (detailModal && detailModal._id) {
@@ -58,13 +68,14 @@ export default function SharedReportsPage() {
   }, [detailModal])
   const limit = 8
 
-  const fetchReports = async (currentPage: number, tab: string) => {
+  const fetchReports = async (currentPage: number, tab: string, branchId?: string) => {
     setLoading(true)
     try {
       const res = await bookingChecklistService.getAllReports({
         page: currentPage,
         limit,
-        status: tab === 'all' ? undefined : tab
+        status: tab === 'all' ? undefined : tab,
+        branchId: user?.role === 'boss' ? (branchId === 'all' ? undefined : branchId) : undefined
       })
       setData(res || { items: [], total: 0 })
     } catch (error) {
@@ -75,8 +86,8 @@ export default function SharedReportsPage() {
   }
 
   useEffect(() => {
-    fetchReports(page, activeTab)
-  }, [page, activeTab])
+    fetchReports(page, activeTab, selectedBranchFilter)
+  }, [page, activeTab, selectedBranchFilter])
 
   const filteredItems = (data.items || []).filter((item: any) => {
     if (searchQuery) {
@@ -131,7 +142,7 @@ export default function SharedReportsPage() {
     }
   }
 
-  const handleUploadBill = async (e: React.ChangeEvent<HTMLInputElement>, appointmentId: string) => {
+  const handleUploadBill = async (e: React.ChangeEvent<HTMLInputElement>, appointmentId: string, targetType: 'QR' | 'BILL' = 'BILL') => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -142,7 +153,7 @@ export default function SharedReportsPage() {
         reader.readAsDataURL(file);
       });
 
-      setPreviewBillModal({ appointmentId, base64: base64Image });
+      setPreviewBillModal({ appointmentId, base64: base64Image, targetType });
     } catch (error) {
       showError('Lỗi khi đọc file ảnh');
     } finally {
@@ -167,10 +178,10 @@ export default function SharedReportsPage() {
         ia[i] = byteString.charCodeAt(i);
       }
       const blob = new Blob([ab], { type: mimeString });
-      
+
       const formData = new FormData();
-      formData.append('image', blob, 'bill.png');
-      formData.append('type', 'AUTO');
+      formData.append('image', blob, previewBillModal.targetType === 'QR' ? 'qr.png' : 'bill.png');
+      formData.append('type', previewBillModal.targetType);
 
       const token = getAccessToken();
 
@@ -216,11 +227,23 @@ export default function SharedReportsPage() {
 
   const confirmUploadBill = async () => {
     if (!previewBillModal) return;
+
+    if (!verifyResult) {
+      showError('Vui lòng kiểm tra độ tin cậy AI trước khi xác nhận tải lên');
+      return;
+    }
+
+    const confidencePercent = Math.round((verifyResult.confidence || 0) * 100);
+    if (confidencePercent < 70) {
+      showError(`Độ tin cậy của ảnh chỉ đạt ${confidencePercent}% (Yêu cầu phải từ 70% trở lên mới được tải lên)`);
+      return;
+    }
+
     try {
-      if (verifyResult?.type === 'QR') {
+      if (previewBillModal.targetType === 'QR' || verifyResult?.type === 'QR') {
         await bookingChecklistService.uploadCompensationQr(previewBillModal.appointmentId, previewBillModal.base64);
         showSuccess('Đã tải lên ảnh QR nhận tiền thành công!');
-        
+
         // Update detailModal locally to reflect changes
         if (detailModal && detailModal._id === previewBillModal.appointmentId) {
           setDetailModal({
@@ -237,7 +260,7 @@ export default function SharedReportsPage() {
       } else {
         await bookingChecklistService.uploadCompensationBill(previewBillModal.appointmentId, previewBillModal.base64);
         showSuccess('Đã tải lên bill chuyển khoản thành công!');
-        
+
         // Update detailModal locally to reflect changes
         if (detailModal && detailModal._id === previewBillModal.appointmentId) {
           setDetailModal({
@@ -267,9 +290,9 @@ export default function SharedReportsPage() {
   const handleExportDocx = async (appointment: any) => {
     try {
       showSuccess('Đang tạo file biên bản, vui lòng chờ...');
-      
+
       const customerInfo = appointment.customer_id?.user_id || {};
-      const branchInfo = appointment.branch_id?.branch_address 
+      const branchInfo = appointment.branch_id?.branch_address
         ? `${appointment.branch_id.branch_address.street}, ${appointment.branch_id.branch_address.ward}, ${appointment.branch_id.branch_address.district}, ${appointment.branch_id.branch_address.city}`
         : 'Chi nhánh không xác định';
 
@@ -351,8 +374,33 @@ export default function SharedReportsPage() {
             <option value="all">Tất cả</option>
           </select>
 
+          {user?.role === 'boss' && branches.length > 0 && (
+            <div className="flex items-center gap-1.5 bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-sm">
+              <Building2 size={15} className="text-slate-400" />
+              <select
+                value={selectedBranchFilter}
+                onChange={(e) => {
+                  setSelectedBranchFilter(e.target.value)
+                  setPage(1)
+                }}
+                className="bg-transparent text-sm text-slate-700 font-medium outline-none cursor-pointer"
+              >
+                <option value="all">Tất cả chi nhánh</option>
+                {branches.map((b) => {
+                  const id = b._id || b.id
+                  const addr = b.branch_address ? `${b.branch_address.street}, ${b.branch_address.district}` : id
+                  return (
+                    <option key={id} value={id}>
+                      {addr}
+                    </option>
+                  )
+                })}
+              </select>
+            </div>
+          )}
+
           <button
-            onClick={() => fetchReports(page, activeTab)}
+            onClick={() => fetchReports(page, activeTab, selectedBranchFilter)}
             className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-all text-sm font-medium ml-auto"
           >
             <RefreshCw size={14} className={loading ? 'animate-spin text-indigo-600' : ''} />
@@ -371,7 +419,7 @@ export default function SharedReportsPage() {
                 <th>Tiêu đề</th>
                 <th>Ngày gửi</th>
                 <th>Trạng thái</th>
-                <th className="text-right">Thao tác</th>
+                <th className="text-center">Thao tác</th>
               </tr>
             </thead>
             <tbody>
@@ -414,8 +462,8 @@ export default function SharedReportsPage() {
                           </span>
                         )}
                       </td>
-                      <td>
-                        <div className="flex justify-end items-center gap-2">
+                      <td className="text-center">
+                        <div className="flex justify-center items-center gap-2">
                           <button
                             onClick={() => setBookingDetailItem(item)}
                             className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition shadow-sm flex items-center gap-1.5"
@@ -505,13 +553,13 @@ export default function SharedReportsPage() {
                   <div>
                     <h4 className="text-sm font-semibold text-slate-900 mb-2">Thông tin liên hệ</h4>
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                      <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 min-w-0">
                         <span className="text-xs text-slate-500 block mb-1">Số điện thoại</span>
-                        <span className="text-sm font-medium text-slate-800">{detailModal.customer_id?.user_id?.phone || detailModal.report?.phone || 'N/A'}</span>
+                        <span className="text-sm font-medium text-slate-800 break-all block">{detailModal.customer_id?.user_id?.phone || detailModal.report?.phone || 'N/A'}</span>
                       </div>
-                      <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                      <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 min-w-0">
                         <span className="text-xs text-slate-500 block mb-1">Email</span>
-                        <span className="text-sm font-medium text-slate-800">{detailModal.report?.email || 'N/A'}</span>
+                        <span className="text-sm font-medium text-slate-800 break-all block" title={detailModal.report?.email}>{detailModal.report?.email || 'N/A'}</span>
                       </div>
                     </div>
                   </div>
@@ -638,20 +686,13 @@ export default function SharedReportsPage() {
                     </h3>
                     <div className="flex gap-2">
                       {detailModal.report.compensation.transfer_image && detailModal.report.compensation.customer_signature && (
-                        <button 
+                        <button
                           onClick={() => handleExportDocx(detailModal)}
                           className="inline-flex items-center gap-2 cursor-pointer bg-emerald-500 text-white px-3 py-1.5 rounded-lg border border-emerald-600 hover:bg-emerald-600 transition-colors text-xs font-medium shadow-sm"
                         >
                           <FileText size={14} />
                           Xuất file Word
                         </button>
-                      )}
-                      {(!detailModal.report.compensation.transfer_image || !detailModal.report.compensation.qr_image) && (
-                        <label className="inline-flex items-center gap-2 cursor-pointer bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg border border-indigo-200 hover:bg-indigo-100 transition-colors text-xs font-medium shadow-sm">
-                          <Upload size={14} />
-                          Tải lên AI (Bill/QR)
-                          <input type="file" accept="image/*" className="hidden" onChange={(e) => handleUploadBill(e, detailModal._id)} />
-                        </label>
                       )}
                     </div>
                   </div>
@@ -674,8 +715,15 @@ export default function SharedReportsPage() {
                       ) : (
                         <div>
                           <h4 className="text-sm font-semibold text-slate-900 mb-2">QR tài khoản nhận tiền</h4>
-                          <div className="bg-slate-50 text-slate-500 px-3 py-2 rounded-lg border border-slate-200 text-sm">
-                            Khách hàng chưa tải lên ảnh QR nhận tiền
+                          <div className="bg-slate-50 text-slate-500 px-3 py-2 rounded-lg border border-slate-200 text-sm flex items-center justify-between">
+                            <span>Khách hàng chưa tải lên ảnh QR nhận tiền</span>
+                            {user?.role !== 'boss' && (
+                              <label className="inline-flex items-center gap-1 cursor-pointer bg-indigo-600 text-white px-2 py-1 rounded text-xs font-medium hover:bg-indigo-700 transition-colors shrink-0 ml-2">
+                                <Upload size={12} />
+                                Tải QR
+                                <input type="file" accept="image/*" className="hidden" onChange={(e) => handleUploadBill(e, detailModal._id, 'QR')} />
+                              </label>
+                            )}
                           </div>
                         </div>
                       )}
@@ -690,9 +738,18 @@ export default function SharedReportsPage() {
                       ) : (
                         <div>
                           <h4 className="text-sm font-semibold text-slate-900 mb-2">Ảnh bill chuyển khoản</h4>
-                          <div className="bg-amber-50 text-amber-600 px-3 py-2 rounded-lg border border-amber-200 text-sm font-medium">
-                            <AlertTriangle size={16} className="inline mr-1" />
-                            Chưa có bill chuyển khoản
+                          <div className="bg-amber-50 text-amber-600 px-3 py-2 rounded-lg border border-amber-200 text-sm font-medium flex items-center justify-between">
+                            <span>
+                              <AlertTriangle size={16} className="inline mr-1" />
+                              Chưa có bill chuyển khoản
+                            </span>
+                            {user?.role !== 'boss' && (
+                              <label className="inline-flex items-center gap-1 cursor-pointer bg-emerald-600 text-white px-2 py-1 rounded text-xs font-medium hover:bg-emerald-700 transition-colors shrink-0 ml-2">
+                                <Upload size={12} />
+                                Tải Bill
+                                <input type="file" accept="image/*" className="hidden" onChange={(e) => handleUploadBill(e, detailModal._id, 'BILL')} />
+                              </label>
+                            )}
                           </div>
                         </div>
                       )}
@@ -769,18 +826,7 @@ export default function SharedReportsPage() {
 
             </div>
 
-            <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between bg-slate-50">
-              <div className="flex items-center gap-2">
-                {detailModal.report?.isConfirm && (
-                  <button
-                    onClick={() => handleDelete(detailModal._id)}
-                    className="px-4 py-2 bg-white text-rose-600 border border-rose-200 rounded-lg text-sm font-semibold hover:bg-rose-50 transition flex items-center gap-2"
-                  >
-                    <Trash2 size={16} />
-                    Xoá báo cáo
-                  </button>
-                )}
-              </div>
+            <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-end bg-slate-50">
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setDetailModal(null)}
@@ -788,7 +834,7 @@ export default function SharedReportsPage() {
                 >
                   Đóng
                 </button>
-                {!detailModal.report?.isConfirm && (
+                {!detailModal.report?.isConfirm && user?.role !== 'boss' && (
                   <>
                     <button
                       onClick={() => setRejectModalOpen(true)}
@@ -851,7 +897,9 @@ export default function SharedReportsPage() {
         <div className="fixed inset-0 z-[160] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50 rounded-t-2xl">
-              <h2 className="text-lg font-bold text-slate-800">Xác nhận ảnh chuyển khoản</h2>
+              <h2 className="text-lg font-bold text-slate-800">
+                Xác thực:  {previewBillModal.targetType === 'QR' ? 'Mã QR nhận tiền' : 'Hóa đơn chuyển khoản (Bill)'}
+              </h2>
               <button
                 onClick={() => {
                   setPreviewBillModal(null)
@@ -878,7 +926,7 @@ export default function SharedReportsPage() {
                       <CheckCircle size={16} />
                     </div>
                     <div>
-                      <h4 className="text-sm font-bold text-indigo-900 leading-none">Kiểm tra độ tin cậy AI</h4>
+                      <h4 className="text-sm font-bold text-indigo-900 leading-none">Kiểm tra độ tin cậy</h4>
                     </div>
                   </div>
                   {!isVerifying && !verifyResult && (
@@ -911,18 +959,14 @@ export default function SharedReportsPage() {
                   <div className="w-full p-3 bg-white border border-indigo-100 rounded-lg flex flex-col gap-2 shadow-sm">
                     <div className="flex justify-between items-center border-b border-slate-100 pb-2">
                       <span className="text-xs font-semibold text-slate-600">Độ tin cậy:</span>
-                      <span className={`text-sm font-bold px-2 py-0.5 rounded-full ${
-                        (verifyResult.confidence * 100) >= 80 ? 'bg-emerald-100 text-emerald-700' : 
-                        (verifyResult.confidence * 100) >= 50 ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700'
-                      }`}>
+                      <span className={`text-sm font-bold px-2 py-0.5 rounded-full ${(verifyResult.confidence * 100) >= 70 ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+                        }`}>
                         {Math.round(verifyResult.confidence * 100)}%
                       </span>
                     </div>
                     {verifyResult.reason && (
-                      <div className={`text-xs p-1.5 rounded border ${
-                        (verifyResult.confidence * 100) >= 80 ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 
-                        (verifyResult.confidence * 100) >= 50 ? 'bg-amber-50 text-amber-700 border-amber-100' : 'bg-rose-50 text-rose-600 border-rose-100'
-                      }`}>
+                      <div className={`text-xs p-1.5 rounded border ${(verifyResult.confidence * 100) >= 70 ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100'
+                        }`}>
                         <span className="font-semibold">Chi tiết:</span> {verifyResult.reason}
                       </div>
                     )}
@@ -931,7 +975,7 @@ export default function SharedReportsPage() {
                         <>
                           <span className="text-slate-500">Số tiền:</span>
                           <span className="font-semibold text-slate-800 text-right">
-                            {verifyResult.type === 'QR' && verifyResult.details?.analysis?.amount 
+                            {verifyResult.type === 'QR' && verifyResult.details?.analysis?.amount
                               ? verifyResult.details.analysis.amount.toLocaleString('vi-VN') + ' VNĐ'
                               : verifyResult.details.amount}
                           </span>
@@ -941,8 +985,8 @@ export default function SharedReportsPage() {
                         <>
                           <span className="text-slate-500">Ngân hàng:</span>
                           <span className="font-semibold text-slate-800 text-right">
-                            {verifyResult.type === 'QR' 
-                              ? verifyResult.details?.analysis?.providerName 
+                            {verifyResult.type === 'QR'
+                              ? verifyResult.details?.analysis?.providerName
                               : verifyResult.details?.provider}
                           </span>
                         </>
@@ -960,6 +1004,13 @@ export default function SharedReportsPage() {
                         </>
                       )}
                     </div>
+
+                    {(verifyResult.confidence * 100) < 70 && (
+                      <div className="w-full mt-2 p-2 bg-rose-50 border border-rose-200 rounded-lg flex items-center gap-2 text-rose-700 text-xs font-semibold">
+                        <AlertTriangle size={15} className="shrink-0 text-rose-500" />
+                        <span>Độ tin cậy chưa đạt 70%. Không thể xác nhận tải lên!</span>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -979,7 +1030,8 @@ export default function SharedReportsPage() {
               </button>
               <button
                 onClick={confirmUploadBill}
-                className="px-5 py-2 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 transition-colors flex items-center gap-2"
+                disabled={!verifyResult || (verifyResult.confidence * 100) < 70}
+                className="px-5 py-2 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-indigo-600"
               >
                 <Upload size={16} />
                 Xác nhận tải lên
@@ -990,19 +1042,19 @@ export default function SharedReportsPage() {
       )}
       {/* Image Preview Modal */}
       {previewImage && (
-        <div 
+        <div
           className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/90 backdrop-blur-sm p-4 animate-in fade-in duration-200"
           onClick={() => setPreviewImage(null)}
         >
-          <button 
+          <button
             onClick={() => setPreviewImage(null)}
             className="absolute top-4 right-4 p-2 text-white hover:text-rose-400 bg-slate-800/50 hover:bg-slate-800 rounded-full transition-colors z-10"
           >
             <X size={24} />
           </button>
-          <img 
-            src={previewImage} 
-            alt="Preview" 
+          <img
+            src={previewImage}
+            alt="Preview"
             className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl animate-in zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
           />

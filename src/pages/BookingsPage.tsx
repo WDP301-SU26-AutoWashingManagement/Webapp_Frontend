@@ -65,20 +65,53 @@ export default function BookingsPage() {
   const [isSubmittingConfirm, setIsSubmittingConfirm] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
-  const [isVerifyingQR, setIsVerifyingQR] = useState(false);
-  const [verifyQRProgress, setVerifyQRProgress] = useState(0);
+  const [previewBillModal, setPreviewBillModal] = useState<{ appointmentId: string, base64: string, targetType: 'QR' | 'BILL' } | null>(null);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verifyProgress, setVerifyProgress] = useState(0);
+  const [verifyStep, setVerifyStep] = useState('');
+  const [verifyResult, setVerifyResult] = useState<any>(null);
+  const [verifyError, setVerifyError] = useState('');
 
   const handleUploadQr = async (e: React.ChangeEvent<HTMLInputElement>, appointmentId: string) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     try {
-      setIsVerifyingQR(true);
-      setVerifyQRProgress(0);
+      const base64Image = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.readAsDataURL(file);
+      });
 
+      setPreviewBillModal({ appointmentId, base64: base64Image, targetType: 'QR' });
+    } catch (error) {
+      showError('Lỗi khi đọc file ảnh');
+    } finally {
+      e.target.value = '';
+    }
+  };
+
+  const handleVerifyBill = async () => {
+    if (!previewBillModal) return;
+    setIsVerifying(true);
+    setVerifyProgress(0);
+    setVerifyStep('Đang khởi tạo AI...');
+    setVerifyResult(null);
+    setVerifyError('');
+
+    try {
+      const byteString = atob(previewBillModal.base64.split(',')[1]);
+      const mimeString = previewBillModal.base64.split(',')[0].split(':')[1].split(';')[0];
+      const ab = new ArrayBuffer(byteString.length);
+      const ia = new Uint8Array(ab);
+      for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+      }
+      const blob = new Blob([ab], { type: mimeString });
+      
       const formData = new FormData();
-      formData.append('image', file, 'qr.png');
-      formData.append('type', 'QR'); // Ép kiểu QR
+      formData.append('image', blob, 'qr.png');
+      formData.append('type', 'QR');
 
       const token = getAccessToken();
 
@@ -92,54 +125,66 @@ export default function BookingsPage() {
           try {
             const data = JSON.parse(ev.data);
             if (data.progress !== undefined) {
-              setVerifyQRProgress(data.progress);
+              setVerifyProgress(data.progress);
               if (data.progress === -1) {
-                showError(data.step || 'Lỗi xử lý ảnh QR');
-                setIsVerifyingQR(false);
+                setVerifyError(data.step || 'Lỗi xử lý ảnh QR');
+                setIsVerifying(false);
+              } else {
+                setVerifyStep(data.step);
               }
             }
             if (data.progress === 100 && data.data) {
-              const verifyResult = data.data;
-              if (verifyResult.type === 'QR') {
-                // Đọc base64 để update UI
-                const reader = new FileReader();
-                reader.onloadend = async () => {
-                  const base64Image = reader.result as string;
-                  try {
-                    await bookingChecklistService.uploadCompensationQr(appointmentId, base64Image);
-                    showSuccess('Tải lên QR tài khoản thành công!');
-                    
-                    setViewReportModal((prev: any) => {
-                      if (!prev) return prev;
-                      return { ...prev, report: { ...prev.report, compensation: { ...prev.report.compensation, qr_image: base64Image } } };
-                    });
-                    void loadBookings(page);
-                  } catch (err: any) {
-                    showError(err.response?.data?.message || 'Lỗi khi lưu ảnh QR');
-                  } finally {
-                    setIsVerifyingQR(false);
-                  }
-                };
-                reader.readAsDataURL(file);
-              } else {
-                showError('Ảnh tải lên không phải là mã QR hợp lệ. Vui lòng thử lại!');
-                setIsVerifyingQR(false);
-              }
+              setVerifyResult(data.data);
+              setIsVerifying(false);
             }
           } catch (e) {
             console.error(e);
           }
         },
         onerror(err) {
-          showError('Lỗi kết nối máy chủ xác thực AI');
-          setIsVerifyingQR(false);
+          setVerifyError('Lỗi kết nối máy chủ xác thực AI');
+          setIsVerifying(false);
           throw err;
         }
       });
     } catch (err) {
-      setIsVerifyingQR(false);
+      if (!verifyError) {
+        setVerifyError('Đã xảy ra lỗi khi xác thực');
+      }
+      setIsVerifying(false);
+    }
+  };
+
+  const confirmUploadQr = async () => {
+    if (!previewBillModal) return;
+
+    if (!verifyResult) {
+      showError('Vui lòng kiểm tra độ tin cậy AI trước khi xác nhận tải lên');
+      return;
+    }
+
+    const confidencePercent = Math.round((verifyResult.confidence || 0) * 100);
+    if (confidencePercent < 70) {
+      showError(`Độ tin cậy của ảnh chỉ đạt ${confidencePercent}% (Yêu cầu phải từ 70% trở lên mới được tải lên)`);
+      return;
+    }
+
+    try {
+      await bookingChecklistService.uploadCompensationQr(previewBillModal.appointmentId, previewBillModal.base64);
+      showSuccess(`Tải lên ảnh QR nhận tiền thành công (Độ tin cậy: ${confidencePercent}%)!`);
+
+      setViewReportModal((prev: any) => {
+        if (!prev) return prev;
+        return { ...prev, report: { ...prev.report, compensation: { ...prev.report.compensation, qr_image: previewBillModal.base64 } } };
+      });
+      void loadBookings(page);
+    } catch (error: any) {
+      showError(error.response?.data?.message || 'Lỗi khi tải lên mã QR');
     } finally {
-      e.target.value = '';
+      setPreviewBillModal(null);
+      setVerifyResult(null);
+      setVerifyError('');
+      setVerifyProgress(0);
     }
   };
 
@@ -164,6 +209,8 @@ export default function BookingsPage() {
     }
   };
 
+  const [signedHandoverIds, setSignedHandoverIds] = useState<Set<string>>(new Set())
+
   const loadBookings = useCallback(async (currentPage: number) => {
     setLoading(true)
     try {
@@ -177,6 +224,30 @@ export default function BookingsPage() {
       })
       setBookings(res.items)
       setTotalPages(Math.ceil((res.total || 0) / limit) || 1)
+
+      // Kiểm tra trạng thái ký bàn giao xe cho các đơn washed / completed
+      const washedOrCompletedBookings = res.items.filter((b: WashBooking) => 
+        b.booking_status === 'washed' || b.booking_status === 'completed'
+      )
+      if (washedOrCompletedBookings.length > 0) {
+        Promise.all(
+          washedOrCompletedBookings.map((b: WashBooking) => {
+            const id = bookingId(b)
+            return bookingChecklistService.getByAppointmentId(id)
+              .then(checklist => ({ id, hasSigned: !!checklist?.customer_signature_after }))
+              .catch(() => ({ id, hasSigned: false }))
+          })
+        ).then(results => {
+          setSignedHandoverIds(prev => {
+            const newSet = new Set(prev)
+            results.forEach(r => {
+              if (r.hasSigned) newSet.add(r.id)
+              else newSet.delete(r.id)
+            })
+            return newSet
+          })
+        })
+      }
     } catch (err) {
       setBookings([])
       setTotalPages(1)
@@ -344,7 +415,7 @@ export default function BookingsPage() {
                         <button
                           type="button"
                           onClick={() => setDetailModal(booking)}
-                          className="rounded-lg border border-cyan-200 px-3 py-2 text-sm font-medium text-cyan-600 transition hover:bg-cyan-50 flex items-center justify-center gap-1.5"
+                          className="w-full sm:w-36 rounded-lg border border-cyan-200 px-3 py-2 text-xs sm:text-sm font-medium text-cyan-600 transition hover:bg-cyan-50 flex items-center justify-center gap-1.5 shadow-sm whitespace-nowrap"
                         >
                           <Eye className="h-4 w-4" /> Chi tiết
                         </button>
@@ -352,27 +423,33 @@ export default function BookingsPage() {
                           <button
                             type="button"
                             onClick={() => handleCancelClick(booking)}
-                            className="rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50 flex items-center justify-center"
+                            className="w-full sm:w-36 rounded-lg border border-red-200 px-3 py-2 text-xs sm:text-sm font-medium text-red-600 transition hover:bg-red-50 flex items-center justify-center gap-1.5 shadow-sm whitespace-nowrap"
                           >
                             Hủy lịch
                           </button>
                         )}
-                        {booking.booking_status === 'washed' && !(booking as any).report && (
-                          <button
-                            type="button"
-                            onClick={() => setReportModal({ isOpen: true, appointmentId: bookingId(booking) })}
-                            className="rounded-lg border border-amber-200 px-3 py-2 text-sm font-medium text-amber-600 transition hover:bg-amber-50 flex items-center justify-center gap-1.5"
-                          >
-                            <MessageSquareWarning className="h-4 w-4" /> Khiếu nại
-                          </button>
+                        {!(booking as any).report && (
+                          signedHandoverIds.has(bookingId(booking)) ? (
+                            <span className="w-full sm:w-36 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs sm:text-sm font-semibold text-emerald-700 flex items-center justify-center gap-1.5 shadow-sm whitespace-nowrap">
+                              <CheckCircle className="h-4 w-4 text-emerald-600 shrink-0" /> Đã bàn giao xe
+                            </span>
+                          ) : booking.booking_status === 'washed' ? (
+                            <button
+                              type="button"
+                              onClick={() => setReportModal({ isOpen: true, appointmentId: bookingId(booking) })}
+                              className="w-full sm:w-36 rounded-lg border border-amber-200 px-3 py-2 text-xs sm:text-sm font-medium text-amber-600 transition hover:bg-amber-50 flex items-center justify-center gap-1.5 shadow-sm whitespace-nowrap"
+                            >
+                              <MessageSquareWarning className="h-4 w-4 shrink-0" /> Khiếu nại
+                            </button>
+                          ) : null
                         )}
                         {(booking as any).report && (
                           <button
                             type="button"
                             onClick={() => setViewReportModal({ isOpen: true, report: (booking as any).report, appointmentId: bookingId(booking) })}
-                            className="rounded-lg border border-indigo-200 px-3 py-2 text-sm font-medium text-indigo-600 transition hover:bg-indigo-50 flex items-center justify-center gap-1.5"
+                            className="w-full sm:w-36 rounded-lg border border-indigo-200 px-3 py-2 text-xs sm:text-sm font-medium text-indigo-600 transition hover:bg-indigo-50 flex items-center justify-center gap-1.5 shadow-sm whitespace-nowrap"
                           >
-                            <MessageSquare className="h-4 w-4" /> Xem khiếu nại
+                            <MessageSquare className="h-4 w-4 shrink-0" /> Xem khiếu nại
                           </button>
                         )}
                       </div>
@@ -597,44 +674,20 @@ export default function BookingsPage() {
                             </div>
                             {!viewReportModal.report.compensation.transfer_image && (
                               <div className="mt-2">
-                                {isVerifyingQR ? (
-                                  <div className="w-full">
-                                    <div className="flex justify-between text-xs font-medium text-[#0ea5b7] mb-1">
-                                      <span>Đang kiểm tra AI...</span>
-                                      <span>{verifyQRProgress}%</span>
-                                    </div>
-                                    <div className="w-full bg-cyan-100 rounded-full h-1.5 overflow-hidden">
-                                      <div className="bg-[#0ea5b7] h-full rounded-full transition-all duration-300" style={{ width: `${Math.max(verifyQRProgress, 0)}%` }}></div>
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg cursor-pointer transition-colors border border-slate-200">
-                                    <Upload size={12} /> Cập nhật QR khác
-                                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleUploadQr(e, viewReportModal.appointmentId || '')} />
-                                  </label>
-                                )}
+                                <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg cursor-pointer transition-colors border border-slate-200">
+                                  <Upload size={12} /> Cập nhật QR khác
+                                  <input type="file" accept="image/*" className="hidden" onChange={(e) => handleUploadQr(e, viewReportModal.appointmentId || '')} />
+                                </label>
                               </div>
                             )}
                           </div>
                         ) : (
                           <div>
                             <p className="text-xs text-slate-500 mb-2">Tải lên mã QR ngân hàng để cửa hàng chuyển tiền bồi thường nhanh hơn.</p>
-                            {isVerifyingQR ? (
-                              <div className="w-full">
-                                <div className="flex justify-between text-xs font-medium text-[#0ea5b7] mb-1">
-                                  <span>Đang kiểm tra AI...</span>
-                                  <span>{verifyQRProgress}%</span>
-                                </div>
-                                <div className="w-full bg-cyan-100 rounded-full h-1.5 overflow-hidden">
-                                  <div className="bg-[#0ea5b7] h-full rounded-full transition-all duration-300" style={{ width: `${Math.max(verifyQRProgress, 0)}%` }}></div>
-                                </div>
-                              </div>
-                            ) : (
-                              <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-[#0ea5b7] hover:text-[#0c8fa0] text-xs font-semibold rounded-lg cursor-pointer transition-colors border border-cyan-200/50">
-                                <Upload size={12} /> Tải ảnh QR nhận tiền
-                                <input type="file" accept="image/*" className="hidden" onChange={(e) => handleUploadQr(e, viewReportModal.appointmentId || '')} />
-                              </label>
-                            )}
+                            <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-[#0ea5b7] hover:text-[#0c8fa0] text-xs font-semibold rounded-lg cursor-pointer transition-colors border border-cyan-200/50">
+                              <Upload size={12} /> Tải ảnh QR nhận tiền
+                              <input type="file" accept="image/*" className="hidden" onChange={(e) => handleUploadQr(e, viewReportModal.appointmentId || '')} />
+                            </label>
                           </div>
                         )}
                       </div>
@@ -781,6 +834,149 @@ export default function BookingsPage() {
             className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl animate-in zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
           />
+        </div>
+      )}
+
+      {/* Preview Bill/QR Modal */}
+      {previewBillModal && (
+        <div className="fixed inset-0 z-[160] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50 rounded-t-2xl">
+              <h2 className="text-lg font-bold text-slate-800">
+                Xác thực: Mã QR nhận tiền
+              </h2>
+              <button
+                onClick={() => {
+                  setPreviewBillModal(null)
+                  setVerifyResult(null)
+                  setVerifyError('')
+                  setVerifyProgress(0)
+                }}
+                className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-full transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center">
+              <p className="text-sm text-slate-600 mb-4 text-center font-medium">Bản xem trước hình ảnh mã QR nhận tiền</p>
+              <div className="w-full max-w-sm rounded-lg overflow-hidden border border-slate-200 shadow-sm mb-4 shrink-0 bg-slate-50 flex items-center justify-center">
+                <img src={previewBillModal.base64} alt="Preview" className="w-full max-h-[50vh] object-contain" />
+              </div>
+
+              <div className="w-full max-w-sm bg-indigo-50/50 border border-indigo-100 p-3 rounded-xl flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-500 shrink-0">
+                      <CheckCircle size={16} />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-indigo-900 leading-none">Kiểm tra độ tin cậy</h4>
+                    </div>
+                  </div>
+                  {!isVerifying && !verifyResult && (
+                    <button type="button" onClick={handleVerifyBill} className="px-3 py-1.5 bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-lg hover:bg-indigo-200 transition-colors">
+                      Kiểm tra
+                    </button>
+                  )}
+                </div>
+
+                {isVerifying && (
+                  <div className="w-full">
+                    <div className="flex justify-between text-xs font-medium text-indigo-700 mb-1">
+                      <span>{verifyStep}</span>
+                      <span>{verifyProgress}%</span>
+                    </div>
+                    <div className="w-full bg-indigo-100 rounded-full h-1.5 overflow-hidden">
+                      <div className="bg-indigo-500 h-full rounded-full transition-all duration-300" style={{ width: `${Math.max(verifyProgress, 0)}%` }}></div>
+                    </div>
+                  </div>
+                )}
+
+                {verifyError && (
+                  <div className="w-full p-2 bg-rose-50 border border-rose-100 rounded-lg flex items-start gap-2 text-rose-600 text-xs mt-1">
+                    <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+                    <span>{verifyError}</span>
+                  </div>
+                )}
+
+                {verifyResult && (
+                  <div className="w-full p-3 bg-white border border-indigo-100 rounded-lg flex flex-col gap-2 shadow-sm">
+                    <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                      <span className="text-xs font-semibold text-slate-600">Độ tin cậy:</span>
+                      <span className={`text-sm font-bold px-2 py-0.5 rounded-full ${(verifyResult.confidence * 100) >= 70 ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+                        }`}>
+                        {Math.round(verifyResult.confidence * 100)}%
+                      </span>
+                    </div>
+                    {verifyResult.reason && (
+                      <div className={`text-xs p-1.5 rounded border ${(verifyResult.confidence * 100) >= 70 ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100'
+                        }`}>
+                        <span className="font-semibold">Chi tiết:</span> {verifyResult.reason}
+                      </div>
+                    )}
+                    <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-xs">
+                      {(verifyResult.details?.amount || verifyResult.details?.analysis?.amount) && (
+                        <>
+                          <span className="text-slate-500">Số tiền:</span>
+                          <span className="font-semibold text-slate-800 text-right">
+                            {verifyResult.type === 'QR' && verifyResult.details?.analysis?.amount
+                              ? verifyResult.details.analysis.amount.toLocaleString('vi-VN') + ' VNĐ'
+                              : verifyResult.details.amount}
+                          </span>
+                        </>
+                      )}
+                      {(verifyResult.details?.provider || verifyResult.details?.analysis?.providerName) && (
+                        <>
+                          <span className="text-slate-500">Ngân hàng:</span>
+                          <span className="font-semibold text-slate-800 text-right">
+                            {verifyResult.type === 'QR'
+                              ? verifyResult.details?.analysis?.providerName
+                              : verifyResult.details?.provider}
+                          </span>
+                        </>
+                      )}
+                      {verifyResult.type === 'QR' && verifyResult.details?.analysis?.accountNumber && (
+                        <>
+                          <span className="text-slate-500">Số tài khoản:</span>
+                          <span className="font-semibold text-slate-800 text-right">{verifyResult.details.analysis.accountNumber}</span>
+                        </>
+                      )}
+                    </div>
+
+                    {(verifyResult.confidence * 100) < 70 && (
+                      <div className="w-full mt-2 p-2 bg-rose-50 border border-rose-200 rounded-lg flex items-center gap-2 text-rose-700 text-xs font-semibold">
+                        <AlertTriangle size={15} className="shrink-0 text-rose-500" />
+                        <span>Độ tin cậy chưa đạt 70%. Không thể xác nhận tải lên!</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-slate-100 bg-slate-50/50 rounded-b-2xl flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setPreviewBillModal(null)
+                  setVerifyResult(null)
+                  setVerifyError('')
+                  setVerifyProgress(0)
+                }}
+                className="px-5 py-2 text-slate-600 font-medium rounded-xl hover:bg-slate-200 transition-colors"
+              >
+                Hủy thay đổi
+              </button>
+              <button
+                onClick={confirmUploadQr}
+                disabled={!verifyResult || (verifyResult.confidence * 100) < 70}
+                className="px-5 py-2 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-indigo-600"
+              >
+                <Upload size={16} />
+                Xác nhận tải lên
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </AccountPageShell>

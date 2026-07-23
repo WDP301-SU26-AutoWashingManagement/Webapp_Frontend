@@ -197,6 +197,7 @@ function AppContent() {
           <Route index element={<Navigate to="/boss/dashboard" replace />} />
           <Route path="dashboard" element={<BossDashboard />} />
           <Route path="transaction-history" element={<StaffTransactionHistoryPage />} />
+          <Route path="reports" element={<SharedReportsPage />} />
           <Route path="customers" element={<SharedCustomersPage />} />
           <Route
             path="accounts"
