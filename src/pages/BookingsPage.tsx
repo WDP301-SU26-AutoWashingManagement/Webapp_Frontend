@@ -108,7 +108,7 @@ export default function BookingsPage() {
         ia[i] = byteString.charCodeAt(i);
       }
       const blob = new Blob([ab], { type: mimeString });
-      
+
       const formData = new FormData();
       formData.append('image', blob, 'qr.png');
       formData.append('type', 'QR');
@@ -159,7 +159,7 @@ export default function BookingsPage() {
     if (!previewBillModal) return;
 
     if (!verifyResult) {
-      showError('Vui lòng kiểm tra độ tin cậy AI trước khi xác nhận tải lên');
+      showError('Vui lòng kiểm tra độ tin cậy trước khi xác nhận tải lên');
       return;
     }
 
@@ -226,7 +226,7 @@ export default function BookingsPage() {
       setTotalPages(Math.ceil((res.total || 0) / limit) || 1)
 
       // Kiểm tra trạng thái ký bàn giao xe cho các đơn washed / completed
-      const washedOrCompletedBookings = res.items.filter((b: WashBooking) => 
+      const washedOrCompletedBookings = res.items.filter((b: WashBooking) =>
         b.booking_status === 'washed' || b.booking_status === 'completed'
       )
       if (washedOrCompletedBookings.length > 0) {
@@ -577,7 +577,7 @@ export default function BookingsPage() {
                 <X size={20} />
               </button>
             </div>
-            
+
             <div className="p-6 overflow-y-auto flex-1 space-y-5">
               <div>
                 <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Tiêu đề</h4>
@@ -586,11 +586,11 @@ export default function BookingsPage() {
               <div>
                 <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Trạng thái xử lý</h4>
                 {viewReportModal.report.status === 'rejected' ? (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 text-xs font-bold border border-rose-200"><XCircle size={14}/> Đã từ chối</span>
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 text-xs font-bold border border-rose-200"><XCircle size={14} /> Đã từ chối</span>
                 ) : viewReportModal.report.isConfirm ? (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200"><CheckCircle size={14}/> Đã tiếp nhận & Xử lý</span>
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200"><CheckCircle size={14} /> Đã tiếp nhận & Xử lý</span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-bold border border-amber-200"><AlertTriangle size={14}/> Đang chờ xử lý</span>
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-bold border border-amber-200"><AlertTriangle size={14} /> Đang chờ xử lý</span>
                 )}
               </div>
               <div>
@@ -619,30 +619,30 @@ export default function BookingsPage() {
                     <XCircle size={18} />
                     Biên bản từ chối khiếu nại
                   </h3>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <h4 className="text-sm font-semibold text-slate-900 mb-1">Lí do từ chối</h4>
                       <p className="text-sm text-slate-700 bg-rose-50 p-3 rounded-lg border border-rose-100 whitespace-pre-wrap">{viewReportModal.report.reject_details?.reason || viewReportModal.report.reject_reason || 'Không có lí do'}</p>
                     </div>
-                    
+
                     {(viewReportModal.report.reject_details?.admin_signature || viewReportModal.report.reject_details?.customer_signature) && (
                       <div>
-                         <h4 className="text-sm font-semibold text-slate-900 mb-2">Chữ ký xác nhận</h4>
-                         <div className="grid grid-cols-2 gap-4">
-                           {viewReportModal.report.reject_details.admin_signature && (
-                              <div className="bg-slate-50 p-2 rounded-lg border border-slate-200 text-center">
-                                <span className="text-xs text-slate-500 font-medium block mb-1">Đại diện cửa hàng</span>
-                                <img src={viewReportModal.report.reject_details.admin_signature} alt="Admin signature" className="h-12 mx-auto object-contain mix-blend-multiply" />
-                              </div>
-                           )}
-                           {viewReportModal.report.reject_details.customer_signature && (
-                              <div className="bg-slate-50 p-2 rounded-lg border border-slate-200 text-center">
-                                <span className="text-xs text-slate-500 font-medium block mb-1">Khách hàng</span>
-                                <img src={viewReportModal.report.reject_details.customer_signature} alt="Customer signature" className="h-12 mx-auto object-contain mix-blend-multiply" />
-                              </div>
-                           )}
-                         </div>
+                        <h4 className="text-sm font-semibold text-slate-900 mb-2">Chữ ký xác nhận</h4>
+                        <div className="grid grid-cols-2 gap-4">
+                          {viewReportModal.report.reject_details.admin_signature && (
+                            <div className="bg-slate-50 p-2 rounded-lg border border-slate-200 text-center">
+                              <span className="text-xs text-slate-500 font-medium block mb-1">Đại diện cửa hàng</span>
+                              <img src={viewReportModal.report.reject_details.admin_signature} alt="Admin signature" className="h-12 mx-auto object-contain mix-blend-multiply" />
+                            </div>
+                          )}
+                          {viewReportModal.report.reject_details.customer_signature && (
+                            <div className="bg-slate-50 p-2 rounded-lg border border-slate-200 text-center">
+                              <span className="text-xs text-slate-500 font-medium block mb-1">Khách hàng</span>
+                              <img src={viewReportModal.report.reject_details.customer_signature} alt="Customer signature" className="h-12 mx-auto object-contain mix-blend-multiply" />
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -656,7 +656,7 @@ export default function BookingsPage() {
                     <CheckCircle size={18} />
                     Biên bản cam kết đền bù
                   </h3>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-4">
                       <div>
@@ -691,59 +691,59 @@ export default function BookingsPage() {
                           </div>
                         )}
                       </div>
-                      
+
                       {viewReportModal.report.compensation.transfer_image ? (
                         <div>
-                           <h4 className="text-sm font-semibold text-slate-900 mb-2">Ảnh bill chuyển khoản</h4>
-                           <div onClick={() => setPreviewImage(viewReportModal.report.compensation.transfer_image)} className="block w-32 h-auto rounded-lg overflow-hidden border border-slate-200 hover:border-emerald-400 transition-colors cursor-pointer">
-                             <img src={viewReportModal.report.compensation.transfer_image} alt="Transfer bill" className="w-full object-cover" />
-                           </div>
+                          <h4 className="text-sm font-semibold text-slate-900 mb-2">Ảnh bill chuyển khoản</h4>
+                          <div onClick={() => setPreviewImage(viewReportModal.report.compensation.transfer_image)} className="block w-32 h-auto rounded-lg overflow-hidden border border-slate-200 hover:border-emerald-400 transition-colors cursor-pointer">
+                            <img src={viewReportModal.report.compensation.transfer_image} alt="Transfer bill" className="w-full object-cover" />
+                          </div>
                         </div>
                       ) : (
                         <div>
-                           <h4 className="text-sm font-semibold text-slate-900 mb-2">Ảnh bill chuyển khoản</h4>
-                           <div className="bg-amber-50 text-amber-600 px-3 py-2 rounded-lg border border-amber-200 text-sm font-medium">
-                             Đang chờ kế toán tải lên bill chuyển khoản...
-                           </div>
+                          <h4 className="text-sm font-semibold text-slate-900 mb-2">Ảnh bill chuyển khoản</h4>
+                          <div className="bg-amber-50 text-amber-600 px-3 py-2 rounded-lg border border-amber-200 text-sm font-medium">
+                            Đang chờ kế toán tải lên bill chuyển khoản...
+                          </div>
                         </div>
                       )}
                     </div>
-                    
+
                     <div className="space-y-4">
-                       <h4 className="text-sm font-semibold text-slate-900 mb-2">Chữ ký xác nhận đền bù</h4>
-                       <div className="grid grid-cols-2 gap-4">
-                         {viewReportModal.report.compensation.admin_signature && (
-                            <div className="bg-slate-50 p-2 rounded-lg border border-slate-200 text-center">
-                              <span className="text-xs text-slate-500 font-medium block mb-1">Đại diện cửa hàng</span>
-                              <img src={viewReportModal.report.compensation.admin_signature} alt="Admin signature" className="h-12 mx-auto object-contain mix-blend-multiply" />
-                            </div>
-                         )}
-                         {viewReportModal.report.compensation.customer_signature && (
-                            <div className="bg-slate-50 p-2 rounded-lg border border-slate-200 text-center">
-                              <span className="text-xs text-slate-500 font-medium block mb-1">Ký cam kết (KH)</span>
-                              <img src={viewReportModal.report.compensation.customer_signature} alt="Customer signature" className="h-12 mx-auto object-contain mix-blend-multiply" />
-                            </div>
-                         )}
-                       </div>
-                       
-                       {viewReportModal.report.compensation.customer_signature_confirm ? (
-                          <div className="bg-emerald-50/50 p-3 rounded-xl border border-emerald-100 text-center">
-                            <span className="text-xs text-emerald-600 font-bold block mb-1">Chữ ký nhận tiền (KH)</span>
-                            <img src={viewReportModal.report.compensation.customer_signature_confirm} alt="Customer signature confirm" className="h-12 mx-auto object-contain mix-blend-multiply" />
+                      <h4 className="text-sm font-semibold text-slate-900 mb-2">Chữ ký xác nhận đền bù</h4>
+                      <div className="grid grid-cols-2 gap-4">
+                        {viewReportModal.report.compensation.admin_signature && (
+                          <div className="bg-slate-50 p-2 rounded-lg border border-slate-200 text-center">
+                            <span className="text-xs text-slate-500 font-medium block mb-1">Đại diện cửa hàng</span>
+                            <img src={viewReportModal.report.compensation.admin_signature} alt="Admin signature" className="h-12 mx-auto object-contain mix-blend-multiply" />
                           </div>
-                       ) : (
-                         viewReportModal.report.compensation.transfer_image && (
-                           <div className="pt-2 text-center">
-                             <button
-                               type="button"
-                               onClick={() => setConfirmSignatureModal({ isOpen: true, appointmentId: viewReportModal.appointmentId || null })}
-                               className="w-full py-2 bg-[#0ea5b7] hover:bg-[#0c8fa0] text-white text-sm font-semibold rounded-lg shadow-sm transition flex items-center justify-center gap-2"
-                             >
-                               <PenTool size={16} /> Ký xác nhận đã nhận tiền
-                             </button>
-                           </div>
-                         )
-                       )}
+                        )}
+                        {viewReportModal.report.compensation.customer_signature && (
+                          <div className="bg-slate-50 p-2 rounded-lg border border-slate-200 text-center">
+                            <span className="text-xs text-slate-500 font-medium block mb-1">Ký cam kết (KH)</span>
+                            <img src={viewReportModal.report.compensation.customer_signature} alt="Customer signature" className="h-12 mx-auto object-contain mix-blend-multiply" />
+                          </div>
+                        )}
+                      </div>
+
+                      {viewReportModal.report.compensation.customer_signature_confirm ? (
+                        <div className="bg-emerald-50/50 p-3 rounded-xl border border-emerald-100 text-center">
+                          <span className="text-xs text-emerald-600 font-bold block mb-1">Chữ ký nhận tiền (KH)</span>
+                          <img src={viewReportModal.report.compensation.customer_signature_confirm} alt="Customer signature confirm" className="h-12 mx-auto object-contain mix-blend-multiply" />
+                        </div>
+                      ) : (
+                        viewReportModal.report.compensation.transfer_image && (
+                          <div className="pt-2 text-center">
+                            <button
+                              type="button"
+                              onClick={() => setConfirmSignatureModal({ isOpen: true, appointmentId: viewReportModal.appointmentId || null })}
+                              className="w-full py-2 bg-[#0ea5b7] hover:bg-[#0c8fa0] text-white text-sm font-semibold rounded-lg shadow-sm transition flex items-center justify-center gap-2"
+                            >
+                              <PenTool size={16} /> Ký xác nhận đã nhận tiền
+                            </button>
+                          </div>
+                        )
+                      )}
                     </div>
                   </div>
                 </div>
@@ -767,7 +767,7 @@ export default function BookingsPage() {
           <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50 rounded-t-2xl">
               <h2 className="text-lg font-bold text-slate-800">Ký Nhận Tiền Đền Bù</h2>
-              <button 
+              <button
                 onClick={() => {
                   setConfirmSignatureModal({ isOpen: false, appointmentId: null });
                   setCustomerSignatureConfirm(null);
@@ -782,7 +782,7 @@ export default function BookingsPage() {
               <p className="text-sm text-slate-600 font-medium">
                 Vui lòng ký vào khung bên dưới để xác nhận bạn đã nhận được số tiền đền bù từ cửa hàng.
               </p>
-              
+
               <div>
                 <h3 className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
                   <PenTool size={16} className="text-[#0ea5b7]" /> Chữ ký của bạn <span className="text-rose-500">*</span>
@@ -792,7 +792,7 @@ export default function BookingsPage() {
             </div>
 
             <div className="p-4 border-t border-slate-100 bg-slate-50/50 rounded-b-2xl flex justify-end gap-3">
-              <button 
+              <button
                 onClick={() => {
                   setConfirmSignatureModal({ isOpen: false, appointmentId: null });
                   setCustomerSignatureConfirm(null);
@@ -802,7 +802,7 @@ export default function BookingsPage() {
               >
                 Hủy
               </button>
-              <button 
+              <button
                 type="button"
                 onClick={handleConfirmSignatureSubmit}
                 disabled={isSubmittingConfirm || !customerSignatureConfirm}
@@ -818,19 +818,19 @@ export default function BookingsPage() {
 
       {/* Image Preview Modal */}
       {previewImage && (
-        <div 
+        <div
           className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/90 backdrop-blur-sm p-4 animate-in fade-in duration-200"
           onClick={() => setPreviewImage(null)}
         >
-          <button 
+          <button
             onClick={() => setPreviewImage(null)}
             className="absolute top-4 right-4 p-2 text-white hover:text-rose-400 bg-slate-800/50 hover:bg-slate-800 rounded-full transition-colors z-10"
           >
             <X size={24} />
           </button>
-          <img 
-            src={previewImage} 
-            alt="Preview" 
+          <img
+            src={previewImage}
+            alt="Preview"
             className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl animate-in zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
           />

@@ -229,7 +229,7 @@ export default function SharedReportsPage() {
     if (!previewBillModal) return;
 
     if (!verifyResult) {
-      showError('Vui lòng kiểm tra độ tin cậy AI trước khi xác nhận tải lên');
+      showError('Vui lòng kiểm tra độ tin cậy trước khi xác nhận tải lên');
       return;
     }
 
