@@ -10,7 +10,8 @@ import {
   ChevronRight,
   Building,
   Tag,
-  Wallet
+  Wallet,
+  AlertTriangle
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import logo2 from '../../assets/logo2.png'
@@ -28,6 +29,11 @@ const NAV_GROUPS = [
         label: 'Lịch sử giao dịch',
         icon: Wallet,
         to: '/boss/transaction-history',
+      },
+      {
+        label: 'Khiếu nại / Báo cáo',
+        icon: AlertTriangle,
+        to: '/boss/reports',
       },
     ]
   },
