@@ -43,12 +43,57 @@ export default function StaffBookingListPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchType, setSearchType] = useState<'code' | 'plate'>('code');
   const [statusFilter, setStatusFilter] = useState('all');
+  const getLocalDateStr = (d: Date) => {
+    const tzOffset = d.getTimezoneOffset() * 60000;
+    return new Date(d.getTime() - tzOffset).toISOString().split('T')[0];
+  };
+
+  const [datePreset, setDatePreset] = useState<'today' | 'last7' | 'thisMonth' | 'all' | 'custom'>('today');
   const [dateRange, setDateRange] = useState(() => {
-    const today = new Date();
-    const tzOffset = today.getTimezoneOffset() * 60000;
-    const localISOTime = (new Date(today.getTime() - tzOffset)).toISOString().split('T')[0];
-    return { startDate: localISOTime, endDate: localISOTime };
+    const todayStr = getLocalDateStr(new Date());
+    return { startDate: todayStr, endDate: todayStr };
   });
+
+  const handlePresetChange = (preset: string) => {
+    setDatePreset(preset as any);
+    const today = new Date();
+    const todayStr = getLocalDateStr(today);
+
+    if (preset === 'today') {
+      setDateRange({ startDate: todayStr, endDate: todayStr });
+    } else if (preset === 'last7') {
+      const past7 = new Date();
+      past7.setDate(past7.getDate() - 6);
+      setDateRange({ startDate: getLocalDateStr(past7), endDate: todayStr });
+    } else if (preset === 'thisMonth') {
+      const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+      setDateRange({ startDate: getLocalDateStr(firstDay), endDate: todayStr });
+    } else if (preset === 'all') {
+      setDateRange({ startDate: '', endDate: '' });
+    }
+  };
+
+  const handleStartDateChange = (newStart: string) => {
+    setDatePreset('custom');
+    setDateRange(prev => {
+      if (!newStart) return { ...prev, startDate: '' };
+      if (prev.endDate && newStart > prev.endDate) {
+        return { startDate: newStart, endDate: newStart };
+      }
+      return { ...prev, startDate: newStart };
+    });
+  };
+
+  const handleEndDateChange = (newEnd: string) => {
+    setDatePreset('custom');
+    setDateRange(prev => {
+      if (!newEnd) return { ...prev, endDate: '' };
+      if (prev.startDate && newEnd < prev.startDate) {
+        return { startDate: newEnd, endDate: newEnd };
+      }
+      return { ...prev, endDate: newEnd };
+    });
+  };
 
   // Camera Check-in States & Refs
   const [isScanModalOpen, setIsScanModalOpen] = useState(false);
@@ -66,7 +111,7 @@ export default function StaffBookingListPage() {
   const fetchBookings = async () => {
     setLoading(true);
     try {
-      const params: any = { limit: 100 };
+      const params: any = { limit: 150 };
       if (statusFilter !== 'all') params.booking_status = statusFilter;
 
       if (dateRange.startDate) {
@@ -494,40 +539,63 @@ export default function StaffBookingListPage() {
   return (
     <div className="p-6 bg-slate-50 min-h-[calc(100vh-80px)] pb-20">
       <div className="max-w-6xl mx-auto">
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-6 gap-4">
+        {/* Header & Page Title */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-slate-800">Lịch hẹn </h1>
-            <p className="text-slate-500 text-sm mt-1"> Quản lý lịch hẹn của khách hàng.</p>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">Lịch hẹn</h1>
+              <span className="px-2.5 py-0.5 bg-cyan-50 text-[#0ea5b7] border border-cyan-200 text-xs font-bold rounded-full">
+                {searchQuery ? filteredItems.length : (data.total || filteredItems.length)} đơn
+              </span>
+            </div>
+            <p className="text-slate-500 text-sm mt-0.5 font-medium">Quản lý và tiếp nhận lịch hẹn của khách hàng.</p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={fetchBookings}
+              className="flex items-center gap-2 px-3.5 py-2 bg-white border border-slate-200 text-slate-700 hover:text-[#0ea5b7] hover:border-cyan-300 rounded-xl transition-all shadow-sm font-semibold text-sm cursor-pointer"
+              title="Tải lại danh sách"
+            >
+              <RefreshCw size={16} className={loading ? 'animate-spin text-[#0ea5b7]' : ''} />
+              <span>Làm mới</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Filter Toolbar Card */}
+        <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] mb-6 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+          {/* Left Group: Search & Status */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1">
+            {/* Search Input Group */}
+            <div className="relative flex items-center flex-1 min-w-[240px]">
+              <Search className="absolute left-3.5 text-slate-400 pointer-events-none" size={16} />
               <input
                 type="text"
-                placeholder={searchType === 'code' ? "Tìm mã đơn..." : "Tìm biển số xe..."}
+                placeholder={searchType === 'code' ? "Tìm theo mã đơn..." : "Tìm theo biển số xe..."}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 pr-4 py-2 border border-slate-200 rounded-l-lg text-sm text-slate-700 outline-none focus:border-cyan-500 bg-white min-w-[200px]"
+                className="w-full pl-10 pr-24 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 outline-none focus:border-[#0ea5b7] focus:bg-white transition-all font-medium"
               />
               <select
                 value={searchType}
                 onChange={(e) => setSearchType(e.target.value as any)}
-                className="px-2 py-2 border-y border-r border-slate-200 rounded-r-lg text-sm text-slate-700 outline-none focus:border-cyan-500 bg-white cursor-pointer"
+                className="absolute right-1 px-2.5 py-1 text-xs font-bold text-slate-600 bg-white border border-slate-200 rounded-lg outline-none focus:border-[#0ea5b7] cursor-pointer shadow-2xs"
               >
                 <option value="code">Mã đơn</option>
                 <option value="plate">Biển số</option>
               </select>
             </div>
 
-            {/* Filter */}
-            <div className="relative">
-              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"><Filter size={16} /></div>
+            {/* Status Filter */}
+            <div className="relative min-w-[170px]">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                <Filter size={15} />
+              </div>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="pl-9 pr-8 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:border-cyan-500 bg-white appearance-none cursor-pointer"
+                className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 outline-none focus:border-[#0ea5b7] focus:bg-white appearance-none cursor-pointer transition-all"
               >
                 <option value="all">Tất cả trạng thái</option>
                 <option value="pending">Chờ duyệt</option>
@@ -540,30 +608,43 @@ export default function StaffBookingListPage() {
                 <option value="compensated">Đã đền bù</option>
                 <option value="cancelled">Đã hủy</option>
               </select>
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"><ChevronDown size={14} /></div>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                <ChevronDown size={14} />
+              </div>
             </div>
+          </div>
 
-            {/* Date Range */}
-            <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 py-1.5 shadow-sm">
+          {/* Right Group: Date Range Filter */}
+          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl p-1.5 shrink-0">
+            <select
+              value={datePreset}
+              onChange={(e) => handlePresetChange(e.target.value)}
+              className="px-2.5 py-1.5 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 rounded-lg border border-slate-200 outline-none cursor-pointer transition-colors shadow-2xs"
+            >
+              <option value="today">Hôm nay</option>
+              <option value="last7">7 ngày qua</option>
+              <option value="thisMonth">Tháng này</option>
+              <option value="all">Tất cả thời gian</option>
+              <option value="custom">Tùy chọn</option>
+            </select>
+
+            <div className="flex items-center gap-1.5 px-2">
               <input
                 type="date"
+                max={dateRange.endDate || undefined}
                 value={dateRange.startDate}
-                onChange={(e) => setDateRange(prev => ({ ...prev, startDate: e.target.value }))}
-                className="text-sm text-slate-700 outline-none bg-transparent cursor-pointer font-medium"
+                onChange={(e) => handleStartDateChange(e.target.value)}
+                className="text-xs text-slate-700 outline-none bg-transparent cursor-pointer font-bold"
               />
-              <span className="text-slate-400 text-xs font-bold">→</span>
+              <span className="text-slate-400 text-xs font-extrabold">→</span>
               <input
                 type="date"
-                min={dateRange.startDate}
+                min={dateRange.startDate || undefined}
                 value={dateRange.endDate}
-                onChange={(e) => setDateRange(prev => ({ ...prev, endDate: e.target.value }))}
-                className="text-sm text-slate-700 outline-none bg-transparent cursor-pointer font-medium"
+                onChange={(e) => handleEndDateChange(e.target.value)}
+                className="text-xs text-slate-700 outline-none bg-transparent cursor-pointer font-bold"
               />
             </div>
-
-            <button onClick={fetchBookings} className="flex items-center justify-center p-2.5 bg-white border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 transition-all shadow-sm">
-              <RefreshCw size={16} className={loading ? 'animate-spin text-[#0ea5b7]' : ''} />
-            </button>
           </div>
         </div>
 
