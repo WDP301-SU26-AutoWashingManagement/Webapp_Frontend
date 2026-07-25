@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { RefreshCw, ChevronLeft, ChevronRight, Eye, Search, AlertTriangle, CheckCircle, Trash2, MessageSquare, Calendar, XCircle, Upload, X, FileText, DollarSign, Building2, ShieldAlert, TrendingUp, BarChart3 } from 'lucide-react'
+import { RefreshCw, ChevronLeft, ChevronRight, Eye, Search, AlertTriangle, CheckCircle, Trash2, MessageSquare, Calendar, XCircle, Upload, X, DollarSign, Building2, ShieldAlert, TrendingUp, BarChart3 } from 'lucide-react'
 import { bookingChecklistService, type BookingChecklist } from '../../services/bookingChecklistService'
 import { branchService, type Branch } from '../../services/branchService'
 import { bookingService } from '../../services/bookingService'
@@ -287,58 +287,7 @@ export default function SharedReportsPage() {
     }
   }
 
-  const handleExportDocx = async (appointment: any) => {
-    try {
-      showSuccess('Đang tạo file biên bản, vui lòng chờ...');
 
-      const customerInfo = appointment.customer_id?.user_id || {};
-      const branchInfo = appointment.branch_id?.branch_address
-        ? `${appointment.branch_id.branch_address.street}, ${appointment.branch_id.branch_address.ward}, ${appointment.branch_id.branch_address.district}, ${appointment.branch_id.branch_address.city}`
-        : 'Chi nhánh không xác định';
-
-      const payload = {
-        branch_info: branchInfo,
-        customer_info: {
-          fullname: customerInfo.full_name || '—',
-          phone: customerInfo.phone || '—',
-          email: customerInfo.email || '—'
-        },
-        compensation_amount: appointment.report.compensation.compensation_amount,
-        customer_signature: appointment.report.compensation.customer_signature,
-        admin_signature: appointment.report.compensation.admin_signature,
-        transfer_image: appointment.report.compensation.transfer_image,
-        created_at: appointment.report.compensation.created_at
-      };
-
-      const token = getAccessToken();
-      const response = await fetch(`${env.apiBaseUrl}/export/compensation-docx`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(payload)
-      });
-
-      if (!response.ok) {
-        throw new Error('Lỗi khi xuất file');
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Bien_Ban_Den_Bu_${appointment.appointment_code}.docx`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-    } catch (error) {
-      console.error(error);
-      showError('Không thể xuất file biên bản lúc này.');
-    }
-  };
 
   return (
     <div className="admin-page animate-in fade-in duration-300">
@@ -684,17 +633,6 @@ export default function SharedReportsPage() {
                       <CheckCircle size={18} />
                       Biên bản cam kết đền bù
                     </h3>
-                    <div className="flex gap-2">
-                      {detailModal.report.compensation.transfer_image && detailModal.report.compensation.customer_signature && (
-                        <button
-                          onClick={() => handleExportDocx(detailModal)}
-                          className="inline-flex items-center gap-2 cursor-pointer bg-emerald-500 text-white px-3 py-1.5 rounded-lg border border-emerald-600 hover:bg-emerald-600 transition-colors text-xs font-medium shadow-sm"
-                        >
-                          <FileText size={14} />
-                          Xuất file Word
-                        </button>
-                      )}
-                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
