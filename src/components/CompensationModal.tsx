@@ -104,6 +104,14 @@ export default function CompensationModal({ appointmentId, customer, isOpen, onC
   const [customerSignature, setCustomerSignature] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  useEffect(() => {
+    if (isOpen) {
+      setAmount('');
+      setAdminSignature(null);
+      setCustomerSignature(null);
+    }
+  }, [isOpen, appointmentId]);
+
   if (!isOpen) return null;
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -184,14 +192,14 @@ export default function CompensationModal({ appointmentId, customer, isOpen, onC
               <h3 className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
                 <PenTool size={16} className="text-indigo-500" /> Chữ ký Quản lý / NV <span className="text-rose-500">*</span>
               </h3>
-              <SignaturePad placeholder="Quản lý ký vào đây" onSignatureChange={setAdminSignature} />
+              <SignaturePad key={`admin-${appointmentId}`} placeholder="Quản lý ký vào đây" onSignatureChange={setAdminSignature} />
             </div>
 
             <div>
               <h3 className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
                 <PenTool size={16} className="text-amber-500" /> Chữ ký Khách hàng <span className="text-rose-500">*</span>
               </h3>
-              <SignaturePad placeholder="Khách hàng ký xác nhận" onSignatureChange={setCustomerSignature} />
+              <SignaturePad key={`cust-${appointmentId}`} placeholder="Khách hàng ký xác nhận" onSignatureChange={setCustomerSignature} />
             </div>
           </div>
         </div>

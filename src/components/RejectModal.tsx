@@ -104,6 +104,14 @@ export default function RejectModal({ appointmentId, isOpen, onClose, onSuccess 
   const [customerSignature, setCustomerSignature] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  useEffect(() => {
+    if (isOpen) {
+      setReason('');
+      setAdminSignature(null);
+      setCustomerSignature(null);
+    }
+  }, [isOpen, appointmentId]);
+
   if (!isOpen) return null;
 
   const handleSubmit = async () => {
@@ -162,14 +170,14 @@ export default function RejectModal({ appointmentId, isOpen, onClose, onSuccess 
               <h3 className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
                 <PenTool size={16} className="text-indigo-500" /> Chữ ký Quản lý / NV <span className="text-rose-500">*</span>
               </h3>
-              <SignaturePad placeholder="Quản lý ký vào đây" onSignatureChange={setAdminSignature} />
+              <SignaturePad key={`admin-rej-${appointmentId}`} placeholder="Quản lý ký vào đây" onSignatureChange={setAdminSignature} />
             </div>
 
             <div>
               <h3 className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
                 <PenTool size={16} className="text-amber-500" /> Chữ ký Khách hàng <span className="text-rose-500">*</span>
               </h3>
-              <SignaturePad placeholder="Khách hàng ký xác nhận" onSignatureChange={setCustomerSignature} />
+              <SignaturePad key={`cust-rej-${appointmentId}`} placeholder="Khách hàng ký xác nhận" onSignatureChange={setCustomerSignature} />
             </div>
           </div>
         </div>

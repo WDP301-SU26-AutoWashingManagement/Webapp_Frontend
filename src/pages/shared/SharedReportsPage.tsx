@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { RefreshCw, ChevronLeft, ChevronRight, Eye, Search, AlertTriangle, CheckCircle, Trash2, MessageSquare, Calendar, XCircle, Upload, X, DollarSign, Building2, ShieldAlert, TrendingUp, BarChart3 } from 'lucide-react'
+import { RefreshCw, ChevronLeft, ChevronRight, Eye, Search, AlertTriangle, CheckCircle, Trash2, MessageSquare, Calendar, XCircle, Upload, X, DollarSign, Building2, ShieldAlert, TrendingUp, BarChart3, Clock } from 'lucide-react'
 import { bookingChecklistService, type BookingChecklist } from '../../services/bookingChecklistService'
 import { branchService, type Branch } from '../../services/branchService'
 import { bookingService } from '../../services/bookingService'
@@ -402,9 +402,37 @@ export default function SharedReportsPage() {
                             <XCircle size={12} /> Đã từ chối
                           </span>
                         ) : report.status === 'accepted' ? (
-                          <span className="px-2 py-1 bg-emerald-50 text-emerald-600 rounded text-xs font-semibold flex items-center gap-1 w-max border border-emerald-100">
-                            <CheckCircle size={12} /> Đã xác nhận đền bù
-                          </span>
+                          (() => {
+                            const comp = report.compensation;
+                            const hasQr = !!comp?.qr_image;
+                            const hasBill = !!comp?.transfer_image;
+                            const hasSignature = !!comp?.customer_signature_confirm;
+                            const isCompleted = item.booking_status === 'compensated' || (hasQr && hasBill && hasSignature);
+
+                            const missing: string[] = [];
+                            if (!hasQr) missing.push('mã QR');
+                            if (!hasBill) missing.push('bill');
+                            if (!hasSignature) missing.push('chữ ký nhận tiền');
+
+                            const missingText = (missing.length === 1 && !hasSignature)
+                              ? 'Chờ KH ký nhận tiền'
+                              : `Thiếu ${missing.join(', ')}`;
+
+                            return isCompleted ? (
+                              <span className="px-2 py-1 bg-emerald-50 text-emerald-600 rounded text-xs font-semibold flex items-center gap-1 w-max border border-emerald-100">
+                                <CheckCircle size={12} /> Đã đền bù hoàn tất
+                              </span>
+                            ) : (
+                              <div className="flex flex-col gap-1">
+                                <span className="px-2 py-1 bg-blue-50 text-blue-600 rounded text-xs font-semibold flex items-center gap-1 w-max border border-blue-100">
+                                  <Clock size={12} /> Đã cam kết
+                                </span>
+                                <div className="text-[10px] text-amber-600 font-medium">
+                                  • {missingText}
+                                </div>
+                              </div>
+                            );
+                          })()
                         ) : (
                           <span className="px-2 py-1 bg-amber-50 text-amber-600 rounded text-xs font-semibold flex items-center gap-1 w-max border border-amber-100">
                             <AlertTriangle size={12} /> Chờ xác nhận
