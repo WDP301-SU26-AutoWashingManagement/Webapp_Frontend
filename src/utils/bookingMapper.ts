@@ -122,7 +122,7 @@ export function normalizeWashBooking(raw: Record<string, unknown>): WashBooking 
     service_package,
     customer,
     branch_id: raw.branch_id,
-    created_at: raw.created_at != null ? String(raw.created_at) : undefined,
+    created_at: raw.created_at != null ? String(raw.created_at) : raw.createdAt != null ? String(raw.createdAt) : undefined,
     services: Array.isArray(raw.services) ? (raw.services as any[]) : undefined,
     report: raw.report,
   }

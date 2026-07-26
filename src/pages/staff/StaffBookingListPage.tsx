@@ -126,6 +126,14 @@ export default function StaffBookingListPage() {
       }
 
       const res = await bookingService.list(params);
+      if (res.items) {
+        res.items.sort((a, b) => {
+          const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
+          const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+          if (timeA && timeB && timeA !== timeB) return timeB - timeA;
+          return (b.appointment_code || b._id || '').localeCompare(a.appointment_code || a._id || '');
+        });
+      }
       setData(res);
 
       // Check checklist status for 'confirmed' bookings
