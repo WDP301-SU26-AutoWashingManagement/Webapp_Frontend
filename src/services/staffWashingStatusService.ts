@@ -21,4 +21,8 @@ export const washService = {
     async stop() {
         return await apiClient.post<WashResponse>('/wash/stop')
     },
+
+    async reset() {
+        return await apiClient.post<WashResponse>('/wash/reset')
+    }
 }

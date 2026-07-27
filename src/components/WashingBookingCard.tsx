@@ -5,7 +5,11 @@ import { bookingService, type BookingListResult } from '../services/bookingServi
 import type { WashBooking } from '../types/booking';
 import BookingDetailModal from './BookingDetailModal';
 
-export default function StaffWashingBookingCard() {
+type StaffWashingBookingCardProps = {
+    refreshKey?: boolean;
+};
+
+export default function StaffWashingBookingCard({ refreshKey = true }: StaffWashingBookingCardProps) {
     const [data, setData] = useState<BookingListResult>({ items: [], total: 0 });
     const [loading, setLoading] = useState(true);
 
@@ -48,7 +52,7 @@ export default function StaffWashingBookingCard() {
 
     useEffect(() => {
         fetchBookings();
-    }, [dateRange]);
+    }, [dateRange, refreshKey]);
 
     // Client-side search filtering
     const filteredItems = data.items.filter((b: WashBooking) => {
@@ -74,7 +78,7 @@ export default function StaffWashingBookingCard() {
                                 placeholder="Tìm mã đơn, biển số xe..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:border-cyan-500 bg-white min-w-[200px]"
+                                className="pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:border-cyan-500 bg-white min-w-50"
                             />
                         </div>
 
@@ -122,7 +126,7 @@ export default function StaffWashingBookingCard() {
                                                 <span className="px-2.5 py-0.5 bg-slate-100 text-slate-700 font-bold rounded text-xs border border-slate-200 shadow-sm">
                                                     #{code}
                                                 </span>
-                                                <span className="px-2.5 py-0.5 bg-cyan-50 text-cyan-700 border border-cyan-200 text-xs font-semibold rounded-full truncate max-w-[200px]">
+                                                <span className="px-2.5 py-0.5 bg-cyan-50 text-cyan-700 border border-cyan-200 text-xs font-semibold rounded-full truncate max-w-50">
                                                     {booking.service_package?.name || booking.service_package?.service_name || 'Dịch vụ lẻ'}
                                                 </span>
                                             </div>
