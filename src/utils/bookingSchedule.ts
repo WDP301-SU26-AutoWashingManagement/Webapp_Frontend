@@ -193,11 +193,11 @@ export function getScheduleFieldHints(
   branchOpenTime?: string,
   branchCloseTime?: string
 ): string {
-  let openStr = `${BUSINESS_HOURS.open}:00`
-  let closeStr = `${BUSINESS_HOURS.close - 1}:30`
+  let timeHint = 'Vui lòng chọn chi nhánh để xem khung giờ phục vụ'
 
   if (branchOpenTime && branchCloseTime) {
-    openStr = branchOpenTime
+    let openStr = branchOpenTime
+    let closeStr = branchCloseTime
     const closeParts = branchCloseTime.split(':')
     if (closeParts.length === 2) {
       let h = parseInt(closeParts[0], 10)
@@ -209,14 +209,13 @@ export function getScheduleFieldHints(
         m += 30
       }
       closeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
-    } else {
-      closeStr = branchCloseTime
     }
+    timeHint = `Khung giờ ${openStr}–${closeStr}, bước ${SLOT_DURATION_MINUTES} phút`
   }
 
   return [
     `Chỉ đặt được thời gian trong tương lai (trước ít nhất ${MIN_ADVANCE_MINUTES} phút)`,
-    `Khung giờ ${openStr}–${closeStr}, bước ${SLOT_DURATION_MINUTES} phút`,
+    timeHint,
     `Tối đa ${windowDays} ngày kể từ hiện tại`,
   ].join(' · ')
 }
