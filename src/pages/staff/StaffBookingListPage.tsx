@@ -360,11 +360,19 @@ export default function StaffBookingListPage() {
   // --- RENDER HELPERS ---
   const getStepIndex = (status: string) => STEPS.findIndex(s => s.id === status);
 
-  const renderStepper = (currentStatus: string) => {
+  const renderStepper = (booking: WashBooking) => {
+    const currentStatus = booking.booking_status;
     if (currentStatus === 'cancelled') {
       return (
-        <div className="flex items-center text-red-500 font-medium bg-red-50 p-3 rounded-lg border border-red-100">
-          <XCircle className="w-5 h-5 mr-2" /> Đơn đã bị hủy
+        <div className="flex flex-col gap-1.5 text-red-500 font-medium bg-red-50 p-3 rounded-lg border border-red-100">
+          <div className="flex items-center text-sm font-semibold">
+            <XCircle className="w-5 h-5 mr-2 shrink-0" /> Đơn đã bị hủy
+          </div>
+          {booking.cancellation_reason && (
+            <p className="text-xs text-red-600 pl-7 font-normal">
+              <span className="font-semibold">Lý do hủy:</span> {booking.cancellation_reason}
+            </p>
+          )}
         </div>
       );
     }
@@ -700,7 +708,7 @@ export default function StaffBookingListPage() {
 
                   {/* Stepper */}
                   <div className="pt-5 border-t border-slate-100">
-                    {renderStepper(booking.booking_status)}
+                    {renderStepper(booking)}
                   </div>
                 </div>
               );

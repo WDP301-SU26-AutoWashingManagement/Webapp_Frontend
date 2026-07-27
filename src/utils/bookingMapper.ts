@@ -125,6 +125,7 @@ export function normalizeWashBooking(raw: Record<string, unknown>): WashBooking 
     created_at: raw.created_at != null ? String(raw.created_at) : raw.createdAt != null ? String(raw.createdAt) : undefined,
     services: Array.isArray(raw.services) ? (raw.services as any[]) : undefined,
     report: raw.report,
+    cancellation_reason: typeof raw.cancellation_reason === 'string' ? raw.cancellation_reason : (typeof raw.cancel_reason === 'string' ? raw.cancel_reason : undefined),
   }
 }
 

@@ -30,7 +30,7 @@ export default function BookingDetailModal({ booking: initialBooking, isOpen, on
   const isAdmin = user?.role === 'admin'
   const isBoss = user?.role === 'boss'
 
-  const canCreateChecklist = !hideStaffActions && (isTechnical || isManager)
+  const canCreateChecklist = !hideStaffActions && (isTechnical || isManager) && booking ? !['cancelled', 'completed', 'compensated'].includes(booking.booking_status) : false
   const canViewChecklist = true // Đã mở cho toàn bộ người dùng (kể cả Customer) có thể xem và tải biên bản của đơn hàng này
 
   const fetchChecklist = async (targetBooking?: WashBooking) => {
@@ -126,6 +126,18 @@ export default function BookingDetailModal({ booking: initialBooking, isOpen, on
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-6">
+          {booking.booking_status === 'cancelled' && (
+            <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 mb-6 flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+              <div>
+                <div className="text-sm font-bold text-rose-800">Đơn đặt lịch đã bị hủy</div>
+                <div className="text-xs text-rose-700 mt-1">
+                  <span className="font-semibold">Lý do hủy:</span> {booking.cancellation_reason || 'Không có lý do cụ thể'}
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 
             {/* Cột 1 */}
