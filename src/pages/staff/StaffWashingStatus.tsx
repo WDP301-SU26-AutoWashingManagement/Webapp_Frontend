@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
-import type { ChangeEvent } from "react";
 import { washService } from "../../services/staffWashingStatusService";
 import { showError, showSuccess } from "../../utils/toast";
-import { Play, Car, Droplets, Info, Loader2, Siren } from "lucide-react";
+import { Droplets, Info, Loader2, RefreshCw, Siren } from "lucide-react";
 import {
   ActionType,
   type NotificationWashingStatus,
@@ -15,6 +14,7 @@ export default function StaffWashingStatus() {
   const [loading, setLoading] = useState(false);
   const [stopping, setStopping] = useState(false);
   const [detecting, setDetecting] = useState<string>("");
+  const [bookingRefreshKey, setBookingRefreshKey] = useState(true);
 
   const [washingStatus, setWashingStatus] =
     useState<NotificationWashingStatus | null>(null);
@@ -29,13 +29,30 @@ export default function StaffWashingStatus() {
       if (data.action === ActionType.IDLE) {
         setDetecting("Thiết bị chưa được sử dụng");
       }
-      if (
-        data.action !== ActionType.IDLE
-      ) {
+      if (data.action !== ActionType.IDLE) {
         setDetecting("");
+      }
+      if (data.action === ActionType.DONE) {
+        setBookingRefreshKey((currentKey) => !currentKey);
       }
     }
   }, [data]);
+
+  const handleReset = async () => {
+    try {
+      setLoading(true);
+      const response = await washService.reset();
+      if (response.success) {
+        showSuccess(response.message || "Đã gửi yêu cầu reset máy!");
+      } else {
+        showError(response.message || "Reset máy thất bại.");
+      }
+    } catch (error: any) {
+      showError(error.message || "Đã xảy ra lỗi khi gửi yêu cầu reset máy.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const handleStop = async () => {
     setStopping(true);
@@ -74,11 +91,27 @@ export default function StaffWashingStatus() {
         <div className="admin-card md:col-span-6 lg:col-span-5 flex flex-col justify-between">
           {/* Phần trên: Trạng thái Bơm */}
           <div className="flex flex-col border-b border-slate-100">
-            <div className="flex items-center gap-2 mb-1">
-              <Droplets className="text-[#0ea5b7]" size={20} />
-              <span className="admin-stat-card__label" style={{ fontSize: "1rem" }}>
-                Trạng thái Bơm
-              </span>
+            <div className="flex items-start justify-between gap-3 mb-1">
+              <div className="flex items-center gap-2">
+                <Droplets className="text-[#0ea5b7]" size={20} />
+                <span
+                  className="admin-stat-card__label"
+                  style={{ fontSize: "1rem" }}
+                >
+                  Trạng thái Bơm
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleReset}
+                className="flex items-center justify-center p-2.5 bg-white border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 transition-all shadow-sm"
+              >
+                <RefreshCw
+                  size={16}
+                  className={loading ? "animate-spin text-[#0ea5b7]" : ""}
+                />
+              </button>
             </div>
 
             <div>
@@ -91,7 +124,8 @@ export default function StaffWashingStatus() {
                 <h3
                   className="admin-stat-card__value"
                   style={{
-                    fontFamily: '"Google Sans", "Plus Jakarta Sans", sans-serif',
+                    fontFamily:
+                      '"Google Sans", "Plus Jakarta Sans", sans-serif',
                     fontWeight: 800,
                   }}
                 >
@@ -185,8 +219,7 @@ export default function StaffWashingStatus() {
                 1
               </span>
               <span>
-                Đưa xe của khách vào đúng vị trí của băng chuyền rửa xe tự
-                động.
+                Đưa xe của khách vào đúng vị trí của băng chuyền rửa xe tự động.
               </span>
             </div>
             <div style={{ display: "flex", gap: "0.5rem" }}>
@@ -227,15 +260,15 @@ export default function StaffWashingStatus() {
                 3
               </span>
               <span>
-                Đảm bảo không có người hoặc vật cản đứng gần khu vực vòi phun
-                áp lực cao.
+                Đảm bảo không có người hoặc vật cản đứng gần khu vực vòi phun áp
+                lực cao.
               </span>
             </div>
           </div>
         </div>
       </div>
 
-      <StaffWashingBookingCard/>
+      <StaffWashingBookingCard refreshKey={bookingRefreshKey} />
     </div>
   );
 }
