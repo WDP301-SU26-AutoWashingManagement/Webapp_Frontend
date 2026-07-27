@@ -26,6 +26,13 @@ export default function ReportModal({ isOpen, onClose, appointmentId, onSuccess 
 
   useEffect(() => {
     if (isOpen && appointmentId) {
+      setTitle('')
+      setDescription('')
+      setFullname(user?.full_name || '')
+      setPhone(user?.phone || '')
+      setEmail(user?.email || '')
+      setEvidenceFiles([])
+
       setLoadingCheck(true)
       bookingChecklistService.getByAppointmentId(appointmentId)
         .then(checklist => {
@@ -36,7 +43,7 @@ export default function ReportModal({ isOpen, onClose, appointmentId, onSuccess 
     } else {
       setIsHandoverSigned(false)
     }
-  }, [isOpen, appointmentId])
+  }, [isOpen, appointmentId, user])
 
   if (!isOpen || !appointmentId) return null
 

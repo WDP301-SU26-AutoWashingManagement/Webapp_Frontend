@@ -45,6 +45,7 @@ export interface WashBooking {
     is_completed?: boolean
   }>
   report?: any
+  cancellation_reason?: string
 }
 
 export interface CreateBookingInput {

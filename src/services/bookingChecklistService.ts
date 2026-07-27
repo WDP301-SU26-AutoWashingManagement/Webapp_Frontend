@@ -30,6 +30,27 @@ export interface BookingReport {
   isConfirm: boolean;
 }
 
+export interface BranchCompensationBreakdown {
+  branchId: string;
+  branchAddress?: {
+    street: string;
+    ward: string;
+    district: string;
+    city: string;
+  };
+  branchPhone?: string;
+  totalAmount: number;
+  totalCases: number;
+  rejectedCases?: number;
+}
+
+export interface CompensationSummary {
+  totalCompensationAmount: number;
+  totalCases: number;
+  rejectedCases?: number;
+  branchBreakdown: BranchCompensationBreakdown[];
+}
+
 export const bookingChecklistService = {
   async getByAppointmentId(appointmentId: string): Promise<BookingChecklist | null> {
     try {
@@ -72,6 +93,7 @@ export const bookingChecklistService = {
     limit?: number;
     isConfirm?: boolean;
     status?: string;
+    branchId?: string;
   }): Promise<PaginatedResponse<BookingReport>> {
     const response = await apiClient.get<any>('/booking-checklists/reports', { params });
     if (response) {
@@ -80,6 +102,14 @@ export const bookingChecklistService = {
       return { items, total };
     }
     return { items: [], total: 0 };
+  },
+
+  async getCompensationSummary(params?: { branchId?: string }): Promise<CompensationSummary> {
+    const response = await apiClient.get<ApiResponse<CompensationSummary>>('/booking-checklists/reports/compensation-summary', { params });
+    if (response && response.data) {
+      return response.data;
+    }
+    return { totalCompensationAmount: 0, totalCases: 0, branchBreakdown: [] };
   },
 
   async acceptReport(appointmentId: string, payload: any): Promise<any> {

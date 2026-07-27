@@ -45,10 +45,6 @@ import StaffPaymentsPage from './pages/staff/StaffPaymentsPage'
 import StaffTransactionHistoryPage from './pages/staff/StaffTransactionHistoryPage'
 import StaffLeaveRequestsPage from './pages/staff/StaffLeaveRequestsPage'
 import StaffTechnicalLayout from './pages/staff/StaffTechnicalLayout'
-import StaffTechnicalDashboard from './pages/staff/StaffTechnicalDashboard'
-import StaffTechnicalBookingsPage from './pages/staff/StaffTechnicalBookingsPage'
-import StaffTechnicalNotesPage from './pages/staff/StaffTechnicalNotesPage'
-import StaffTechnicalHistoryPage from './pages/staff/StaffTechnicalHistoryPage'
 import StaffSchedulePage from './pages/staff/StaffSchedulePage'
 import StaffBookingListPage from './pages/staff/StaffBookingListPage'
 
@@ -197,6 +193,7 @@ function AppContent() {
           <Route index element={<Navigate to="/boss/dashboard" replace />} />
           <Route path="dashboard" element={<BossDashboard />} />
           <Route path="transaction-history" element={<StaffTransactionHistoryPage />} />
+          <Route path="reports" element={<SharedReportsPage />} />
           <Route path="customers" element={<SharedCustomersPage />} />
           <Route
             path="accounts"
@@ -256,8 +253,6 @@ function AppContent() {
           <Route path="bookings" element={<StaffBookingListPage />} />
           <Route path="payments" element={<StaffPaymentsPage />} />
           <Route path="washing-status" element={<StaffWashingStatus />} />
-          <Route path="notes" element={<StaffTechnicalNotesPage />} />
-          <Route path="history" element={<StaffTechnicalHistoryPage />} />
           <Route path="leave-requests" element={<StaffLeaveRequestsPage />} />
           <Route path="schedules" element={<StaffSchedulePage />} />
           <Route path="settings" element={<InternalProfilePage />} />

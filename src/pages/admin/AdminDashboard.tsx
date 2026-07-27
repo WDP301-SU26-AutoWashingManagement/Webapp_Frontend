@@ -17,6 +17,7 @@ import apiClient from '../../services/apiClient'
 import { showError } from '../../utils/toast'
 import { useAuth } from '../../hooks/useAuth'
 import { branchService, type Branch } from '../../services/branchService'
+import CompensationDashboardSection from '../../components/CompensationDashboardSection'
 
 interface DashboardStats {
   totalCustomers: number
@@ -767,6 +768,12 @@ export default function AdminDashboard() {
               <HourlyBookingChart branchId={selectedBranch} />
             </div>
           </div>
+
+          {/* Compensation Summary Dashboard Section */}
+          <CompensationDashboardSection
+            selectedBranch={selectedBranch}
+            onSelectBranch={(branchId) => setSelectedBranch(branchId)}
+          />
 
         </div>
       )}

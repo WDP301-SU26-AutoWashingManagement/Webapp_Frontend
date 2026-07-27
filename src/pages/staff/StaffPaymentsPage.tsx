@@ -1,17 +1,22 @@
 import { useEffect, useState } from 'react'
-import { RefreshCw, ChevronLeft, ChevronRight, Eye, Search, Check, AlertCircle } from 'lucide-react'
+import { RefreshCw, ChevronLeft, ChevronRight, Eye, Search, Check, AlertCircle, PenTool } from 'lucide-react'
 import { bookingService } from '../../services/bookingService'
 import type { BookingListResult } from '../../services/bookingService'
 import type { WashBooking } from '../../types/booking'
 import { showError, showSuccess } from '../../utils/toast'
 import BookingDetailModal from '../../components/BookingDetailModal'
 import PaymentModal from '../../components/PaymentModal'
+import ConfirmHandoverModal from '../../components/ConfirmHandoverModal'
+import { bookingChecklistService } from '../../services/bookingChecklistService'
 
 export default function StaffPaymentsPage() {
     const [data, setData] = useState<BookingListResult>({ items: [], total: 0 })
     const [loading, setLoading] = useState(true)
     const [detailModal, setDetailModal] = useState<WashBooking | null>(null)
     const [paymentModal, setPaymentModal] = useState<{ isOpen: boolean, booking: WashBooking | null }>({ isOpen: false, booking: null })
+    const [confirmHandoverModalBooking, setConfirmHandoverModalBooking] = useState<WashBooking | null>(null)
+    const [signedHandoverIds, setSignedHandoverIds] = useState<Set<string>>(new Set())
+    const [loadingHandovers, setLoadingHandovers] = useState<Set<string>>(new Set())
     const [page, setPage] = useState(1)
     const today = new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]
     const [selectedDate, setSelectedDate] = useState<string>(today)
@@ -33,6 +38,35 @@ export default function StaffPaymentsPage() {
             }
             const res = await bookingService.list(params)
             setData(res)
+
+            // Check handover signature status for washed bookings
+            if (res.items && res.items.length > 0) {
+                const washedIds = res.items.map((b: WashBooking) => b._id || b.id!);
+                setLoadingHandovers(new Set(washedIds));
+
+                Promise.all(
+                    res.items.map((b: WashBooking) => {
+                        const id = b._id || b.id!;
+                        return bookingChecklistService.getByAppointmentId(id)
+                            .then(checklist => ({ id, hasSigned: !!checklist?.customer_signature_after }))
+                            .catch(() => ({ id, hasSigned: false }));
+                    })
+                ).then(results => {
+                    setSignedHandoverIds(prev => {
+                        const newSet = new Set(prev);
+                        results.forEach(r => {
+                            if (r.hasSigned) newSet.add(r.id);
+                            else newSet.delete(r.id);
+                        });
+                        return newSet;
+                    });
+                    setLoadingHandovers(prev => {
+                        const newSet = new Set(prev);
+                        results.forEach(r => newSet.delete(r.id));
+                        return newSet;
+                    });
+                });
+            }
         } catch (error) {
             showError('Không thể tải danh sách booking')
         } finally {
@@ -228,6 +262,17 @@ export default function StaffPaymentsPage() {
                                                         <button disabled className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-slate-200 text-slate-500 cursor-not-allowed shadow-sm flex items-center gap-1.5">
                                                             <AlertCircle size={14} /> Xử lí khiếu nại
                                                         </button>
+                                                    ) : loadingHandovers.has(b._id || b.id!) ? (
+                                                        <button disabled className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-slate-200 text-slate-500 shadow-sm flex items-center gap-1.5">
+                                                            <RefreshCw size={14} className="animate-spin text-slate-400" /> Đang tải...
+                                                        </button>
+                                                    ) : !signedHandoverIds.has(b._id || b.id!) ? (
+                                                        <button
+                                                            onClick={() => setConfirmHandoverModalBooking(b)}
+                                                            className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 transition shadow-sm flex items-center gap-1.5"
+                                                        >
+                                                            <PenTool size={14} /> Ký nhận xe
+                                                        </button>
                                                     ) : (
                                                         <button
                                                             onClick={() => setPaymentModal({ isOpen: true, booking: b })}
@@ -293,6 +338,25 @@ export default function StaffPaymentsPage() {
                 booking={detailModal}
                 isOpen={!!detailModal}
                 onClose={() => setDetailModal(null)}
+                onConfirmHandover={(b) => setConfirmHandoverModalBooking(b)}
+                onPay={(b) => {
+                    const id = b._id || b.id!;
+                    if (signedHandoverIds.has(id)) {
+                        setPaymentModal({ isOpen: true, booking: b });
+                    } else {
+                        setConfirmHandoverModalBooking(b);
+                    }
+                }}
+            />
+
+            <ConfirmHandoverModal
+                isOpen={!!confirmHandoverModalBooking}
+                onClose={() => setConfirmHandoverModalBooking(null)}
+                booking={confirmHandoverModalBooking}
+                onSuccess={() => {
+                    setConfirmHandoverModalBooking(null);
+                    fetchBookings(page, selectedDate);
+                }}
             />
 
             {paymentModal.booking && (

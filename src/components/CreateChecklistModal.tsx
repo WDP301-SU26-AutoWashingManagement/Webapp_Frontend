@@ -128,6 +128,15 @@ export default function CreateChecklistModal({ booking, isOpen, onClose, onSucce
   const [signature, setSignature] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  useEffect(() => {
+    if (isOpen) {
+      setItems(DEFAULT_ITEMS.map(label => ({ label, checked: false })));
+      setNote('');
+      setImages([]);
+      setSignature(null);
+    }
+  }, [isOpen, booking?._id, booking?.id]);
+
   if (!isOpen || !booking) return null;
 
   const handleToggleItem = (index: number) => {
@@ -258,7 +267,7 @@ export default function CreateChecklistModal({ booking, isOpen, onClose, onSucce
             <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
               <PenTool size={16} className="text-indigo-500" /> Chữ ký khách hàng
             </h3>
-            <SignaturePad onSignatureChange={setSignature} />
+            <SignaturePad key={booking?._id || booking?.id} onSignatureChange={setSignature} />
           </div>
         </div>
 
