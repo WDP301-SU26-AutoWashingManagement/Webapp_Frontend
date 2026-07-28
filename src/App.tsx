@@ -60,10 +60,9 @@ const STAFF_PATHS_PREFIX = '/staff'
 function StaffIndexRedirect() {
   const { user } = useAuth();
   if (user?.staff_type === 'technical') {
-    return <Navigate to="/staff/technical/dashboard" replace />;
+    return <Navigate to="/staff/technical/bookings" replace />;
   }
-  const isAdminOrBoss = user?.role === 'admin' || user?.role === 'boss';
-  return <Navigate to={isAdminOrBoss ? "/staff/revenue" : "/staff/bookings"} replace />;
+  return <Navigate to="/staff/bookings" replace />;
 }
 
 function AppContent() {
@@ -179,6 +178,7 @@ function AppContent() {
             path="settings"
             element={<InternalProfilePage />}
           />
+          <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
         </Route>
 
         {/* ── Boss protected ── */}
@@ -212,6 +212,7 @@ function AppContent() {
             path="settings"
             element={<InternalProfilePage />}
           />
+          <Route path="*" element={<Navigate to="/boss/dashboard" replace />} />
         </Route>
 
         {/* ── Staff protected ── */}
@@ -224,8 +225,6 @@ function AppContent() {
           }
         >
           <Route index element={<StaffIndexRedirect />} />
-          <Route path="revenue" element={<AdminDashboard />} />
-          <Route path="dashboard" element={<StaffDashboard />} />
           <Route path="customers" element={<SharedCustomersPage />} />
 
           <Route path="bookings" element={<StaffBookingListPage />} />
@@ -237,6 +236,7 @@ function AppContent() {
           <Route path="list" element={<AdminStaffsPage />} />
           <Route path="settings" element={<InternalProfilePage />} />
           <Route path="washing-status" element={<StaffWashingStatus />} />
+          <Route path="*" element={<Navigate to="/staff/bookings" replace />} />
         </Route>
 
         {/* ── Staff technical protected ── */}
@@ -256,6 +256,7 @@ function AppContent() {
           <Route path="leave-requests" element={<StaffLeaveRequestsPage />} />
           <Route path="schedules" element={<StaffSchedulePage />} />
           <Route path="settings" element={<InternalProfilePage />} />
+          <Route path="*" element={<Navigate to="/staff/technical/bookings" replace />} />
         </Route>
 
         {/* ── Auth (guest only) ── */}
