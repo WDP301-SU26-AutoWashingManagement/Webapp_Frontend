@@ -165,7 +165,7 @@ export default function SharedReportsPage() {
     if (!previewBillModal) return;
     setIsVerifying(true);
     setVerifyProgress(0);
-    setVerifyStep('Đang khởi tạo AI...');
+    setVerifyStep('Đang kiểm tra...');
     setVerifyResult(null);
     setVerifyError('');
 
@@ -697,8 +697,18 @@ export default function SharedReportsPage() {
                       {detailModal.report.compensation.transfer_image ? (
                         <div>
                           <h4 className="text-sm font-semibold text-slate-900 mb-2">Ảnh bill chuyển khoản</h4>
-                          <div onClick={() => setPreviewImage(detailModal.report.compensation.transfer_image)} className="block w-32 h-auto rounded-lg overflow-hidden border border-slate-200 hover:border-emerald-400 transition-colors cursor-pointer">
-                            <img src={detailModal.report.compensation.transfer_image} alt="Transfer bill" className="w-full object-cover" />
+                          <div className="space-y-2">
+                            <div onClick={() => setPreviewImage(detailModal.report.compensation.transfer_image)} className="block w-32 h-auto rounded-lg overflow-hidden border border-slate-200 hover:border-emerald-400 transition-colors cursor-pointer">
+                              <img src={detailModal.report.compensation.transfer_image} alt="Transfer bill" className="w-full object-cover" />
+                            </div>
+                            {user?.role !== 'boss' && !detailModal.report.compensation.customer_signature_confirm && (
+                              <div>
+                                <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg cursor-pointer transition-colors border border-slate-200">
+                                  <Upload size={12} /> Cập nhật Bill khác
+                                  <input type="file" accept="image/*" className="hidden" onChange={(e) => handleUploadBill(e, detailModal._id, 'BILL')} />
+                                </label>
+                              </div>
+                            )}
                           </div>
                         </div>
                       ) : (
