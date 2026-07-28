@@ -95,7 +95,7 @@ export default function BookingsPage() {
     if (!previewBillModal) return;
     setIsVerifying(true);
     setVerifyProgress(0);
-    setVerifyStep('Đang khởi tạo AI...');
+    setVerifyStep('Đang kiểm tra...');
     setVerifyResult(null);
     setVerifyError('');
 
