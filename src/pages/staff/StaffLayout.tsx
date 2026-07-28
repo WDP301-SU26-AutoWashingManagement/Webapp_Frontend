@@ -1,9 +1,7 @@
 import { useState } from 'react'
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import {
-    LayoutDashboard,
     CalendarCheck,
-    CheckSquare,
     CreditCard,
     Settings,
     LogOut,
@@ -13,7 +11,6 @@ import {
     CalendarOff,
     CalendarDays,
     Users,
-    PlayCircle,
     UserCog,
     CircleEllipsis,
     MessageSquare
@@ -23,18 +20,8 @@ import logo2 from '../../assets/logo2.png'
 
 const NAV_GROUPS = [
     {
-        title: 'Lịch hẹn & Doanh thu',
+        title: 'Lịch hẹn',
         items: [
-            {
-                label: 'Tổng quan Doanh thu',
-                icon: LayoutDashboard,
-                to: '/staff/revenue',
-            },
-            {
-                label: 'Hệ thống Auto-Cron',
-                icon: LayoutDashboard,
-                to: '/staff/dashboard',
-            },
             {
                 label: 'Lịch hẹn',
                 icon: CalendarCheck,
@@ -113,28 +100,11 @@ export default function StaffLayout() {
         .join('')
         .toUpperCase()
 
-    const isManager = user?.role === 'admin' || user?.role === 'boss' || user?.staff_type === 'manager'
-    const isAdminOrBoss = user?.role === 'admin' || user?.role === 'boss'
-
-    // Lọc menu tuỳ theo role
-    const visibleNavGroups = NAV_GROUPS.map(group => {
-        return {
-            ...group,
-            items: group.items.filter(item => {
-                // Giấu Hệ thống Auto-Cron, Doanh thu đối với Manager và Technical
-                if (!isAdminOrBoss && (item.to === '/staff/dashboard' || item.to === '/staff/revenue')) return false
-                // Giấu Lịch sử giao dịch và Khiếu nại đối với Technical (Chỉ Manager được xem)
-                if (!isManager && (item.to === '/staff/transaction-history' || item.to === '/staff/reports')) return false
-                return true
-            })
-        }
-    }).filter(group => group.items.length > 0)
-
     return (
         <div className="admin-layout">
             <aside className={`admin-sidebar ${sidebarOpen ? 'admin-sidebar--open' : 'admin-sidebar--collapsed'}`}>
                 <div className="admin-sidebar__brand">
-                    <Link to={isAdminOrBoss ? "/staff/dashboard" : "/staff/bookings"} className="admin-sidebar__logo-link">
+                    <Link to="/staff/bookings" className="admin-sidebar__logo-link">
                         <img src={logo2} alt="HybridWash" className="admin-sidebar__logo-img" />
                         {sidebarOpen && (
                             <span className="admin-sidebar__logo-text">
@@ -160,8 +130,8 @@ export default function StaffLayout() {
                 )}
 
                 <nav className="admin-sidebar__nav" style={{ padding: '0.5rem', gap: '0.5rem', display: 'flex', flexDirection: 'column' }}>
-                    {visibleNavGroups.map((group, idx) => (
-                        <div key={idx} style={{ marginBottom: idx !== visibleNavGroups.length - 1 ? '1rem' : '0' }}>
+                    {NAV_GROUPS.map((group, idx) => (
+                        <div key={idx} style={{ marginBottom: idx !== NAV_GROUPS.length - 1 ? '1rem' : '0' }}>
                             {sidebarOpen && (
                                 <div style={{
                                     padding: '0 0.75rem',
