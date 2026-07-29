@@ -487,14 +487,6 @@ export default function BossPromotionsPage() {
                       >
                         <Pencil size={14} />
                       </button>
-                      <button
-                        className="admin-action-btn admin-action-btn--delete"
-                        onClick={() => void handleDelete(promo)}
-                        disabled={deletingId === id}
-                        title="Xoá"
-                      >
-                        {deletingId === id ? <RefreshCw size={14} className="animate-spin" /> : <Trash2 size={14} />}
-                      </button>
                     </div>
                   </td>
                 </tr>
