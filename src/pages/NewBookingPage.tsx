@@ -39,7 +39,7 @@ import { estimateBookingPrice, formatPromotionLabel } from '../utils/promotionPr
 import { getApiErrorMessage } from '../utils/errors'
 import { showError, showSuccess } from '../utils/toast'
 import { getStoredCustomerProfile } from '../lib/authSession'
-import { MapPin, Calendar, CheckCircle2, ChevronRight, ChevronLeft, Star, Plus } from 'lucide-react'
+import { MapPin, Calendar, CheckCircle2, ChevronRight, ChevronLeft, Star, Plus, Tag, Gift } from 'lucide-react'
 
 
 export default function NewBookingPage() {
@@ -81,6 +81,7 @@ export default function NewBookingPage() {
   const [activeTab, setActiveTab] = useState<'combo' | 'single'>('combo')
   const [validatedPromotion, setValidatedPromotion] = useState<Promotion | null>(null)
   const [validatingPromotion, setValidatingPromotion] = useState(false)
+  const [availablePromotions, setAvailablePromotions] = useState<Promotion[]>([])
   const [recommendation, setRecommendation] = useState<import('../types/booking').IBookingRecommendation | null>(null)
   const [loadingRecommendation, setLoadingRecommendation] = useState(false)
 
@@ -89,11 +90,12 @@ export default function NewBookingPage() {
 
     setLoadingFormOptions(true)
     try {
-      const [vehicleList, packages, branchList, comboRes] = await Promise.all([
+      const [vehicleList, packages, branchList, comboRes, promoList] = await Promise.all([
         vehicleService.list(),
         servicePackageService.listActive(),
         branchService.list(),
         adminServicePackageService.list({ limit: 100, is_active: true }),
+        promotionService.list().catch(() => []),
       ])
 
       const combosWithServices = await Promise.all(
@@ -111,6 +113,7 @@ export default function NewBookingPage() {
       setIndividualServices(packages as unknown as BookingServiceType[])
       setComboPackages(combosWithServices)
       setBranches(branchList)
+      setAvailablePromotions(promoList.filter((p: any) => p.is_active !== false))
 
       // Auto-select branch if there is only one
       if (branchList.length === 1 && branchList[0]._id) {
@@ -425,6 +428,30 @@ export default function NewBookingPage() {
     } finally {
       setValidatingPromotion(false)
     }
+  }
+
+  const handleSelectPromoCard = (promo: Promotion) => {
+    let totalBasePrice = 0
+    if (selectedCombo) {
+      totalBasePrice += selectedCombo.finalPrice
+    }
+    if (selectedServices.length > 0) {
+      totalBasePrice += selectedServices.reduce((sum, pkg) => sum + (pkg.service_price || 0), 0)
+    }
+    const tierDiscount = Math.round(totalBasePrice * (tierDiscountPercentage / 100));
+    const priceAfterTier = Math.max(0, totalBasePrice - tierDiscount);
+
+    if (priceAfterTier < (promo.min_order_amount || 0)) {
+      showError(`Đơn hàng chưa đạt giá trị tối thiểu để áp dụng mã ${promo.code} (Yêu cầu tối thiểu từ ${(promo.min_order_amount || 0).toLocaleString('vi-VN')}đ)`)
+      return
+    }
+
+    setValidatedPromotion(promo)
+    setForm((prev) => ({
+      ...prev,
+      promotion_code: promo.code,
+    }))
+    showSuccess(`Đã áp dụng thành công mã khuyến mãi ${promo.code}`)
   }
 
   const handleNext = () => {
@@ -1027,6 +1054,74 @@ export default function NewBookingPage() {
                           </div>
                         )}
                       </label>
+
+                      {/* Danh sách mã khuyến mãi có sẵn */}
+                      {availablePromotions.length > 0 && (
+                        <div className="mt-4 pt-3 border-t border-rose-100">
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-2.5 uppercase tracking-wider">
+                            <Gift size={14} className="text-rose-500" /> Mã khuyến mãi dành cho bạn
+                          </div>
+                          <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+                            {availablePromotions.map((promo) => {
+                              const isApplied = validatedPromotion && (validatedPromotion._id === promo._id || validatedPromotion.code === promo.code);
+                              const discountLabel = promo.type === 'bonus_service'
+                                ? 'Tặng dịch vụ'
+                                : promo.discount_percentage > 0
+                                ? `Giảm ${promo.discount_percentage}%`
+                                : `Giảm ${(promo.discount_amount || 0).toLocaleString('vi-VN')}đ`;
+                              return (
+                                <div
+                                  key={promo._id || promo.code}
+                                  className={`p-2.5 rounded-xl border transition-all flex items-center justify-between gap-3 ${
+                                    isApplied
+                                      ? 'bg-emerald-50/80 border-emerald-300 shadow-2xs'
+                                      : 'bg-white border-rose-100 hover:border-rose-300 hover:shadow-2xs'
+                                  }`}
+                                >
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2">
+                                      <span className="px-2 py-0.5 bg-rose-100 text-rose-700 font-extrabold text-[11px] rounded-md uppercase tracking-wide shrink-0">
+                                        {promo.code}
+                                      </span>
+                                      <span className="text-xs font-bold text-rose-600 truncate">
+                                        {discountLabel}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-500">
+                                      <span className="truncate font-medium text-slate-700">
+                                        {promo.promotion_name || promo.description || 'Ưu đãi đặt lịch'}
+                                      </span>
+                                      {!!promo.min_order_amount && promo.min_order_amount > 0 && (
+                                        <span className="text-slate-400 shrink-0">
+                                          • Đơn tối thiểu: {promo.min_order_amount.toLocaleString('vi-VN')}đ
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSelectPromoCard(promo)}
+                                    className={`shrink-0 text-xs font-bold px-3 py-1.5 rounded-lg transition-all flex items-center gap-1 ${
+                                      isApplied
+                                        ? 'bg-emerald-600 text-white cursor-default'
+                                        : 'bg-rose-500 hover:bg-rose-600 text-white shadow-2xs'
+                                    }`}
+                                  >
+                                    {isApplied ? (
+                                      <>
+                                        <CheckCircle2 size={13} /> Đã áp dụng
+                                      </>
+                                    ) : (
+                                      'Áp dụng ngay'
+                                    )}
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
