@@ -1,4 +1,4 @@
-import { UserPlus, CalendarCheck, Sparkles, Car } from 'lucide-react'
+import { UserPlus, CalendarCheck, Sparkles, Car, ShieldCheck } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 const steps = [
@@ -26,8 +26,8 @@ const steps = [
   {
     icon: Sparkles,
     num: '04',
-    title: 'Rửa xe & tích điểm',
-    desc: 'Admin xác nhận hoàn thành dịch vụ. Điểm được cộng tự động vào tài khoản của bạn.',
+    title: 'Nhận xe, thanh toán & tích điểm',
+    desc: 'Khi xe được rửa xong, bạn có thể tới nhận xe và thanh toán. Điểm thưởng sẽ được cộng tự động vào tài khoản.',
     link: '/profile'
   },
 ]
@@ -49,12 +49,14 @@ export default function HowItWorks() {
           {steps.map((s) => {
             const content = (
               <>
-                <div className="mb-6 flex items-start justify-between gap-4">
-                  <div>
-                    <div className="mb-3 inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold tracking-[0.18em] text-slate-700">
+                <div className="mb-4 flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="mb-2.5 inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold tracking-[0.18em] text-slate-700">
                       Bước {s.num}
                     </div>
-                    <h3 className="marketing-card-heading text-lg text-slate-900">{s.title}</h3>
+                    <h3 className="marketing-card-heading text-lg font-bold text-slate-900 min-h-[3.5rem] flex items-center">
+                      {s.title}
+                    </h3>
                   </div>
 
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-cyan-500/15 bg-cyan-500/10 text-cyan-600 transition-transform duration-200 group-hover:scale-105">
@@ -62,7 +64,7 @@ export default function HowItWorks() {
                   </div>
                 </div>
 
-                <p className="text-sm leading-relaxed text-slate-600">{s.desc}</p>
+                <p className="text-sm leading-relaxed text-slate-600 flex-1">{s.desc}</p>
 
                 <div className="mt-auto">
                   <div className="mt-6 h-px w-full bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent" />
@@ -91,13 +93,18 @@ export default function HowItWorks() {
           })}
         </div>
 
-        <div className="mt-6 rounded-3xl border border-cyan-500/15 bg-gradient-to-r from-cyan-600/10 via-white/85 to-green-500/10 px-5 py-4 shadow-sm backdrop-blur-sm">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="text-sm font-semibold text-slate-900">Từ đăng ký đến ưu đãi, mọi thứ chạy trong một luồng duy nhất.</p>
-              <p className="text-sm text-slate-600">Không rối mắt, không thừa chi tiết, tập trung vào hành động tiếp theo của khách hàng.</p>
+        <div className="mt-6 max-w-4xl mx-auto rounded-3xl border border-cyan-500/15 bg-gradient-to-r from-cyan-600/10 via-white/85 to-green-500/10 px-6 py-4 shadow-sm backdrop-blur-sm">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="max-w-2xl">
+              <p className="text-sm font-semibold text-slate-900 flex items-center gap-1.5">
+                <ShieldCheck size={18} className="text-cyan-600 shrink-0" />
+                Cam kết chất lượng dịch vụ & Hỗ trợ khách hàng
+              </p>
+              <p className="text-sm text-slate-600 mt-1 leading-relaxed">
+                Khi xe được rửa xong bạn có thể tới nhận xe và thanh toán. Nếu có vấn đề xảy ra bạn có thể tạo đơn khiếu nại và cửa hàng sẽ giải quyết trong thời gian sớm nhất.
+              </p>
             </div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/15 bg-white/80 px-4 py-2 text-sm font-semibold text-cyan-700">
+            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/15 bg-white/80 px-4 py-2 text-sm font-semibold text-cyan-700 shrink-0">
               <CalendarCheck size={16} strokeWidth={1.8} />
               Đặt lịch trong vài phút
             </div>
