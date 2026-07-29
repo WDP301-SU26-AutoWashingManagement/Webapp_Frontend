@@ -8,10 +8,14 @@ import type { ServiceGroup } from '../../types/serviceGroup'
 import type { Service } from '../../types/service'
 import { showError, showSuccess } from '../../utils/toast'
 import { getApiErrorMessage } from '../../utils/errors'
+import { useAuth } from '../../hooks/useAuth'
 
 const fmtPrice = (n: number) => n.toLocaleString('vi-VN') + 'đ'
 
 export default function AdminServicePackagesPage() {
+  const { user } = useAuth()
+  const isBoss = user?.role === 'boss'
+
   const [packages, setPackages] = useState<ServicePackage[]>([])
   const [groups, setGroups] = useState<ServiceGroup[]>([])
   const [allServices, setAllServices] = useState<Service[]>([])
@@ -385,9 +389,11 @@ export default function AdminServicePackagesPage() {
               />
             </div>
             <div className="ml-auto flex gap-2">
-              <button onClick={handleOpenCreate} className="admin-btn admin-btn--primary">
-                <Plus size={15} /> Thêm Gói mới
-              </button>
+              {isBoss && (
+                <button onClick={handleOpenCreate} className="admin-btn admin-btn--primary">
+                  <Plus size={15} /> Thêm Gói mới
+                </button>
+              )}
             </div>
           </div>
 
@@ -399,14 +405,14 @@ export default function AdminServicePackagesPage() {
                   <th>Nhóm</th>
                   <th>Giảm giá</th>
                   <th style={{ textAlign: 'center' }}>Trạng thái</th>
-                  <th style={{ textAlign: 'center' }}>Thao tác</th>
+                  {isBoss && <th style={{ textAlign: 'center' }}>Thao tác</th>}
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={5} className="admin-table__empty">Đang tải...</td></tr>
+                  <tr><td colSpan={isBoss ? 5 : 4} className="admin-table__empty">Đang tải...</td></tr>
                 ) : filteredPackages.length === 0 ? (
-                  <tr><td colSpan={5} className="admin-table__empty">Không tìm thấy gói nào</td></tr>
+                  <tr><td colSpan={isBoss ? 5 : 4} className="admin-table__empty">Không tìm thấy gói nào</td></tr>
                 ) : filteredPackages.map(pkg => {
                   const grp = groups.find(g => (g._id ?? g.id) === pkg.service_group_id)
                   return (
@@ -425,21 +431,23 @@ export default function AdminServicePackagesPage() {
                         </span>
                       </td>
                       <td style={{ textAlign: 'center' }}>
-                        <label className="relative inline-flex items-center cursor-pointer" title={pkg.is_active ? "Đang hoạt động" : "Đã tạm ngưng"}>
-                          <input type="checkbox" className="sr-only peer" checked={pkg.is_active} onChange={() => handleToggle(pkg)} />
+                        <label className={`relative inline-flex items-center ${!isBoss ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`} title={!isBoss ? "Chỉ Boss mới có quyền bật/tắt gói" : (pkg.is_active ? "Đang hoạt động" : "Đã tạm ngưng")}>
+                          <input type="checkbox" className="sr-only peer" checked={pkg.is_active} onChange={() => handleToggle(pkg)} disabled={!isBoss} />
                           <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-[100%] peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
                         </label>
                       </td>
-                      <td style={{ textAlign: 'center' }}>
-                        <div className="flex items-center justify-center gap-2">
-                          <button onClick={() => handleOpenEdit(pkg)} className="admin-action-btn admin-action-btn--edit" title="Chỉnh sửa">
-                            <Pencil size={15} />
-                          </button>
-                          <button onClick={() => handleDelete(pkg)} className="admin-action-btn admin-action-btn--delete" title="Xóa">
-                            <Trash2 size={15} />
-                          </button>
-                        </div>
-                      </td>
+                      {isBoss && (
+                        <td style={{ textAlign: 'center' }}>
+                          <div className="flex items-center justify-center gap-2">
+                            <button onClick={() => handleOpenEdit(pkg)} className="admin-action-btn admin-action-btn--edit" title="Chỉnh sửa">
+                              <Pencil size={15} />
+                            </button>
+                            <button onClick={() => handleDelete(pkg)} className="admin-action-btn admin-action-btn--delete" title="Xóa">
+                              <Trash2 size={15} />
+                            </button>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   )
                 })}

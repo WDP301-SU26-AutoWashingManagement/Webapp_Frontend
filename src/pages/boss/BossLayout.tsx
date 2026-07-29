@@ -10,6 +10,7 @@ import {
   ChevronRight,
   Building,
   Tag,
+  Package,
   Wallet,
   AlertTriangle
 } from 'lucide-react'
@@ -64,6 +65,11 @@ const NAV_GROUPS = [
         label: 'Quản lý Chi nhánh',
         icon: Building,
         to: '/boss/branches',
+      },
+      {
+        label: 'Quản lý Dịch vụ',
+        icon: Package,
+        to: '/boss/services',
       },
       {
         label: 'Khuyến mãi',
