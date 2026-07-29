@@ -23,11 +23,14 @@ const DEFAULT_ITEMS = [
   'Thảm lót sàn, nội thất (tình trạng ban đầu)'
 ];
 
+// COMPONENT KHUNG VẼ CHỮ KÝ ĐIỆN TỬ (CANVAS SIGNATURE PAD):
+// Cho phép Khách hàng vẽ chữ ký trực tiếp trên màn hình cảm ứng hoặc chuột máy tính
 const SignaturePad = ({ onSignatureChange }: { onSignatureChange: (signature: string | null) => void }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasSignature, setHasSignature] = useState(false);
 
+  // Bắt đầu nét vẽ khi người dùng chạm hoặc nhấn giữ chuột
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -43,6 +46,7 @@ const SignaturePad = ({ onSignatureChange }: { onSignatureChange: (signature: st
     setIsDrawing(true);
   };
 
+  // Vẽ nét bút theo vị trí di chuyển di chuột / di ngón tay
   const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (!isDrawing) return;
     const canvas = canvasRef.current;
@@ -59,6 +63,7 @@ const SignaturePad = ({ onSignatureChange }: { onSignatureChange: (signature: st
     setHasSignature(true);
   };
 
+  // Kết thúc nét vẽ -> Xuất ảnh chữ ký thành chuỗi Base64 Data URI (data:image/png;base64,...)
   const stopDrawing = () => {
     if (isDrawing) {
       setIsDrawing(false);
@@ -69,6 +74,7 @@ const SignaturePad = ({ onSignatureChange }: { onSignatureChange: (signature: st
     }
   };
 
+  // Nút xóa chữ ký làm lại từ đầu
   const clearCanvas = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -84,7 +90,7 @@ const SignaturePad = ({ onSignatureChange }: { onSignatureChange: (signature: st
     if (canvas) {
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        ctx.strokeStyle = '#0f172a'; // slate-900
+        ctx.strokeStyle = '#0f172a'; // Nét vẽ màu tối
         ctx.lineWidth = 2.5;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
@@ -125,13 +131,23 @@ const SignaturePad = ({ onSignatureChange }: { onSignatureChange: (signature: st
 };
 
 export default function CreateChecklistModal({ booking, isOpen, onClose, onSuccess }: CreateChecklistModalProps) {
+  // KHAI BÁO CÁC STATE QUẢN LÝ THÔNG TIN BIÊN BẢN KHI KHẢO SÁT XE:
+  // 1. checklist_items: Danh sách các mục khảo sát xe (label, checked)
   const [items, setItems] = useState(DEFAULT_ITEMS.map(label => ({ label, checked: false })));
+  
+  // 2. note: Ghi chú tình trạng xe, vết xước móp có sẵn
   const [note, setNote] = useState('');
+  
+  // 3. images: Mảng chứa các file ảnh hiện trạng xe (File[]) được chọn từ thiết bị
   const [images, setImages] = useState<File[]>([]);
+  
+  // 4. signature: Chuỗi Base64 Data URI chứa chữ ký điện tử của khách hàng
   const [signature, setSignature] = useState<string | null>(null);
+  
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Tự động làm mới (reset) lại các trường thông tin khi mở Modal tạo biên bản mới
   useEffect(() => {
     if (isOpen) {
       setItems(DEFAULT_ITEMS.map(label => ({ label, checked: false })));
@@ -272,6 +288,8 @@ export default function CreateChecklistModal({ booking, isOpen, onClose, onSucce
               {images.map((file, idx) => {
                 const objectUrl = URL.createObjectURL(file);
                 return (
+                  // BẤM VÀO THUMBNAIL ẢNH ĐỂ XEM PHÓNG TO (PREVIEW LIGHTBOX):
+                  // Gọi setPreviewImageUrl(objectUrl) để lưu đường dẫn URL tạm thời của ảnh và kích hoạt Modal xem phóng to
                   <div 
                     key={idx} 
                     onClick={() => setPreviewImageUrl(objectUrl)}
@@ -283,7 +301,7 @@ export default function CreateChecklistModal({ booking, isOpen, onClose, onSucce
                       className="w-full h-full object-cover" 
                     />
                     
-                    {/* Hover overlay with Eye icon */}
+                    {/* Lớp phủ Hover hiển thị icon con mắt (Eye) khi rê chuột vào ảnh */}
                     <div className="absolute inset-0 bg-slate-900/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                       <Eye size={20} className="drop-shadow" />
                     </div>
@@ -355,16 +373,18 @@ export default function CreateChecklistModal({ booking, isOpen, onClose, onSucce
 
       </div>
 
-      {/* Lightbox Preview Modal cho ảnh phóng to */}
+      {/* MODAL PHÓNG TO ẢNH (LIGHTBOX PREVIEW MODAL): */}
+      {/* Khi state `previewImageUrl` khác null -> Hiển thị Modal phủ mờ màn hình và đưa ảnh previewImageUrl vào thẻ img */}
       {previewImageUrl && (
         <div 
           className="fixed inset-0 z-[150] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200"
-          onClick={() => setPreviewImageUrl(null)}
+          onClick={() => setPreviewImageUrl(null)} // Bấm ra vùng ngoài mờ để đóng xem ảnh
         >
           <div 
             className="relative max-w-4xl max-h-[85vh] bg-white rounded-2xl p-2 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col items-center"
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Nút X đóng Modal xem ảnh */}
             <button 
               onClick={() => setPreviewImageUrl(null)}
               className="absolute top-4 right-4 z-10 p-2 bg-slate-900/60 hover:bg-rose-600 text-white rounded-full backdrop-blur-sm transition-colors shadow-lg"
@@ -372,6 +392,8 @@ export default function CreateChecklistModal({ booking, isOpen, onClose, onSucce
             >
               <X size={20} />
             </button>
+            
+            {/* Thẻ hiển thị hình ảnh hiện trạng xe phóng to sắc nét */}
             <img 
               src={previewImageUrl} 
               alt="Xem ảnh hiện trạng phóng to" 

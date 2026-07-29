@@ -228,6 +228,8 @@ export const bookingService = {
     return normalizeWashBooking(unwrapApiData<Record<string, unknown>>(body))
   },
 
+  // 6. Hàm gọi API Check-in thủ công (PATCH /bookings/{id}/checkin)
+  // Chuyển trạng thái đơn từ 'arrived' (Xe đã tới) sang 'checked_in' (Đã nhận xe sẵn sàng rửa)
   async checkin(id: string): Promise<WashBooking> {
     const body = await apiClient.patch<ApiResponse<Record<string, unknown>>>(`/bookings/${id}/checkin`)
     return normalizeWashBooking(unwrapApiData<Record<string, unknown>>(body))
@@ -265,6 +267,7 @@ export const bookingService = {
     return body
   },
 
+  // 7. Hàm gọi API Đánh dấu hoàn thành / chưa hoàn thành cho 1 dịch vụ (PATCH /bookings/{bookingId}/items/{itemId}/toggle)
   async toggleService(bookingId: string, itemId: string): Promise<any> {
     const body = await apiClient.patch<ApiResponse<Record<string, unknown>>>(`/bookings/${bookingId}/items/${itemId}/toggle`);
     return body;

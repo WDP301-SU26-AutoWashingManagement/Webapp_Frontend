@@ -42,10 +42,12 @@ export default function TickServicesModal({ booking: initialBooking, isOpen, onC
     }
   }, [isOpen, initialBooking])
 
+  // 1. Hàm đảo trạng thái hoàn thành dịch vụ trên giao diện (Local State)
   const handleToggleLocal = (itemId: string) => {
     setLocalStatuses(prev => ({ ...prev, [itemId]: !prev[itemId] }))
   }
 
+  // 2. Hàm lưu trạng thái dịch vụ và Check-in thủ công về Backend
   const handleSave = async (andCheckin = false) => {
     if (!booking) return;
     setIsSaving(true);
@@ -53,21 +55,25 @@ export default function TickServicesModal({ booking: initialBooking, isOpen, onC
       const promises: Promise<any>[] = [];
       const bId = booking._id ?? booking.id!;
 
+      // Duyệt danh sách các dịch vụ trong đơn, so sánh trạng thái cũ và mới
       booking.services?.forEach(svc => {
         const isCurrentlyCompleted = !!svc.is_completed;
         const isLocallyCompleted = !!localStatuses[svc._id];
 
+        // Nếu nhân viên có thay đổi tick/bỏ tick -> Thêm request gọi API toggleService vào mảng promises
         if (isCurrentlyCompleted !== isLocallyCompleted) {
-          promises.push(bookingService.toggleService(bId, svc._id));
+          promises.push(bookingService.toggleService(bId, svc._id)); // GỬI API: PATCH /bookings/{bId}/items/{svc._id}/toggle
         }
       });
 
+      // Gọi đồng thời tất cả request cập nhật trạng thái dịch vụ lên Server
       if (promises.length > 0) {
         await Promise.all(promises);
       }
 
       showSuccess("Đã lưu dịch vụ hoàn thành");
 
+      // Nếu bấm nút "Lưu & Check-in" -> Gọi thêm callback onCheckin() để chuyển trạng thái đơn sang 'checked_in'
       if (andCheckin) {
         onCheckin();
       } else {
@@ -129,7 +135,9 @@ export default function TickServicesModal({ booking: initialBooking, isOpen, onC
     )
   }
 
-  // Check if all manual are checked
+  // ĐÂY CHÍNH LÀ ĐOẠN CODE KIỂM TRA ĐÃ ĐÁNH DẤU ĐẦY ĐỦ CÁC DỊCH VỤ THỦ CÔNG HAY CHƯA:
+  // Duyệt qua tất cả các dịch vụ trong đơn, nếu phát hiện có ít nhất 1 dịch vụ thủ công chưa được tick (!localStatuses[svc._id])
+  // -> Gán allManualChecked = false
   let allManualChecked = true;
   booking.services?.forEach(svc => {
     const isAuto = svc.service_id?.is_automated || svc.service_id?.service_name?.toLowerCase() === 'dịch vụ rửa xe';
@@ -191,6 +199,9 @@ export default function TickServicesModal({ booking: initialBooking, isOpen, onC
           >
             {isSaving ? 'Đang lưu...' : 'Lưu lại'}
           </button>
+          
+          {/* ĐÂY CHÍNH LÀ NÚT CHUYỂN CHECK-IN:
+              Nếu `allManualChecked` = false (chưa tích đủ các dịch vụ thủ công) -> Nút sẽ bị vô hiệu hóa `disabled={true}` và chuyển sang màu xám `disabled:bg-slate-300` (Không cho phép bấm Check-in) */}
           <button
             disabled={!allManualChecked || loadingFull || isSaving}
             onClick={() => handleSave(true)}
