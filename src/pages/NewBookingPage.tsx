@@ -1024,7 +1024,7 @@ export default function NewBookingPage() {
                       </ul>
                     </div>
 
-                    <div className="bg-rose-50/50 border border-rose-100 rounded-xl p-5">
+                    <div className="bg-cyan-50/50 border border-cyan-100 rounded-xl p-5">
                       <label className="block text-sm">
                         <span className="font-semibold text-slate-700">Mã giảm giá (Nếu có)</span>
                         <div className="mt-2 flex flex-col gap-2 sm:flex-row">
@@ -1036,14 +1036,14 @@ export default function NewBookingPage() {
                               setForm((p) => ({ ...p, promotion_code: e.target.value.toUpperCase() }))
                             }}
                             placeholder="Nhập mã khuyến mãi..."
-                            className={`${AUTH_INPUT_CLASS} flex-1 uppercase border-rose-200 focus:border-rose-400 focus:ring-rose-200`}
+                            className={`${AUTH_INPUT_CLASS} flex-1 uppercase border-cyan-200 focus:border-[#0ea5b7] focus:ring-cyan-200`}
                             disabled={validatingPromotion}
                           />
                           <button
                             type="button"
                             onClick={() => void handleApplyPromotion()}
                             disabled={validatingPromotion || !form.promotion_code.trim()}
-                            className="shrink-0 rounded-lg bg-rose-500 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-rose-600 disabled:opacity-50"
+                            className="shrink-0 rounded-lg bg-[#0ea5b7] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#088b9b] disabled:opacity-50"
                           >
                             {validatingPromotion ? 'Đang kiểm tra...' : 'Áp dụng'}
                           </button>
@@ -1057,9 +1057,9 @@ export default function NewBookingPage() {
 
                       {/* Danh sách mã khuyến mãi có sẵn */}
                       {availablePromotions.length > 0 && (
-                        <div className="mt-4 pt-3 border-t border-rose-100">
+                        <div className="mt-4 pt-3 border-t border-cyan-100">
                           <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-2.5 uppercase tracking-wider">
-                            <Gift size={14} className="text-rose-500" /> Mã khuyến mãi dành cho bạn
+                            <Gift size={14} className="text-[#0ea5b7]" /> Mã khuyến mãi dành cho bạn
                           </div>
                           <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
                             {availablePromotions.map((promo) => {
@@ -1075,15 +1075,15 @@ export default function NewBookingPage() {
                                   className={`p-2.5 rounded-xl border transition-all flex items-center justify-between gap-3 ${
                                     isApplied
                                       ? 'bg-emerald-50/80 border-emerald-300 shadow-2xs'
-                                      : 'bg-white border-rose-100 hover:border-rose-300 hover:shadow-2xs'
+                                      : 'bg-white border-cyan-100 hover:border-cyan-300 hover:shadow-2xs'
                                   }`}
                                 >
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2">
-                                      <span className="px-2 py-0.5 bg-rose-100 text-rose-700 font-extrabold text-[11px] rounded-md uppercase tracking-wide shrink-0">
+                                      <span className="px-2 py-0.5 bg-cyan-100 text-cyan-800 font-extrabold text-[11px] rounded-md uppercase tracking-wide shrink-0">
                                         {promo.code}
                                       </span>
-                                      <span className="text-xs font-bold text-rose-600 truncate">
+                                      <span className="text-xs font-bold text-[#0ea5b7] truncate">
                                         {discountLabel}
                                       </span>
                                     </div>
@@ -1105,7 +1105,7 @@ export default function NewBookingPage() {
                                     className={`shrink-0 text-xs font-bold px-3 py-1.5 rounded-lg transition-all flex items-center gap-1 ${
                                       isApplied
                                         ? 'bg-emerald-600 text-white cursor-default'
-                                        : 'bg-rose-500 hover:bg-rose-600 text-white shadow-2xs'
+                                        : 'bg-[#0ea5b7] hover:bg-[#088b9b] text-white shadow-2xs'
                                     }`}
                                   >
                                     {isApplied ? (
