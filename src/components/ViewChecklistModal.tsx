@@ -1,4 +1,5 @@
-import { X, CheckSquare, Square, Image as ImageIcon, FileText, PenTool } from 'lucide-react';
+import { useState } from 'react';
+import { X, CheckSquare, Square, Image as ImageIcon, FileText, PenTool, Eye } from 'lucide-react';
 import type { BookingChecklist } from '../services/bookingChecklistService';
 import { env } from '../config/env';
 
@@ -9,6 +10,8 @@ interface ViewChecklistModalProps {
 }
 
 export default function ViewChecklistModal({ checklist, isOpen, onClose }: ViewChecklistModalProps) {
+  const [previewImgUrl, setPreviewImgUrl] = useState<string | null>(null);
+
   if (!isOpen || !checklist) return null;
 
   return (
@@ -66,7 +69,7 @@ export default function ViewChecklistModal({ checklist, isOpen, onClose }: ViewC
           {checklist.images && checklist.images.length > 0 && (
             <div>
               <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
-                <ImageIcon size={16} className="text-emerald-500" /> Hình ảnh đính kèm
+                <ImageIcon size={16} className="text-emerald-500" /> Hình ảnh đính kèm ({checklist.images.length} ảnh)
               </h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {checklist.images.map((img, idx) => {
@@ -77,19 +80,20 @@ export default function ViewChecklistModal({ checklist, isOpen, onClose }: ViewC
                   const imgSrc = getImageUrl(img);
 
                   return (
-                    <a
+                    <div
                       key={idx}
-                      href={imgSrc}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="block aspect-square rounded-xl overflow-hidden border border-slate-200 hover:border-emerald-400 transition-colors"
+                      onClick={() => setPreviewImgUrl(imgSrc)}
+                      className="relative aspect-square rounded-xl overflow-hidden border border-slate-200 hover:border-emerald-500 cursor-pointer group shadow-sm bg-slate-50 transition-all"
                     >
                       <img
                         src={imgSrc}
                         alt={`Ảnh hiện trạng ${idx + 1}`}
                         className="w-full h-full object-cover"
                       />
-                    </a>
+                      <div className="absolute inset-0 bg-slate-900/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Eye size={20} className="drop-shadow" />
+                      </div>
+                    </div>
                   );
                 })}
               </div>
@@ -151,6 +155,32 @@ export default function ViewChecklistModal({ checklist, isOpen, onClose }: ViewC
         </div>
 
       </div>
+
+      {/* Lightbox Preview Modal cho xem ảnh phóng to */}
+      {previewImgUrl && (
+        <div 
+          className="fixed inset-0 z-[150] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => setPreviewImgUrl(null)}
+        >
+          <div 
+            className="relative max-w-4xl max-h-[85vh] bg-white rounded-2xl p-2 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col items-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button 
+              onClick={() => setPreviewImgUrl(null)}
+              className="absolute top-4 right-4 z-10 p-2 bg-slate-900/60 hover:bg-rose-600 text-white rounded-full backdrop-blur-sm transition-colors shadow-lg"
+              title="Đóng xem ảnh"
+            >
+              <X size={20} />
+            </button>
+            <img 
+              src={previewImgUrl} 
+              alt="Ảnh hiện trạng phóng to" 
+              className="max-w-full max-h-[80vh] object-contain rounded-xl"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

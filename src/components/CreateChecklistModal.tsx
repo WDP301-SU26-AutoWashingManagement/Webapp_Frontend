@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, CheckSquare, Image as ImageIcon, FileText, Loader2, PenTool } from 'lucide-react';
+import { X, CheckSquare, Image as ImageIcon, FileText, Loader2, PenTool, Upload, Eye } from 'lucide-react';
 import type { WashBooking } from '../types/booking';
 import { bookingChecklistService } from '../services/bookingChecklistService';
 import { showSuccess, showError } from '../utils/toast';
@@ -126,6 +126,7 @@ export default function CreateChecklistModal({ booking, isOpen, onClose, onSucce
   const [note, setNote] = useState('');
   const [images, setImages] = useState<File[]>([]);
   const [signature, setSignature] = useState<string | null>(null);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -134,6 +135,7 @@ export default function CreateChecklistModal({ booking, isOpen, onClose, onSucce
       setNote('');
       setImages([]);
       setSignature(null);
+      setPreviewImageUrl(null);
     }
   }, [isOpen, booking?._id, booking?.id]);
 
@@ -147,8 +149,13 @@ export default function CreateChecklistModal({ booking, isOpen, onClose, onSucce
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      setImages(Array.from(e.target.files));
+      const selectedFiles = Array.from(e.target.files);
+      setImages(prev => [...prev, ...selectedFiles].slice(0, 10));
     }
+  };
+
+  const removeImage = (index: number) => {
+    setImages(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async () => {
@@ -244,20 +251,63 @@ export default function CreateChecklistModal({ booking, isOpen, onClose, onSucce
           {/* Images */}
           <div>
             <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
-              <ImageIcon size={16} className="text-emerald-500" /> Hình ảnh hiện trạng
+              <ImageIcon size={16} className="text-emerald-500" /> Hình ảnh hiện trạng (Tối đa 10 ảnh)
             </h3>
-            <div className="border-2 border-dashed border-slate-200 rounded-xl p-4 text-center hover:bg-slate-50 transition-colors">
-              <input 
-                type="file" 
-                multiple 
-                accept="image/*"
-                onChange={handleImageChange}
-                className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer"
-              />
+
+            <div className="flex flex-wrap gap-3">
+              {images.map((file, idx) => {
+                const objectUrl = URL.createObjectURL(file);
+                return (
+                  <div 
+                    key={idx} 
+                    onClick={() => setPreviewImageUrl(objectUrl)}
+                    className="relative w-20 h-20 rounded-xl border border-slate-200 overflow-hidden group shadow-sm bg-slate-50 cursor-pointer hover:border-cyan-500 hover:shadow-md transition-all"
+                  >
+                    <img 
+                      src={objectUrl} 
+                      alt={`preview-${idx}`} 
+                      className="w-full h-full object-cover" 
+                    />
+                    
+                    {/* Hover overlay with Eye icon */}
+                    <div className="absolute inset-0 bg-slate-900/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Eye size={20} className="drop-shadow" />
+                    </div>
+
+                    {/* Delete button (X) on top-right */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeImage(idx);
+                      }}
+                      className="absolute top-1 right-1 w-5 h-5 bg-rose-500/90 hover:bg-rose-600 text-white rounded-full flex items-center justify-center shadow transition-transform hover:scale-110 z-10"
+                      title="Xóa ảnh"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                );
+              })}
+
+              {images.length < 10 && (
+                <label className="w-20 h-20 flex flex-col items-center justify-center border-2 border-dashed border-emerald-300 rounded-xl text-emerald-600 hover:bg-emerald-50 cursor-pointer transition-colors bg-emerald-50/30">
+                  <Upload size={20} />
+                  <span className="text-[11px] mt-1 font-semibold">Tải ảnh</span>
+                  <input 
+                    type="file" 
+                    multiple 
+                    accept="image/*" 
+                    className="hidden" 
+                    onChange={handleImageChange} 
+                  />
+                </label>
+              )}
             </div>
+
             {images.length > 0 && (
-              <div className="mt-2 text-sm text-slate-500">
-                Đã chọn {images.length} ảnh.
+              <div className="mt-2 text-xs text-slate-500">
+                Đã chọn <span className="font-semibold text-emerald-700">{images.length}</span>/10 ảnh. Nhấp vào ảnh để xem phóng to.
               </div>
             )}
           </div>
@@ -290,6 +340,32 @@ export default function CreateChecklistModal({ booking, isOpen, onClose, onSucce
         </div>
 
       </div>
+
+      {/* Lightbox Preview Modal cho ảnh phóng to */}
+      {previewImageUrl && (
+        <div 
+          className="fixed inset-0 z-[150] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => setPreviewImageUrl(null)}
+        >
+          <div 
+            className="relative max-w-4xl max-h-[85vh] bg-white rounded-2xl p-2 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col items-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button 
+              onClick={() => setPreviewImageUrl(null)}
+              className="absolute top-4 right-4 z-10 p-2 bg-slate-900/60 hover:bg-rose-600 text-white rounded-full backdrop-blur-sm transition-colors shadow-lg"
+              title="Đóng xem ảnh"
+            >
+              <X size={20} />
+            </button>
+            <img 
+              src={previewImageUrl} 
+              alt="Xem ảnh hiện trạng phóng to" 
+              className="max-w-full max-h-[80vh] object-contain rounded-xl"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
