@@ -214,6 +214,7 @@ export default function StaffBookingListPage() {
     const booking = confirmModal.booking;
     const id = booking._id || booking.id!;
     try {
+      // 2. BƯỚC 1: Nếu hành động là 'confirm' -> Gọi bookingService.confirm(id) gửi PATCH /bookings/{id}/confirm về Backend
       if (confirmModal.action === 'confirm') await bookingService.confirm(id);
       if (confirmModal.action === 'start') {
         await bookingService.start(id);
@@ -415,6 +416,8 @@ export default function StaffBookingListPage() {
 
   const renderActionButtons = (booking: WashBooking) => {
     switch (booking.booking_status) {
+      // 1. BƯỚC 1 TRONG QUY TRÌNH: Đơn mới tạo có trạng thái 'pending' (Chờ xác nhận)
+      // Hiển thị nút "Xác nhận" màu xanh lá để Nhân viên/Lễ tân mở Modal xác nhận nhận đơn
       case 'pending':
         return (
           <button onClick={() => setConfirmModal({ isOpen: true, action: 'confirm', booking })} className="flex items-center px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors shadow-sm font-medium">
@@ -434,6 +437,8 @@ export default function StaffBookingListPage() {
           );
         }
 
+        // BƯỚC 2 TRONG QUY TRÌNH (TẠO BIÊN BẢN CHECKLIST KHẢO SÁT TÌNH TRẠNG XE LÚC NHẬN XE):
+        // Nếu đơn ở trạng thái 'confirmed' và chưa có biên bản kiểm tra xe -> Hiển thị nút "Tạo biên bản" màu đỏ
         if (needsChecklist) {
           return (
             <button

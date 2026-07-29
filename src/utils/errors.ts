@@ -16,6 +16,8 @@ export class ApiError extends Error {
 const ERROR_TRANSLATIONS: Record<string, string> = {
   'cancellation_reason must be at least 5 characters': 'Lý do hủy lịch hẹn phải có ít nhất 5 ký tự',
   'cancellation_reason is required': 'Vui lòng nhập lý do hủy lịch hẹn',
+  'Promotion not found': 'Không tìm thấy khuyến mãi',
+  'promotion not found': 'Không tìm thấy khuyến mãi',
 }
 
 function translateError(msg: string): string {

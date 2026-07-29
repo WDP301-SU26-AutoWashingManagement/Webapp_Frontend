@@ -11,6 +11,9 @@ interface CreateChecklistModalProps {
   onSuccess: () => void;
 }
 
+// DANH SÁCH MỤC KIỂM TRA CHUẨN MẶC ĐỊNH (FRONTEND TEMPLATE):
+// Backend thiết kế Schema checklist_items là mảng động Array<{ label: string, checked: boolean }>.
+// Frontend định nghĩa sẵn (hardcode template) danh sách các mục khảo sát tiêu chuẩn khi nhận xe để Nhân viên không phải tự gõ lại.
 const DEFAULT_ITEMS = [
   'Bề mặt sơn (không trầy xước, móp méo)',
   'Kính chắn gió, kính sườn (nguyên vẹn)',
@@ -141,15 +144,21 @@ export default function CreateChecklistModal({ booking, isOpen, onClose, onSucce
 
   if (!isOpen || !booking) return null;
 
+  // HÀM ĐẢO TRẠNG THÁI CHECKBOX KHI BẤM TÍCH / BỎ TÍCH MỘT MỤC CHECKLIST:
   const handleToggleItem = (index: number) => {
+    // 1. Sao chép (clone) mảng items ra mảng mới newItems (Tuân thủ tính bất biến Immutability của React)
     const newItems = [...items];
+    // 2. Đảo ngược giá trị true/false của thuộc tính checked tại vị trí index được chọn
     newItems[index].checked = !newItems[index].checked;
+    // 3. Cập nhật mảng newItems mới vào State để React render lại ô checkbox trên giao diện
     setItems(newItems);
   };
 
+  // 1. XỬ LÝ CHỌN ẢNH TỪ MÁY TÍNH / THIẾT BỊ:
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const selectedFiles = Array.from(e.target.files);
+      // Lưu mảng các đối tượng File nhị phân (tối đa 10 ảnh hiện trạng xe) vào State
       setImages(prev => [...prev, ...selectedFiles].slice(0, 10));
     }
   };
@@ -164,6 +173,7 @@ export default function CreateChecklistModal({ booking, isOpen, onClose, onSucce
       return;
     }
 
+    // Yêu cầu bắt buộc phải có chữ ký xác nhận nhận xe của khách hàng
     if (!signature) {
       showError('Vui lòng yêu cầu khách hàng ký xác nhận.');
       return;
@@ -173,22 +183,26 @@ export default function CreateChecklistModal({ booking, isOpen, onClose, onSucce
       setIsSubmitting(true);
       const appointmentId = booking._id ?? booking.id!;
       
+      // 2. ĐÓNG GÓI MULTIPART FORM-DATA:
       const formData = new FormData();
       formData.append('appointment_id', appointmentId);
-      formData.append('checklist_items', JSON.stringify(items));
+      formData.append('checklist_items', JSON.stringify(items)); // Danh sách mục kiểm tra tình trạng xe (JSON String)
       
       if (note.trim()) {
         formData.append('note', note.trim());
       }
 
+      // 3. ĐÍNH KÈM CHỮ KÝ: Gửi chữ ký khách dưới dạng chuỗi Data URI Base64 (tạo từ Canvas)
       if (signature) {
         formData.append('customer_signature', signature);
       }
 
+      // 4. ĐÍNH KÈM CÁC FILE ẢNH NHỊ PHÂN: Lặp mảng images và append từng file vào key 'images'
       images.forEach(img => {
         formData.append('images', img);
       });
 
+      // 5. GỬI REQUEST HTTP POST /booking-checklists VỀ BACKEND ĐỂ UPLOAD VÀ TẠO BIÊN BẢN
       await bookingChecklistService.create(formData);
       showSuccess('Tạo biên bản thành công');
       onSuccess();

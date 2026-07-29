@@ -27,7 +27,9 @@ export interface Branch {
 
 export type CreateBranchPayload = Omit<Branch, '_id' | 'id'>
 export type UpdateBranchPayload = Partial<CreateBranchPayload>
-
+// hàm lấy danh sách chi nhánh từ backend
+// gọi api qua apiclient
+// trả về mảng chứa danh sách chi nhánh
 export const branchService = {
   async list(): Promise<Branch[]> {
     const response = await apiClient.get<ApiResponse<Branch[]>>('/branches')

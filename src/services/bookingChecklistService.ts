@@ -72,6 +72,7 @@ export const bookingChecklistService = {
     return `${env.apiBaseUrl}/booking-checklists/${checklistId}/export-pdf`;
   },
 
+  // Hàm gọi API tạo Biên bản kiểm tra xe Checklist (gửi HTTP POST /booking-checklists kèm FormData)
   async create(formData: FormData): Promise<BookingChecklist> {
     const response = await apiClient.post<ApiResponse<BookingChecklist>>('/booking-checklists', formData);
     if (response && response.data) {

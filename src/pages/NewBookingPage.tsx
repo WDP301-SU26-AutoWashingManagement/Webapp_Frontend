@@ -63,10 +63,12 @@ export default function NewBookingPage() {
   const formOptionsLoaded = useRef(false)
 
   // -- Data State --
+  // state lưu các danh sách xe,nhóm dịch vụ lẻ,combo, chi nhánh
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [individualServices, setIndividualServices] = useState<BookingServiceType[]>([])
   const [comboPackages, setComboPackages] = useState<any[]>([])
   const [branches, setBranches] = useState<Branch[]>([])
+  // khai báo state lưu danh sách chi nhánh
 
   // -- Form State --
   const [form, setForm] = useState({
@@ -85,19 +87,24 @@ export default function NewBookingPage() {
   const [recommendation, setRecommendation] = useState<import('../types/booking').IBookingRecommendation | null>(null)
   const [loadingRecommendation, setLoadingRecommendation] = useState(false)
 
+  // Hàm tải tất cả thông tin ban đầu phục vụ cho form Đặt lịch
   const loadFormOptions = useCallback(async (force = false) => {
+    // 1. KIỂM TRA BẢO VỆ: Nếu đã tải dữ liệu rồi (formOptionsLoaded.current = true) -> Thoát ngay, KHÔNG gọi lại API
     if (formOptionsLoaded.current && !force) return
 
     setLoadingFormOptions(true)
     try {
+      // 2. GỌI SONG SONG 5 API CÙNG LÚC qua Promise.all():
+      // Tải đồng thời: Danh sách xe của khách, Dịch vụ lẻ, Chi nhánh, Các gói Combo, Danh sách mã khuyến mãi
       const [vehicleList, packages, branchList, comboRes, promoList] = await Promise.all([
-        vehicleService.list(),
-        servicePackageService.listActive(),
-        branchService.list(),
-        adminServicePackageService.list({ limit: 100, is_active: true }),
-        promotionService.list().catch(() => []),
+        vehicleService.list(),// lấy danh sách xe (GET /vehicles)
+        servicePackageService.listActive(), // danh sách dịch vụ lẻ (GET /services)
+        branchService.list(),// lấy danh sách chi nhánh (GET /branches)
+        adminServicePackageService.list({ limit: 100, is_active: true }),// danh sách gói combo (GET /service-packages)
+        promotionService.list().catch(() => []),// danh sách khuyến mãi (GET /promotions)
       ])
 
+      // 3. Xử lý giá tiền và giảm giá chi tiết cho từng gói Combo
       const combosWithServices = await Promise.all(
         comboRes.items.map(async (combo) => {
           const id = combo._id ?? combo.id ?? ''
@@ -109,16 +116,19 @@ export default function NewBookingPage() {
         })
       )
 
+      // 4. Lưu tất cả mảng dữ liệu vào các State của React để hiển thị lên giao diện
       setVehicles(vehicleList)
       setIndividualServices(packages as unknown as BookingServiceType[])
       setComboPackages(combosWithServices)
       setBranches(branchList)
       setAvailablePromotions(promoList.filter((p: any) => p.is_active !== false))
 
-      // Auto-select branch if there is only one
+      // 5. Tự động chọn chi nhánh đầu tiên nếu hệ thống chỉ có đúng 1 chi nhánh
       if (branchList.length === 1 && branchList[0]._id) {
         setForm(p => ({ ...p, branch_id: branchList[0]._id! }))
       }
+
+      // 6. ĐÁNH DẤU ĐÃ TẢI XONG: Giúp ngăn chặn việc gọi lại API khi Re-render giao diện
       formOptionsLoaded.current = true
     } catch (err) {
       setVehicles([])
@@ -168,24 +178,32 @@ export default function NewBookingPage() {
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [lastFetchedDate, setLastFetchedDate] = useState<string>('')
 
+  // React Effect: Tự động chạy lấy slot trống khi chọn Chi nhánh hoặc chọn Ngày
   useEffect(() => {
     let active = true;
+
+    // Nếu chưa chọn Chi nhánh hoặc Ngày -> Hủy danh sách slot
     if (!form.branch_id || !dateValue) {
       setApiSlots([]);
       setLastFetchedDate('');
       return;
     }
+
     const fetchSlots = async () => {
       setLoadingSlots(true);
       try {
+        // 1. Gọi service API lấy danh sách slot khả dụng (GET /bookings/branches/{branch_id}/available-slots)
         const res = await bookingService.getAvailableSlots(form.branch_id, dateValue);
         if (!active) return;
 
+        // 2. Định dạng thời gian ISO thành chuỗi giờ HH:mm (VD: "08:30")
         const mapped = res.map(slot => {
           const d = new Date(slot.scheduled_at);
           const timeStr = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
           return { timeStr, available_bays: slot.available_bays };
         });
+
+        // 3. Cập nhật vào state apiSlots để người dùng chọn trên UI
         setApiSlots(mapped);
         setLastFetchedDate(dateValue);
       } catch (err) {
@@ -213,17 +231,22 @@ export default function NewBookingPage() {
   }, [apiSlots, dateValue, timeValue, lastFetchedDate]);
 
 
+  // React Effect: Tự động gọi Gợi ý thông minh Auto-Pilot ngay khi người dùng chọn Xe (form.vehicle_id)
   useEffect(() => {
     let active = true;
+
+    // Nếu chưa chọn xe -> Hủy dữ liệu gợi ý
     if (!form.vehicle_id) {
       setRecommendation(null);
       return;
     }
+
     const fetchReco = async () => {
       setLoadingRecommendation(true);
       try {
+        // 1. Gọi service API gợi ý tự động (GET /bookings/recommendation?vehicle_id=...&branch_id=...)
         const res = await bookingService.getRecommendation(form.vehicle_id, form.branch_id || undefined);
-        if (active) setRecommendation(res);
+        if (active) setRecommendation(res); // 2. Lưu kết quả gợi ý vào state recommendation
       } catch (err) {
         if (active) setRecommendation(null);
       } finally {
@@ -234,9 +257,12 @@ export default function NewBookingPage() {
     return () => { active = false; };
   }, [form.vehicle_id, form.branch_id]);
 
-  // Tự động điền Ngày/Giờ khi Auto-Pilot tải xong
+  // ĐÂY CHÍNH LÀ ĐOẠN CODE TỰ ĐỘNG ĐIỀN LỊCH ĐẶT:
+  // Ngay khi có dữ liệu gợi ý (recommendation) trả về từ Backend, React Effect này sẽ tự động chạy
   useEffect(() => {
+    // 1. Kiểm tra nếu trong kết quả recommend có chứa trường 'suggested_scheduled_at' (Ngày/Giờ gợi ý)
     if (recommendation?.suggested_scheduled_at) {
+      // 2. Chuyển đổi định dạng ngày giờ từ Backend sang chuỗi format chuẩn "YYYY-MM-DDTHH:mm"
       const d = new Date(recommendation.suggested_scheduled_at);
       const yyyy = d.getFullYear();
       const MM = String(d.getMonth() + 1).padStart(2, '0');
@@ -245,20 +271,22 @@ export default function NewBookingPage() {
       const mm = String(d.getMinutes()).padStart(2, '0');
       const newTime = `${yyyy}-${MM}-${dd}T${hh}:${mm}`;
 
+      // 3. TỰ ĐỘNG CẬP NHẬT VÀO LỊCH ĐẶT: Đặt giá trị newTime vào trường `scheduled_at` của Form
       setForm(p => ({ ...p, scheduled_at: newTime }));
     }
-  }, [recommendation]);
+  }, [recommendation]); // Lắng nghe biến recommendation: Ngay khi API trả dữ liệu về là chạy tự động ngay!
 
+  // HÀM ÁP DỤNG GỢI Ý: Lấy dữ liệu gợi ý từ Backend (recommendation) và tự động điền (Pre-fill) vào Form đặt lịch
   const handleApplyRecommendation = async () => {
     if (!recommendation) return;
 
-    // Auto-fill branch
+    // 1. Điền Chi nhánh đề xuất từ Backend
     let newBranchId = form.branch_id;
     if (recommendation.branch_id) {
       newBranchId = recommendation.branch_id;
     }
 
-    // Auto-fill time
+    // 2. Điền Ngày & Giờ trống khả dụng gần nhất do Backend đề xuất (suggested_scheduled_at)
     let newTime = form.scheduled_at;
     if (recommendation.suggested_scheduled_at) {
       const d = new Date(recommendation.suggested_scheduled_at);
@@ -270,7 +298,7 @@ export default function NewBookingPage() {
       newTime = `${yyyy}-${MM}-${dd}T${hh}:${mm}`;
     }
 
-    // Auto-fill combo/services
+    // 3. Điền Dịch vụ lẻ hoặc Gói Combo phù hợp với lịch sử xe do Backend gợi ý
     let comboId = '';
     const sIds: string[] = [];
 
@@ -292,7 +320,7 @@ export default function NewBookingPage() {
       });
     }
 
-    // Auto-fill promotion
+    // 4. Điền Mã khuyến mãi áp dụng (nếu Backend trả về applicable_promotion)
     let promoCode = form.promotion_code;
     if (recommendation.applicable_promotion) {
       promoCode = recommendation.applicable_promotion.code;
@@ -337,11 +365,17 @@ export default function NewBookingPage() {
     return selectedCombo.services.map((s: any) => s._id ?? s.id)
   }, [selectedCombo])
 
+  // ĐÂY CHÍNH LÀ ĐOẠN CODE TỰ ĐỘNG CHỌN MẶC ĐỊNH DỊCH VỤ RỬA XE:
+  // Ngay cả khi người dùng chưa tick chọn gì, dịch vụ có tên "Dịch vụ rửa xe" sẽ luôn được đưa vào danh sách được chọn (selectedServices)
   const selectedServices = useMemo(
     () =>
       compatibleServices.filter((pkg) => {
         const id = pkg._id ?? pkg.id
+        // 1. Kiểm tra xem tên dịch vụ có phải là "Dịch vụ rửa xe" hay không
         const isWashingService = pkg.service_name === 'Dịch vụ rửa xe'
+
+        // 2. Điều kiện chọn dịch vụ: Dịch vụ nằm trong form.service_ids (do Recommend hoặc người dùng tick) 
+        // HOẶC là "Dịch vụ rửa xe" (isWashingService) -> Luôn tự động chọn mặc định!
         return id && (form.service_ids.includes(id) || isWashingService) && !includedServiceIdsInCombo.includes(id)
       }),
     [compatibleServices, form.service_ids, includedServiceIdsInCombo],
@@ -389,17 +423,21 @@ export default function NewBookingPage() {
     }
   }, [selectedCombo, selectedServices, tierDiscountPercentage, validatedPromotion])
 
+  // HÀM ÁP DỤNG MÃ KHUYẾN MÃI: Kiểm tra tính hợp lệ và điều kiện áp dụng mã giảm giá
   const handleApplyPromotion = async () => {
+    // 1. Lấy mã khuyến mãi nhập từ ô text và cắt khoảng trắng thừa
     const code = form.promotion_code.trim()
     if (!code) {
       showError('Vui lòng nhập mã khuyến mãi')
       return
     }
 
-    setValidatingPromotion(true)
+    setValidatingPromotion(true) // Bật trạng thái đang kiểm tra mã (disable nút Áp dụng)
     try {
+      // 2. Gửi request gọi API Backend (promotionService.validateCode) để kiểm tra mã có tồn tại / còn hạn không
       const { promotion, message } = await promotionService.validateCode(code)
 
+      // 3. Tính tổng giá gốc của đơn hàng hiện tại (Tổng tiền Combo + Tổng tiền các dịch vụ lẻ)
       let totalBasePrice = 0
       if (selectedCombo) {
         totalBasePrice += selectedCombo.finalPrice
@@ -407,15 +445,20 @@ export default function NewBookingPage() {
       if (selectedServices.length > 0) {
         totalBasePrice += selectedServices.reduce((sum, pkg) => sum + (pkg.service_price || 0), 0)
       }
+
+      // 4. Tính giá trị đơn hàng sau khi đã trừ giảm giá theo Hạng thành viên (Tier Discount)
       const tierDiscount = Math.round(totalBasePrice * (tierDiscountPercentage / 100));
       const priceAfterTier = Math.max(0, totalBasePrice - tierDiscount);
 
+      // 5. KIỂM TRA ĐIỀU KIỆN ĐƠN HÀNG TỐI THIỂU:
+      // Nếu giá trị đơn hàng nhỏ hơn giá trị đơn tối thiểu mà mã khuyến mãi yêu cầu (min_order_amount) -> Báo lỗi & Hủy mã
       if (priceAfterTier < (promotion.min_order_amount || 0)) {
         showError(`Đơn hàng chưa đạt giá trị tối thiểu để áp dụng mã này (Yêu cầu tối thiểu từ ${promotion.min_order_amount.toLocaleString('vi-VN')}đ)`)
         setValidatedPromotion(null)
         return
       }
 
+      // 6. NẾU THỎA MÃN TẤT CẢ ĐIỀU KIỆN: Cập nhật mã khuyến mãi vào State để tính trừ tiền vào hóa đơn
       setValidatedPromotion(promotion)
       setForm((prev) => ({
         ...prev,
@@ -423,10 +466,11 @@ export default function NewBookingPage() {
       }))
       showSuccess(message || 'Mã khuyến mãi hợp lệ')
     } catch (err) {
+      // Nếu API báo lỗi (mã sai, hết lượt sử dụng, hết hạn...) -> Hủy mã và hiển thị thông báo lỗi từ Backend
       setValidatedPromotion(null)
       showError(getApiErrorMessage(err, 'Mã khuyến mãi không hợp lệ hoặc đã hết hạn'))
     } finally {
-      setValidatingPromotion(false)
+      setValidatingPromotion(false) // Tắt trạng thái đang kiểm tra
     }
   }
 
@@ -493,10 +537,11 @@ export default function NewBookingPage() {
     setStep(s => Math.min(s + 1, totalSteps))
   }
 
+  // HÀM QUAY LẠI BƯỚC TRƯỚC (QUẢN LÝ RESET DỮ LIỆU ĐÃ ĐIỀN TỪ RECOMMEND):
   const handlePrev = () => {
     if (step === 2) {
-      // Chỉ reset lại các lựa chọn (giờ, dịch vụ) để khách chọn lại từ đầu
-      // NHƯNG giữ nguyên cục Gợi ý (recommendation)
+      // Khi người dùng bấm Quay lại từ Bước 2 về Bước 1 (không muốn dùng gợi ý đã tự điền nữa):
+      // Reset lại các thông tin: Giờ hẹn, Gói Combo, Danh sách dịch vụ lẻ & Mã khuyến mãi về mặc định
       setForm(p => ({
         ...p,
         scheduled_at: '',
@@ -504,23 +549,29 @@ export default function NewBookingPage() {
         service_ids: [],
         promotion_code: ''
       }))
-      setValidatedPromotion(null)
+      setValidatedPromotion(null) // Hủy bỏ mã khuyến mãi đã được validate
     }
-    setStep(s => Math.max(s - 1, 1))
+    setStep(s => Math.max(s - 1, 1)) // Lùi về Bước 1
   }
 
+  // HÀM TẠO ĐẶT LỊCH MỚI (SUBMIT VỀ BACKEND):
+  // Tổng hợp toàn bộ dữ liệu người dùng đã chọn ở 3 bước để đóng gói payload và gửi lên API Backend
   const handleCreateSubmit = async () => {
     setSaving(true)
     try {
+      // 1. Lấy ID của mã khuyến mãi đã được xác thực thành công (nếu có)
       const promotionId = validatedPromotion?._id ?? validatedPromotion?.id
 
+      // 2. Tạo mảng chứa danh sách các dịch vụ khách đã chọn (bao gồm dịch vụ lẻ + dịch vụ trong gói combo)
       const servicesPayload: Array<{ service_id: string; service_package_id?: string }> = []
 
+      // Đưa các dịch vụ lẻ (và dịch vụ rửa xe mặc định) vào payload
       selectedServices.forEach(pkg => {
         const id = pkg._id ?? pkg.id
         if (id) servicesPayload.push({ service_id: id })
       })
 
+      // Nếu khách chọn gói Combo -> Đưa tất cả dịch vụ con thuộc combo đó kèm ID combo vào payload
       if (form.combo_package_id && includedServiceIdsInCombo.length > 0) {
         includedServiceIdsInCombo.forEach((id: string) => {
           servicesPayload.push({
@@ -530,16 +581,19 @@ export default function NewBookingPage() {
         })
       }
 
+      // 3. GỌI API BOOKING SERVICE ĐỂ GỬI REQUEST HTTP POST /bookings VỀ BACKEND:
+      // Dữ liệu bao gồm: chi nhánh, xe, thời gian hẹn (dạng ISO), mảng dịch vụ, nguồn đặt lịch ('web') và mã km (nếu có)
       await bookingService.create({
-        branch_id: form.branch_id,
-        vehicle_id: form.vehicle_id,
-        scheduled_at: parseDatetimeLocalValue(form.scheduled_at)!.toISOString(),
-        services: servicesPayload,
-        booking_source: 'web',
-        ...(promotionId ? { promotion_id: promotionId } : {}),
+        branch_id: form.branch_id,                                              // ID chi nhánh rửa xe
+        vehicle_id: form.vehicle_id,                                            // ID xe cần rửa/bảo dưỡng
+        scheduled_at: parseDatetimeLocalValue(form.scheduled_at)!.toISOString(),// Ngày giờ hẹn định dạng ISO Chuẩn UTC
+        services: servicesPayload,                                              // Mảng các dịch vụ/combo đăng ký
+        booking_source: 'web',                                                  // Nguồn đặt lịch: 'web'
+        ...(promotionId ? { promotion_id: promotionId } : {}),                 // ID Mã giảm giá (nếu có)
       })
+
       showSuccess('Đặt lịch thành công')
-      navigate('/bookings')
+      navigate('/bookings') // Chuyển hướng người dùng về trang Danh sách lịch hẹn
     } catch (err) {
       showError(getApiErrorMessage(err, 'Đặt lịch thất bại'))
     } finally {
@@ -1055,28 +1109,29 @@ export default function NewBookingPage() {
                         )}
                       </label>
 
-                      {/* Danh sách mã khuyến mãi có sẵn */}
+                      {/* ĐÂY CHÍNH LÀ ĐOẠN CODE HIỂN THỊ DANH SÁCH KHUYẾN MÃI Ở BƯỚC 3: */}
+                      {/* Duyệt mảng availablePromotions (đã tải sẵn ở Bước 1) để render ra các thẻ khuyến mãi */}
                       {availablePromotions.length > 0 && (
                         <div className="mt-4 pt-3 border-t border-cyan-100">
                           <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-2.5 uppercase tracking-wider">
                             <Gift size={14} className="text-[#0ea5b7]" /> Mã khuyến mãi dành cho bạn
                           </div>
                           <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+                            {/* Duyệt qua từng mã promotion để hiển thị Mã code, Mức giảm giá, Điều kiện tối thiểu */}
                             {availablePromotions.map((promo) => {
                               const isApplied = validatedPromotion && (validatedPromotion._id === promo._id || validatedPromotion.code === promo.code);
                               const discountLabel = promo.type === 'bonus_service'
                                 ? 'Tặng dịch vụ'
                                 : promo.discount_percentage > 0
-                                ? `Giảm ${promo.discount_percentage}%`
-                                : `Giảm ${(promo.discount_amount || 0).toLocaleString('vi-VN')}đ`;
+                                  ? `Giảm ${promo.discount_percentage}%`
+                                  : `Giảm ${(promo.discount_amount || 0).toLocaleString('vi-VN')}đ`;
                               return (
                                 <div
                                   key={promo._id || promo.code}
-                                  className={`p-2.5 rounded-xl border transition-all flex items-center justify-between gap-3 ${
-                                    isApplied
-                                      ? 'bg-emerald-50/80 border-emerald-300 shadow-2xs'
-                                      : 'bg-white border-cyan-100 hover:border-cyan-300 hover:shadow-2xs'
-                                  }`}
+                                  className={`p-2.5 rounded-xl border transition-all flex items-center justify-between gap-3 ${isApplied
+                                    ? 'bg-emerald-50/80 border-emerald-300 shadow-2xs'
+                                    : 'bg-white border-cyan-100 hover:border-cyan-300 hover:shadow-2xs'
+                                    }`}
                                 >
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2">
@@ -1099,14 +1154,14 @@ export default function NewBookingPage() {
                                     </div>
                                   </div>
 
+                                  {/* Nút Áp dụng ngay mã khuyến mãi này */}
                                   <button
                                     type="button"
                                     onClick={() => handleSelectPromoCard(promo)}
-                                    className={`shrink-0 text-xs font-bold px-3 py-1.5 rounded-lg transition-all flex items-center gap-1 ${
-                                      isApplied
-                                        ? 'bg-emerald-600 text-white cursor-default'
-                                        : 'bg-[#0ea5b7] hover:bg-[#088b9b] text-white shadow-2xs'
-                                    }`}
+                                    className={`shrink-0 text-xs font-bold px-3 py-1.5 rounded-lg transition-all flex items-center gap-1 ${isApplied
+                                      ? 'bg-emerald-600 text-white cursor-default'
+                                      : 'bg-[#0ea5b7] hover:bg-[#088b9b] text-white shadow-2xs'
+                                      }`}
                                   >
                                     {isApplied ? (
                                       <>
@@ -1184,9 +1239,10 @@ export default function NewBookingPage() {
 
           </div>
 
-          {/* Footer actions */}
+          {/* Footer actions: Nút điều hướng Quay lại / Tiếp tục */}
           <div className="bg-slate-50 border-t border-slate-200 p-6 flex justify-between items-center">
             {step > 1 ? (
+              // Nút QUAY LẠI: Gọi hàm handlePrev() để xóa toàn bộ dữ liệu auto-fill từ Recommend và về lại Bước 1 cho khách tự chọn lại
               <button onClick={handlePrev} className="flex items-center gap-2 text-slate-500 font-medium hover:text-slate-800 transition px-4 py-2">
                 <ChevronLeft size={18} /> Quay lại
               </button>

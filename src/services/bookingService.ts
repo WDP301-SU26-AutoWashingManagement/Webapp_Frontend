@@ -80,13 +80,16 @@ async function resolveTiersForBookings(items: WashBooking[]): Promise<void> {
 
 /** Customer bookings — GET/POST /bookings (authenticate) */
 export const bookingService = {
+  // 0. Hàm gọi API lấy danh sách các đơn đặt lịch hẹn của tài khoản khách hàng (GET /bookings)
   async list(params?: BookingListParams): Promise<BookingListResult> {
     const page = params?.page ?? 1
     const limit = params?.limit ?? 50
     const status = params?.booking_status ?? ''
     const cacheKey = `bookings:list:${page}:${limit}:${status}:${params?.from_date || ''}:${params?.to_date || ''}:${params?.time_slot || ''}`
 
+    // Đảm bảo không gọi lặp request (dedupeRequest)
     return dedupeRequest(cacheKey, async () => {
+      // Gửi HTTP GET đến /bookings kèm các tham số phân trang & lọc trạng thái (Backend tự lấy Customer ID từ Token)
       const body = (await apiClient.get<PaginatedEnvelope>('/bookings', {
         params: {
           page,
@@ -98,11 +101,14 @@ export const bookingService = {
         },
       })) as PaginatedEnvelope
 
+      // Giải nén dữ liệu API và chuẩn hóa mảng các lịch hẹn
       const raw = unwrapApiData<unknown[]>(body)
       const items = Array.isArray(raw) ? normalizeWashBookingList(raw) : []
 
+      // Bổ sung thông tin hạng thành viên (Tier) cho các lịch hẹn
       await resolveTiersForBookings(items);
 
+      // Trả về đối tượng kết quả gồm danh sách đơn (items) và tổng số đơn (total)
       return {
         items,
         total: body.pagination?.totalDocs,
@@ -133,26 +139,34 @@ export const bookingService = {
     };
   },
 
+  // 1. Hàm gọi API lấy danh sách Slot trống theo Chi nhánh và Ngày đặt lịch
   async getAvailableSlots(branchId: string, date: string): Promise<AvailableSlot[]> {
+    // Gửi request HTTP GET đến /bookings/branches/{branchId}/available-slots?date={date}
     const body = await apiClient.get<ApiResponse<AvailableSlot[]>>(`/bookings/branches/${branchId}/available-slots`, {
       params: { date }
     });
+    // Trả về danh sách khung giờ khả dụng (gồm thời gian scheduled_at và số khoang trống available_bays)
     // @ts-ignore
     return (body.data ?? body) as AvailableSlot[];
   },
 
+  // 2. Hàm gọi API lấy Gợi ý tự động (Recommendation) theo Xe và Chi nhánh
   async getRecommendation(vehicleId: string, branchId?: string): Promise<import('../types/booking').IBookingRecommendation> {
     const params: Record<string, string> = { vehicle_id: vehicleId }
     if (branchId) params.branch_id = branchId
 
+    // Gửi request HTTP GET đến /bookings/recommendation?vehicle_id=...&branch_id=...
     const body = await apiClient.get<ApiResponse<import('../types/booking').IBookingRecommendation>>('/bookings/recommendation', { params })
+    // Giải nén dữ liệu API và trả về thông tin gợi ý (combo, dịch vụ, ngày/giờ lý tưởng)
     return unwrapApiData<import('../types/booking').IBookingRecommendation>(body)
   },
 
+  // 3. Hàm gọi API xóa Cache gợi ý (dùng khi khách không muốn dùng gợi ý cũ hoặc chọn lại từ đầu)
   async clearRecommendationCache(vehicleId: string, branchId?: string): Promise<void> {
     const params: Record<string, string> = { vehicle_id: vehicleId }
     if (branchId) params.branch_id = branchId
 
+    // Gửi HTTP DELETE đến /bookings/recommendation/cache để xóa Redis cache ở Backend
     await apiClient.delete('/bookings/recommendation/cache', { params })
   },
 
@@ -172,15 +186,18 @@ export const bookingService = {
     return booking;
   },
 
+  // 4. Hàm gọi API tạo Đặt lịch mới (Gửi HTTP POST /bookings về Backend)
   async create(payload: CreateBookingInput): Promise<WashBooking> {
+    // Gửi request HTTP POST đến /bookings với body JSON đóng gói các trường dữ liệu
     const body = await apiClient.post<ApiResponse<Record<string, unknown>>>('/bookings', {
-      branch_id: payload.branch_id,
-      vehicle_id: payload.vehicle_id,
-      scheduled_at: payload.scheduled_at,
-      services: payload.services,
-      booking_source: payload.booking_source ?? 'web',
-      ...(payload.promotion_id ? { promotion_id: payload.promotion_id } : {}),
+      branch_id: payload.branch_id,          // ID của chi nhánh được chọn
+      vehicle_id: payload.vehicle_id,        // ID của chiếc xe được chọn
+      scheduled_at: payload.scheduled_at,    // Thời gian hẹn chuẩn ISO 8601 (VD: 2026-07-30T09:00:00.000Z)
+      services: payload.services,            // Mảng các object dịch vụ [{ service_id: "...", service_package_id: "..." }]
+      booking_source: payload.booking_source ?? 'web', // Nguồn đặt lịch: 'web' hoặc 'mobile'
+      ...(payload.promotion_id ? { promotion_id: payload.promotion_id } : {}), // ID Mã khuyến mãi (nếu có)
     })
+    // Giải nén dữ liệu thành công trả về object WashBooking mới tạo
     return normalizeWashBooking(unwrapApiData<Record<string, unknown>>(body))
   },
 
@@ -192,7 +209,10 @@ export const bookingService = {
     return normalizeWashBooking(unwrapApiData<Record<string, unknown>>(body))
   },
 
+  // 5. BƯỚC 1 TRONG QUY TRÌNH: Hàm gọi API xác nhận lịch hẹn (PATCH /bookings/{id}/confirm)
+  // Chuyển trạng thái đơn từ 'pending' (Chờ xác nhận) sang 'confirmed' (Đã xác nhận)
   async confirm(id: string, staff_id?: string): Promise<WashBooking> {
+    // Gửi request HTTP PATCH đến /bookings/{id}/confirm
     const body = await apiClient.patch<ApiResponse<Record<string, unknown>>>(
       `/bookings/${id}/confirm`,
       staff_id ? { staff_id } : {},

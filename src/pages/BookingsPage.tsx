@@ -211,21 +211,27 @@ export default function BookingsPage() {
 
   const [signedHandoverIds, setSignedHandoverIds] = useState<Set<string>>(new Set())
 
+  // HÀM TẢI VÀ HIỂN THỊ DANH SÁCH LỊCH HẸN DÀNH CHO KHÁCH HÀNG:
+  // Tải các đơn đặt lịch của tài khoản đang đăng nhập theo từng tab (Đang xử lý, Hoàn thành, Đã hủy...)
   const loadBookings = useCallback(async (currentPage: number) => {
     setLoading(true)
     try {
+      // 1. Xác định danh sách trạng thái cần lọc theo Tab đang chọn (VD: 'pending,confirmed,checked_in,washed')
       const activeTabConfig = TAB_CONFIG.find((t) => t.id === activeTab)
       const statusString = activeTabConfig?.statuses.join(',') || ''
 
+      // 2. GỌI API BOOKING SERVICE (GET /bookings): Lấy danh sách lịch hẹn của chính khách hàng này từ Backend
       const res = await bookingService.list({
         page: currentPage,
         limit,
-        booking_status: statusString
+        booking_status: statusString // Lọc theo chuỗi trạng thái
       })
+
+      // 3. Cập nhật mảng danh sách lịch hẹn và phân trang vào State để render ra màn hình danh sách đơn
       setBookings(res.items)
       setTotalPages(Math.ceil((res.total || 0) / limit) || 1)
 
-      // Kiểm tra trạng thái ký bàn giao xe cho các đơn washed / completed
+      // 4. Kiểm tra xem các đơn đã rửa xong / hoàn thành có chữ ký xác nhận bàn giao chưa
       const washedOrCompletedBookings = res.items.filter((b: WashBooking) =>
         b.booking_status === 'washed' || b.booking_status === 'completed'
       )
