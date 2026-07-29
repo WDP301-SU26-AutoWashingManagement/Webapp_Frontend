@@ -205,6 +205,10 @@ function AppContent() {
             element={<BossBranchesPage />}
           />
           <Route
+            path="services"
+            element={<AdminServiceManagementPage />}
+          />
+          <Route
             path="promotions"
             element={<BossPromotionsPage />}
           />

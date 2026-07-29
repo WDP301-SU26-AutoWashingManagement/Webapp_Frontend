@@ -9,6 +9,7 @@ import type { ServiceGroup } from '../../types/serviceGroup'
 import { adminServiceGroupService } from '../../services/adminServiceGroupService'
 import { showError, showSuccess } from '../../utils/toast'
 import { getErrorMessage } from '../../utils/errors'
+import { useAuth } from '../../hooks/useAuth'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const fmtPrice = (n: number) => n.toLocaleString('vi-VN') + 'đ'
@@ -178,6 +179,9 @@ function ServiceModal({ initial, groups, onClose, onSaved }: ServiceModalProps) 
 const PAGE_SIZE = 10
 
 export default function AdminServicesPage() {
+  const { user } = useAuth()
+  const isBoss = user?.role === 'boss'
+
   const [items, setItems] = useState<Service[]>([])
   const [groups, setGroups] = useState<ServiceGroup[]>([])
   const [total, setTotal] = useState(0)
@@ -293,9 +297,11 @@ export default function AdminServicesPage() {
           >
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           </button>
-          <button className="admin-btn admin-btn--primary" onClick={() => setModal('create')}>
-            <Plus size={15} /> Thêm dịch vụ
-          </button>
+          {isBoss && (
+            <button className="admin-btn admin-btn--primary" onClick={() => setModal('create')}>
+              <Plus size={15} /> Thêm dịch vụ
+            </button>
+          )}
         </div>
       </div>
 
@@ -309,16 +315,16 @@ export default function AdminServicesPage() {
               <th>Giá</th>
               <th>Thời gian</th>
               <th style={{ textAlign: 'center' }}>Trạng thái</th>
-              <th style={{ textAlign: 'center' }}>Thao tác</th>
+              {isBoss && <th style={{ textAlign: 'center' }}>Thao tác</th>}
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={6} className="admin-table__empty">
+              <tr><td colSpan={isBoss ? 6 : 5} className="admin-table__empty">
                 <RefreshCw size={20} className="animate-spin text-cyan-500 mx-auto" />
               </td></tr>
             ) : items.length === 0 ? (
-              <tr><td colSpan={6} className="admin-table__empty">Không có dịch vụ nào</td></tr>
+              <tr><td colSpan={isBoss ? 6 : 5} className="admin-table__empty">Không có dịch vụ nào</td></tr>
             ) : items.map(pkg => {
               const id = getId(pkg)
               const group = groups.find(g => (g._id || g.id) === pkg.service_group_id)
@@ -347,30 +353,32 @@ export default function AdminServicesPage() {
                     </span>
                   </td>
                   <td style={{ textAlign: 'center' }}>
-                    <label className={`relative inline-flex items-center ${pkg.service_name === 'Dịch vụ rửa xe' ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`} title={pkg.service_name === 'Dịch vụ rửa xe' ? "Dịch vụ mặc định không thể tắt" : (pkg.is_active ? "Đang hoạt động" : "Đã tạm ngưng")}>
-                      <input type="checkbox" className="sr-only peer" checked={pkg.is_active} onChange={() => void handleToggle(pkg)} disabled={togglingId === id || pkg.service_name === 'Dịch vụ rửa xe'} />
+                    <label className={`relative inline-flex items-center ${!isBoss || pkg.service_name === 'Dịch vụ rửa xe' ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`} title={!isBoss ? "Chỉ Boss mới có quyền bật/tắt dịch vụ" : (pkg.service_name === 'Dịch vụ rửa xe' ? "Dịch vụ mặc định không thể tắt" : (pkg.is_active ? "Đang hoạt động" : "Đã tạm ngưng"))}>
+                      <input type="checkbox" className="sr-only peer" checked={pkg.is_active} onChange={() => void handleToggle(pkg)} disabled={!isBoss || togglingId === id || pkg.service_name === 'Dịch vụ rửa xe'} />
                       <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-[100%] peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
                     </label>
                   </td>
-                  <td style={{ textAlign: 'center' }}>
-                    <div className="flex items-center justify-center gap-2">
-                      <button
-                        className="admin-action-btn admin-action-btn--edit"
-                        onClick={() => setModal(pkg)}
-                        title="Chỉnh sửa"
-                      >
-                        <Pencil size={14} />
-                      </button>
-                      <button
-                        className="admin-action-btn admin-action-btn--delete"
-                        onClick={() => void handleDelete(pkg)}
-                        disabled={deletingId === id || pkg.is_active || pkg.service_name === 'Dịch vụ rửa xe'}
-                        title={pkg.service_name === 'Dịch vụ rửa xe' ? 'Không thể xóa dịch vụ mặc định' : (pkg.is_active ? 'Tạm ngừng dịch vụ trước khi xóa' : 'Xoá')}
-                      >
-                        {deletingId === id ? <RefreshCw size={14} className="animate-spin" /> : <Trash2 size={14} />}
-                      </button>
-                    </div>
-                  </td>
+                  {isBoss && (
+                    <td style={{ textAlign: 'center' }}>
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          className="admin-action-btn admin-action-btn--edit"
+                          onClick={() => setModal(pkg)}
+                          title="Chỉnh sửa"
+                        >
+                          <Pencil size={14} />
+                        </button>
+                        <button
+                          className="admin-action-btn admin-action-btn--delete"
+                          onClick={() => void handleDelete(pkg)}
+                          disabled={deletingId === id || pkg.is_active || pkg.service_name === 'Dịch vụ rửa xe'}
+                          title={pkg.service_name === 'Dịch vụ rửa xe' ? 'Không thể xóa dịch vụ mặc định' : (pkg.is_active ? 'Tạm ngừng dịch vụ trước khi xóa' : 'Xoá')}
+                        >
+                          {deletingId === id ? <RefreshCw size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                        </button>
+                      </div>
+                    </td>
+                  )}
                 </tr>
               )
             })}
