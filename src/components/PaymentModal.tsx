@@ -342,19 +342,21 @@ export default function PaymentModal({ isOpen, onClose, booking, onSuccess }: Pa
                 {loadingPromotions ? (
                   <div className="text-sm text-slate-500 flex items-center gap-2"><RefreshCw size={14} className="animate-spin" /> Đang tải khuyến mãi...</div>
                 ) : (
-                  <select
-                    className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none"
-                    value={selectedPromotionId || ''}
-                    onChange={e => setSelectedPromotionId(e.target.value || null)}
-                    disabled={isCreatingInvoice}
-                  >
-                    <option value="">-- Không áp dụng khuyến mãi --</option>
-                    {promotions.map((p, index) => (
-                      <option key={p._id || p.id} value={p._id || p.id}>
-                        {formatPromotionLabel(p)} {index === 0 && p.calculatedDiscount > 0 ? ' (🔥 Tốt nhất)' : ''}
-                      </option>
-                    ))}
-                  </select>
+                  <>
+                    <select
+                      className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                      value={selectedPromotionId || ''}
+                      onChange={e => setSelectedPromotionId(e.target.value || null)}
+                      disabled={isCreatingInvoice}
+                    >
+                      <option value="">-- Không áp dụng khuyến mãi --</option>
+                      {promotions.map((p, index) => (
+                        <option key={p._id || p.id} value={p._id || p.id}>
+                          {formatPromotionLabel(p)} {index === 0 && p.calculatedDiscount > 0 ? ' (🔥 Tốt nhất)' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </>
                 )}
               </div>
             </div>
