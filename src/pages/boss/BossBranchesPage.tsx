@@ -257,22 +257,24 @@ function BranchModal({ branch, onClose, onSaved }: BranchModalProps) {
             </div>
           </div>
 
-          <div className="admin-form-row">
+          <div className="admin-form-row opacity-80">
             <div className="admin-form-group">
               <label className="admin-form-label">Mở cửa (Ngày thường)</label>
               <div className="flex gap-2">
                 <input
                   type="time"
-                  className="admin-form-input flex-1"
+                  disabled
+                  readOnly
+                  className="admin-form-input flex-1 bg-slate-100 cursor-not-allowed text-slate-500"
                   value={form.operating_time?.default_open}
-                  onChange={e => setForm(f => ({ ...f, operating_time: { ...f.operating_time!, default_open: e.target.value } }))}
                 />
                 <span className="self-center">-</span>
                 <input
                   type="time"
-                  className="admin-form-input flex-1"
+                  disabled
+                  readOnly
+                  className="admin-form-input flex-1 bg-slate-100 cursor-not-allowed text-slate-500"
                   value={form.operating_time?.default_close}
-                  onChange={e => setForm(f => ({ ...f, operating_time: { ...f.operating_time!, default_close: e.target.value } }))}
                 />
               </div>
             </div>
@@ -281,20 +283,23 @@ function BranchModal({ branch, onClose, onSaved }: BranchModalProps) {
               <div className="flex gap-2">
                 <input
                   type="time"
-                  className="admin-form-input flex-1"
+                  disabled
+                  readOnly
+                  className="admin-form-input flex-1 bg-slate-100 cursor-not-allowed text-slate-500"
                   value={form.operating_time?.weekend_open}
-                  onChange={e => setForm(f => ({ ...f, operating_time: { ...f.operating_time!, weekend_open: e.target.value } }))}
                 />
                 <span className="self-center">-</span>
                 <input
                   type="time"
-                  className="admin-form-input flex-1"
+                  disabled
+                  readOnly
+                  className="admin-form-input flex-1 bg-slate-100 cursor-not-allowed text-slate-500"
                   value={form.operating_time?.weekend_close}
-                  onChange={e => setForm(f => ({ ...f, operating_time: { ...f.operating_time!, weekend_close: e.target.value } }))}
                 />
               </div>
             </div>
           </div>
+
 
           <div className="admin-modal__footer mt-6 pt-4 border-t border-slate-100">
             <button type="button" onClick={onClose} className="admin-btn admin-btn--ghost">Huỷ</button>
