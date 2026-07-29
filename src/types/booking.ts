@@ -29,6 +29,8 @@ export interface WashBooking {
   customer?: { full_name?: string; phone_number?: string; tier_id?: { _id?: string; discount_percentage?: number; tier_name?: string } }
   created_at?: string
   branch_id?: any
+  promotion_id?: string
+  promotion?: any
   services?: Array<{
     _id: string
     service_id: {

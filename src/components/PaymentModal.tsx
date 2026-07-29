@@ -93,6 +93,11 @@ export default function PaymentModal({ isOpen, onClose, booking, onSuccess }: Pa
           const tierDiscountAmount = Math.round(basePrice * (tierDiscountPct / 100));
           const priceAfterTier = Math.max(0, basePrice - tierDiscountAmount);
 
+          // Kiểm tra xem khách hàng đã chọn mã khuyến mãi nào từ trước khi đặt lịch hay chưa
+          const customerSelectedPromoId = (booking as any).promotion_id 
+            ? (typeof (booking as any).promotion_id === 'object' ? (booking as any).promotion_id._id || (booking as any).promotion_id.id : String((booking as any).promotion_id))
+            : (booking as any).promotion?._id || (booking as any).promotion?.id || null;
+
           // Tính toán discount cho từng promotion và lọc các mã hợp lệ
           const withDiscounts = list.map((p: any) => {
             const discount = computePromotionDiscount(priceAfterTier, p);
@@ -104,9 +109,16 @@ export default function PaymentModal({ isOpen, onClose, booking, onSuccess }: Pa
 
           setPromotions(withDiscounts);
 
-          // Auto-select mã giảm nhiều nhất
-          if (withDiscounts.length > 0) {
-            setSelectedPromotionId(withDiscounts[0]._id || withDiscounts[0].id!);
+          // 1. Nếu khách hàng ĐÃ CHỌN khuyến mãi lúc đặt lịch -> Tự động chọn đúng mã đó
+          const foundCustomerPromo = customerSelectedPromoId
+            ? withDiscounts.find(p => (p._id || p.id) === customerSelectedPromoId)
+            : null;
+
+          if (foundCustomerPromo) {
+            setSelectedPromotionId(foundCustomerPromo._id || foundCustomerPromo.id!);
+          } else {
+            // 2. Nếu khách KHÔNG CHỌN mã lúc đặt lịch -> Mặc định KHÔNG áp dụng mã nào (để người dùng chọn thủ công nếu muốn)
+            setSelectedPromotionId(null);
           }
         })
         .catch(err => {
