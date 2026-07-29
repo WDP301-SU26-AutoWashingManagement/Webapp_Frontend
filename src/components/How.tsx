@@ -1,5 +1,7 @@
-import { UserPlus, CalendarCheck, Sparkles, Car, ShieldCheck } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { UserPlus, CalendarCheck, Sparkles, Car, ShieldCheck, Info, CheckCircle2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { servicePackageService } from '../services/servicePackageService'
 
 const steps = [
   {
@@ -33,6 +35,27 @@ const steps = [
 ]
 
 export default function HowItWorks() {
+  const [washPrice, setWashPrice] = useState<number | null>(null)
+
+  useEffect(() => {
+    let isMounted = true
+    servicePackageService.listActive()
+      .then(items => {
+        if (!isMounted) return
+        const washService = items.find(s =>
+          s.service_name?.toLowerCase().includes('dịch vụ rửa xe') ||
+          s.service_name?.toLowerCase().includes('rửa xe')
+        )
+        if (washService && typeof washService.service_price === 'number') {
+          setWashPrice(washService.service_price)
+        }
+      })
+      .catch(console.error)
+    return () => { isMounted = false }
+  }, [])
+
+  const displayPrice = washPrice !== null ? `${washPrice.toLocaleString('vi-VN')}đ` : '50.000đ'
+
   return (
     <section
       className="marketing-section page-section px-6 md:px-16 bg-white/35 backdrop-blur-md border-t border-b border-cyan-500/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)]"
@@ -91,6 +114,30 @@ export default function HowItWorks() {
               </div>
             )
           })}
+        </div>
+
+        {/* Note về Dịch vụ rửa xe mặc định và Giá từ hệ thống */}
+        <div className="mt-8 max-w-4xl mx-auto rounded-3xl border border-blue-500/20 bg-gradient-to-r from-blue-50/90 via-cyan-50/80 to-emerald-50/90 p-6 shadow-sm backdrop-blur-sm">
+          <div className="flex flex-col sm:flex-row items-start gap-4">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-md shadow-blue-500/20 mt-0.5">
+              <Info size={22} strokeWidth={2} />
+            </div>
+            <div className="flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h4 className="text-base font-bold text-slate-900">Lưu ý quan trọng khi Đặt lịch</h4>
+                <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-semibold text-blue-700 border border-blue-200">
+                  <CheckCircle2 size={13} /> Dịch vụ mặc định
+                </span>
+              </div>
+              <p className="text-sm text-slate-700 mt-1.5 leading-relaxed">
+                Mọi lịch hẹn <strong className="text-slate-900 font-bold">mặc định bao gồm Dịch vụ rửa xe</strong> ({' '}
+                <span className="inline-block font-bold text-blue-700 bg-white px-2 py-0.5 rounded border border-blue-200 text-xs sm:text-sm">
+                  {displayPrice}
+                </span>
+                ). Quý khách có thể chọn thêm dịch vụ lẻ hoặc gói Combo tùy nhu cầu.
+              </p>
+            </div>
+          </div>
         </div>
 
         <div className="mt-6 max-w-4xl mx-auto rounded-3xl border border-cyan-500/15 bg-gradient-to-r from-cyan-600/10 via-white/85 to-green-500/10 px-6 py-4 shadow-sm backdrop-blur-sm">
