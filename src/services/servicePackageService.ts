@@ -1,5 +1,5 @@
 import apiClient from './apiClient'
-import type { ServicePackage } from '../types/servicePackage'
+import type { Service } from '../types/service'
 import { normalizeVehicleType } from '../types/vehicle'
 import { normalizeMongoId } from '../utils/mongoId'
 import { dedupeRequest } from '../utils/dedupeRequest'
@@ -9,7 +9,7 @@ interface ServiceListEnvelope {
   data?: Record<string, unknown>[]
 }
 
-function normalizeServicePackage(raw: Record<string, unknown>): any {
+function normalizeServicePackage(raw: Record<string, unknown>): Service {
   const id = normalizeMongoId(raw._id ?? raw.id)
   return {
     _id: id || undefined,
@@ -23,9 +23,9 @@ function normalizeServicePackage(raw: Record<string, unknown>): any {
   }
 }
 
-/** GET /services — danh sách gói active (form đặt lịch, cần đăng nhập). */
+/** GET /services — danh sách dịch vụ active (form đặt lịch, trang chủ). */
 export const servicePackageService = {
-  async listActive(): Promise<ServicePackage[]> {
+  async listActive(): Promise<Service[]> {
     return dedupeRequest('services:active', async () => {
       const body = await apiClient.get<ServiceListEnvelope>('/services', {
         params: { page: 1, limit: 100, is_active: true },
@@ -34,7 +34,7 @@ export const servicePackageService = {
       return data
         .filter((item): item is Record<string, unknown> => item != null && typeof item === 'object')
         .map(normalizeServicePackage)
-        .filter((pkg: any) => (pkg.service_name || pkg.package_name) && pkg.is_active !== false)
+        .filter((pkg) => pkg.service_name && pkg.is_active !== false)
     })
   },
 }

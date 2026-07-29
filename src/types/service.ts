@@ -1,10 +1,11 @@
 export interface Service {
   _id?: string
   id?: string
-  service_group_id: string
+  service_group_id?: string
   service_name: string
   service_code?: string
   description?: string
+  vehicle_type?: string
   service_price: number
   duration_minutes: number
   is_active: boolean
