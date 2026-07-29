@@ -424,7 +424,7 @@ export default function NewBookingPage() {
       showSuccess(message || 'Mã khuyến mãi hợp lệ')
     } catch (err) {
       setValidatedPromotion(null)
-      showError(getApiErrorMessage(err, 'Mã khuyến mãi không hợp lệ hoặc đã hết hạn'))
+      showError('Mã khuyến mãi không hợp lệ hoặc đã hết hạn')
     } finally {
       setValidatingPromotion(false)
     }
